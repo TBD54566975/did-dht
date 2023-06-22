@@ -130,7 +130,7 @@ func TestBoltDB_PrefixAndKeys(t *testing.T) {
 
 func setupBoltDB(t *testing.T) *Storage {
 	path := "test.db"
-	db, err := NewStorage(&path)
+	db, err := NewStorage(path)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, db)
 

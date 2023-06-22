@@ -25,7 +25,7 @@ func NewServer(cfg config.Config, shutdown chan os.Signal) (*Server, error) {
 	// set up server prerequisites
 	setupLogger(cfg.LogLevel)
 	handler := setupHandler(cfg.Environment)
-	_, err := service.NewDIDDHTService(cfg)
+	ddtSvc, err := service.NewDIDDHTService(cfg)
 	if err != nil {
 		logrus.WithError(err).Error("could not instantiate did dht service")
 		return nil, err
@@ -43,6 +43,8 @@ func NewServer(cfg config.Config, shutdown chan os.Signal) (*Server, error) {
 			ReadHeaderTimeout: time.Second * 5,
 			WriteTimeout:      time.Second * 5,
 		},
+		cfg:      &cfg,
+		svc:      ddtSvc,
 		handler:  handler,
 		shutdown: shutdown,
 	}, nil
