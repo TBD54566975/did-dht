@@ -10,12 +10,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"did-dht/pkg/db"
+	"did-dht/config"
 	"did-dht/pkg/server"
-)
-
-const (
-	DefaultHost = "0.0.0.0:8521"
 )
 
 func main() {
@@ -33,13 +29,8 @@ func run() error {
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
-	storage, err := db.NewStorage(nil)
-	if err != nil {
-		logrus.WithError(err).Error("failed to instantiate storage")
-		return err
-	}
-
-	s, err := server.NewServer(*storage, DefaultHost, shutdown)
+	cfg := new(config.Config)
+	s, err := server.NewServer(*cfg, shutdown)
 	if err != nil {
 		logrus.WithError(err).Error("could not start http services")
 		return err
@@ -47,7 +38,7 @@ func run() error {
 
 	serverErrors := make(chan error, 1)
 	go func() {
-		logrus.Info("main: server started and listening on -> localhost:8080")
+		logrus.Infof("main: server started and listening on -> %s", s.Addr)
 		serverErrors <- s.ListenAndServe()
 	}()
 

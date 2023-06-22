@@ -11,20 +11,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	DefaultStoragePath = "diddht.db"
-)
-
 type Storage struct {
 	db *bolt.DB
 }
 
-func NewStorage(path *string) (*Storage, error) {
-	p := DefaultStoragePath
-	if path != nil {
-		p = *path
+func NewStorage(path string) (*Storage, error) {
+	if path == "" {
+		return nil, errors.New("path is required")
 	}
-	db, err := bolt.Open(p, 0600, &bolt.Options{Timeout: 3 * time.Second})
+	db, err := bolt.Open(path, 0600, &bolt.Options{Timeout: 3 * time.Second})
 	if err != nil {
 		return nil, err
 	}

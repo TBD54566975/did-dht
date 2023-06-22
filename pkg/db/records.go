@@ -1,4 +1,4 @@
-package records
+package db
 
 type DID struct {
 	ID       string `json:"id,omitempty"`
