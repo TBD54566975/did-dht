@@ -21,7 +21,9 @@ type Config struct {
 	LogLocation string      `toml:"log_location" conf:"default:log"`
 	LogLevel    string      `toml:"log_level" conf:"default:debug"`
 	DBFile      string      `toml:"db_file" conf:"default:diddht.db"`
-	Topic       string      `toml:"topic" conf:"default:did-dht"`
+	Name        string      `toml:"name" conf:"default:diddht-og"`
+	Namespace   string      `toml:"namespace" conf:"default:diddht"`
+	Topic       string      `toml:"topic" conf:"default:diddht"`
 }
 
 func GetDefaultConfig() Config {
@@ -31,6 +33,8 @@ func GetDefaultConfig() Config {
 		LogLocation: "log",
 		LogLevel:    "debug",
 		DBFile:      "diddht.db",
-		Topic:       "did-dht",
+		Name:        "diddht-og",
+		Namespace:   "diddht",
+		Topic:       "diddht",
 	}
 }

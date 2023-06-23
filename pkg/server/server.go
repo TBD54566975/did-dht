@@ -32,7 +32,7 @@ func NewServer(cfg config.Config, shutdown chan os.Signal) (*Server, error) {
 		logrus.WithError(err).Error("could not instantiate did dht service")
 		return nil, err
 	}
-	if err = ddtSvc.Start(context.Background(), cfg.Topic); err != nil {
+	if err = ddtSvc.Start(context.Background()); err != nil {
 		logrus.WithError(err).Error("could not start did dht service")
 		return nil, err
 	}
