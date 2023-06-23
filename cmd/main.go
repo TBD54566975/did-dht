@@ -29,8 +29,8 @@ func run() error {
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
-	cfg := new(config.Config)
-	s, err := server.NewServer(*cfg, shutdown)
+	cfg := config.GetDefaultConfig()
+	s, err := server.NewServer(cfg, shutdown)
 	if err != nil {
 		logrus.WithError(err).Error("could not start http services")
 		return err

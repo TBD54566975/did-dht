@@ -1,11 +1,13 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
 
 	"did-dht/config"
@@ -30,9 +32,45 @@ func NewServer(cfg config.Config, shutdown chan os.Signal) (*Server, error) {
 		logrus.WithError(err).Error("could not instantiate did dht service")
 		return nil, err
 	}
+	if err = ddtSvc.Start(context.Background(), cfg.Topic); err != nil {
+		logrus.WithError(err).Error("could not start did dht service")
+		return nil, err
+	}
 
 	handler.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "pong")
+	})
+
+	handler.PUT("/msg", func(c *gin.Context) {
+		decoder := json.NewDecoder(c.Request.Body)
+		decoder.DisallowUnknownFields()
+
+		var msg string
+		if err = decoder.Decode(&msg); err != nil {
+			logrus.WithError(err).Error("could not decode request body")
+			c.String(http.StatusBadRequest, "could not decode request body")
+			return
+		}
+
+		if err = ddtSvc.Gossip(c.Request.Context(), msg); err != nil {
+			logrus.WithError(err).Error("could not send message")
+			c.String(http.StatusInternalServerError, "could not send message")
+			return
+		}
+
+		c.String(http.StatusOK, "sent")
+	})
+
+	handler.GET("/info", func(c *gin.Context) {
+		id, peers := ddtSvc.Info()
+		c.JSON(http.StatusOK, gin.H{
+			"id":    id,
+			"peers": peers,
+		})
+	})
+
+	handler.GET("/got", func(c *gin.Context) {
+
 	})
 
 	return &Server{
