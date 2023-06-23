@@ -2,14 +2,17 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
 	"time"
 
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/discovery"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	"github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	discutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 	routedhost "github.com/libp2p/go-libp2p/p2p/host/routed"
@@ -51,8 +54,17 @@ func NewDIDDHTService(cfg config.Config) (*DIDDHTService, error) {
 	}
 	ddt.storage = storage
 
+	// TODO(gabe) use a persistent identity
+	// generate an identity for the node
+	privKey, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		logrus.WithError(err).Error("failed to generate key")
+		return nil, err
+	}
+
 	// create a new libp2p host that listens on a random TCP port
-	h, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
+	// TODO(gabe): allow for known bootstrap peers
+	h, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"), libp2p.Identity(privKey))
 	if err != nil {
 		logrus.WithError(err).Error("failed to instantiate libp2p host")
 		return nil, err
@@ -74,11 +86,22 @@ func NewDIDDHTService(cfg config.Config) (*DIDDHTService, error) {
 		return nil, err
 	}
 
+	// if local is set, set up local discovery
+	if cfg.LocalDiscovery {
+		if err = ddt.setupLocalDiscovery(ctx); err != nil {
+			logrus.WithError(err).Error("failed to set up local discovery")
+			return nil, err
+		}
+	}
+
+	// TODO(gabe): set up rendezvous discovery?
+
 	// set up peer discovery after refreshing the route table, try connecting to peers
 	if err = ddt.setupPeerDiscovery(ctx); err != nil {
 		logrus.WithError(err).Error("failed to set up peer discovery")
 		return nil, err
 	}
+
 	return &ddt, nil
 }
 
@@ -141,6 +164,40 @@ func (s *DIDDHTService) setupPeerDiscovery(ctx context.Context) error {
 		}()
 	}
 	return nil
+}
+
+func (s *DIDDHTService) setupLocalDiscovery(ctx context.Context) error {
+	ldn := new(localDiscoveryNotifee)
+	ldn.PeerChan = make(chan peer.AddrInfo)
+	svc := mdns.NewMdnsService(s.host, s.cfg.Namespace, ldn)
+	if err := svc.Start(); err != nil {
+		logrus.WithError(err).Error("failed to start mdns service")
+		return err
+	}
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case pi := <-ldn.PeerChan:
+				logrus.Infof("found local peer %s", pi.ID)
+				if err := s.host.Connect(ctx, pi); err != nil {
+					logrus.WithError(err).Errorf("failed to connect to peer %s", pi.ID)
+				} else {
+					logrus.Infof("connected to peer %s", pi.ID)
+				}
+			}
+		}
+	}()
+	return nil
+}
+
+type localDiscoveryNotifee struct {
+	PeerChan chan peer.AddrInfo
+}
+
+func (ldn *localDiscoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
+	ldn.PeerChan <- pi
 }
 
 func (s *DIDDHTService) Start(ctx context.Context) error {
