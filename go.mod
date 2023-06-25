@@ -4,7 +4,6 @@ go 1.20
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/ardanlabs/conf v1.5.0
 	github.com/boltdb/bolt v1.3.1
 	github.com/gin-gonic/gin v1.9.1
 	github.com/goccy/go-json v0.10.2
