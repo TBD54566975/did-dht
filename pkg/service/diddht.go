@@ -29,7 +29,7 @@ const (
 )
 
 type DIDDHTService struct {
-	cfg     config.Config
+	cfg     *config.Config
 	storage *db.Storage
 
 	// p2p host
@@ -44,7 +44,7 @@ type DIDDHTService struct {
 	gossiper *Gossiper
 }
 
-func NewDIDDHTService(cfg config.Config) (*DIDDHTService, error) {
+func NewDIDDHTService(cfg *config.Config) (*DIDDHTService, error) {
 	var ddt DIDDHTService
 	ddt.cfg = cfg
 	storage, err := db.NewStorage(cfg.DBFile)

@@ -23,7 +23,7 @@ type Server struct {
 }
 
 // NewServer returns a new instance of Server with the given db and host.
-func NewServer(cfg config.Config, shutdown chan os.Signal) (*Server, error) {
+func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	// set up server prerequisites
 	setupLogger(cfg.LogLevel)
 	handler := setupHandler(cfg.Environment)
@@ -81,7 +81,7 @@ func NewServer(cfg config.Config, shutdown chan os.Signal) (*Server, error) {
 			ReadHeaderTimeout: time.Second * 5,
 			WriteTimeout:      time.Second * 5,
 		},
-		cfg:      &cfg,
+		cfg:      cfg,
 		svc:      ddtSvc,
 		handler:  handler,
 		shutdown: shutdown,

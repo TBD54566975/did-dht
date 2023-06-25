@@ -23,13 +23,23 @@ func main() {
 }
 
 func run() error {
+	configPath := config.DefaultConfigPath
+	envConfigPath, present := os.LookupEnv(config.ConfigPath.String())
+	if present {
+		logrus.Infof("loading config from env var path: %s", envConfigPath)
+		configPath = envConfigPath
+	}
+	cfg, err := config.LoadConfig(configPath)
+	if err != nil {
+		logrus.Fatalf("could not instantiate config: %s", err.Error())
+	}
+
 	// create a channel of buffer size 1 to handle shutdown.
 	// buffer's size is 1 in order to ignore any additional ctrl+c
 	// spamming.
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
-	cfg := config.GetDefaultConfig()
 	s, err := server.NewServer(cfg, shutdown)
 	if err != nil {
 		logrus.WithError(err).Error("could not start http services")
