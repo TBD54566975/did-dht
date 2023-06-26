@@ -17,6 +17,7 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	discutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 	routedhost "github.com/libp2p/go-libp2p/p2p/host/routed"
+	"github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
@@ -149,7 +150,7 @@ func (s *DIDDHTService) bootstrapPeers(ctx context.Context) error {
 	for _, peerAddr := range s.cfg.BootstrapPeers {
 		peerInfo, err := peer.AddrInfoFromString(peerAddr)
 		if err != nil {
-			logrus.WithError(err).Errorf("failed to parse bootstrap peer multiaddr: %s", peerAddr)
+			logrus.WithError(err).Errorf("failed to parse bootstrap peer to p2p multiaddr: %s", peerAddr)
 			numBootstrapPeers--
 			continue
 		}
@@ -248,8 +249,8 @@ func (s *DIDDHTService) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *DIDDHTService) Info() (string, []peer.ID) {
-	return s.host.ID().String(), s.gossiper.ListPeers()
+func (s *DIDDHTService) Info() (string, []multiaddr.Multiaddr, []peer.ID) {
+	return s.host.ID().String(), s.host.Addrs(), s.gossiper.ListPeers()
 }
 
 func (s *DIDDHTService) Gossip(ctx context.Context, msg string) error {
