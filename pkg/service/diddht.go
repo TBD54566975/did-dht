@@ -19,6 +19,7 @@ import (
 	discutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 	"github.com/libp2p/go-libp2p/p2p/host/autonat"
 	routedhost "github.com/libp2p/go-libp2p/p2p/host/routed"
+	"github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -110,21 +111,16 @@ func NewDIDDHTService(cfg *config.Config) (*DIDDHTService, error) {
 
 	ctx := context.Background()
 
+	// set up relay
+	_, err = relay.New(h)
+	if err != nil {
+		logrus.WithError(err).Error("failed to set up relay")
+		return nil, err
+	}
+
 	// set up autonat
 	if _, err = autonat.New(h); err != nil {
 		logrus.WithError(err).Error("failed to set up autonat")
-		return nil, err
-	}
-
-	// create a new PubSub service using the GossipSub router
-	if err = ddt.setupGossipSub(ctx); err != nil {
-		logrus.WithError(err).Error("failed to set up gossipsub")
-		return nil, err
-	}
-
-	// init dht and associate it with the host
-	if err = ddt.setupDHT(ctx); err != nil {
-		logrus.WithError(err).Error("failed to set up dht")
 		return nil, err
 	}
 
@@ -134,6 +130,18 @@ func NewDIDDHTService(cfg *config.Config) (*DIDDHTService, error) {
 			logrus.WithError(err).Error("failed to bootstrap peers")
 			return nil, err
 		}
+	}
+
+	// init dht and associate it with the host
+	if err = ddt.setupDHT(ctx); err != nil {
+		logrus.WithError(err).Error("failed to set up dht")
+		return nil, err
+	}
+
+	// create a new PubSub service using the GossipSub router
+	if err = ddt.setupGossipSub(ctx); err != nil {
+		logrus.WithError(err).Error("failed to set up gossipsub")
+		return nil, err
 	}
 
 	// if local is set, set up local discovery
@@ -186,23 +194,21 @@ func (s *DIDDHTService) bootstrapPeers(ctx context.Context) error {
 	// connect to bootstrap peers
 	logrus.Info("connecting to bootstrap peers")
 	var wg sync.WaitGroup
+
 	numBootstrapPeers := len(s.cfg.BootstrapPeers)
 	for _, peerAddr := range s.cfg.BootstrapPeers {
-		peerInfo, err := multiaddr.NewMultiaddr(peerAddr)
+		peerInfo, err := peer.AddrInfoFromString(peerAddr)
 		if err != nil {
 			logrus.WithError(err).Errorf("failed to parse bootstrap peer: %s", peerAddr)
 			numBootstrapPeers--
 			continue
 		}
-		ai := peer.AddrInfo{
-			ID:    peer.ID(peerAddr),
-			Addrs: []multiaddr.Multiaddr{peerInfo},
-		}
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err = s.host.Connect(ctx, ai); err != nil {
+			if err = s.host.Connect(ctx, *peerInfo); err != nil {
 				logrus.WithError(err).Warnf("could not connect to bootstrap peer: %s", peerInfo.String())
+				numBootstrapPeers--
 			} else {
 				logrus.Infof("connection established with bootstrap node: %s", peerInfo.String())
 			}

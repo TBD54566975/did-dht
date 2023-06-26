@@ -56,7 +56,7 @@ func GetDefaultConfig() Config {
 		APIHost:        "0.0.0.0",
 		APIPort:        8305,
 		ListenPort:     8503,
-		BootstrapPeers: []string{},
+		BootstrapPeers: []string{"/ip4/54.226.19.143/tcp/8503/p2p/12D3KooWEgKRaVKRpdzsYDgFtXVGYGC21o5BrxMivvpXtapgcAXm"},
 		LogLocation:    "log",
 		LogLevel:       "debug",
 		DBFile:         "diddht.db",
