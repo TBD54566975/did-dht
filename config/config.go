@@ -88,14 +88,14 @@ func LoadConfig(path string) (*Config, error) {
 
 func checkValidConfigPath(path string) (bool, error) {
 	// no path, load default config
-	defaultConfig := false
 	if path == "" {
 		logrus.Info("no config path provided, loading default config...")
-		defaultConfig = true
-	} else if filepath.Ext(path) != Extension {
+		return true, nil
+	}
+	if filepath.Ext(path) != Extension {
 		return false, fmt.Errorf("file extension for path %q must be %q", path, Extension)
 	}
-	return defaultConfig, nil
+	return true, nil
 }
 
 func loadTOMLConfig(path string, cfg Config) error {

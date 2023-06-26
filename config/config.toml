@@ -1,0 +1,9 @@
+env = "dev"
+api_host = "0.0.0.0:8305"
+log_location = "log"
+log_level = "debug"
+db_file = "diddht.db"
+name = "tbd"
+namespace = "diddht"
+topic = "diddht"
+local_discovery = false
