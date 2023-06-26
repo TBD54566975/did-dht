@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"crypto/rand"
+	"sync"
 	"time"
 
 	"github.com/libp2p/go-libp2p"
@@ -86,6 +87,14 @@ func NewDIDDHTService(cfg *config.Config) (*DIDDHTService, error) {
 		return nil, err
 	}
 
+	// connect to bootstrap peers
+	if len(cfg.BootstrapPeers) > 0 {
+		if err = ddt.bootstrapPeers(ctx); err != nil {
+			logrus.WithError(err).Error("failed to bootstrap peers")
+			return nil, err
+		}
+	}
+
 	// if local is set, set up local discovery
 	if cfg.LocalDiscovery {
 		if err = ddt.setupLocalDiscovery(ctx); err != nil {
@@ -93,8 +102,6 @@ func NewDIDDHTService(cfg *config.Config) (*DIDDHTService, error) {
 			return nil, err
 		}
 	}
-
-	// TODO(gabe): set up rendezvous discovery?
 
 	// set up peer discovery after refreshing the route table, try connecting to peers
 	if err = ddt.setupPeerDiscovery(ctx); err != nil {
@@ -131,6 +138,36 @@ func (s *DIDDHTService) setupDHT(ctx context.Context) error {
 	}
 	s.host = routedhost.Wrap(s.host, dht)
 	s.dht = dht
+	return nil
+}
+
+func (s *DIDDHTService) bootstrapPeers(ctx context.Context) error {
+	// connect to bootstrap peers
+	logrus.Info("connecting to bootstrap peers")
+	var wg sync.WaitGroup
+	numBootstrapPeers := len(s.cfg.BootstrapPeers)
+	for _, peerAddr := range s.cfg.BootstrapPeers {
+		peerInfo, err := peer.AddrInfoFromString(peerAddr)
+		if err != nil {
+			logrus.WithError(err).Errorf("failed to parse bootstrap peer multiaddr: %s", peerAddr)
+			numBootstrapPeers--
+			continue
+		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err = s.host.Connect(ctx, *peerInfo); err != nil {
+				logrus.WithError(err).Warnf("could not connect to bootstrap peer: %s", peerInfo.String())
+			} else {
+				logrus.Infof("connection established with bootstrap node: %s", peerInfo.String())
+			}
+		}()
+	}
+	wg.Wait()
+
+	if numBootstrapPeers == 0 {
+		return errors.New("no bootstrap peers could be connected to")
+	}
 	return nil
 }
 

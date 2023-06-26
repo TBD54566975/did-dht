@@ -37,6 +37,7 @@ type Config struct {
 	Environment    Environment `toml:"env"`
 	APIHost        string      `toml:"api_host"`
 	ListenAddress  string      `toml:"listen_address"`
+	BootstrapPeers []string    `toml:"bootstrap_peers"`
 	LogLocation    string      `toml:"log_location"`
 	LogLevel       string      `toml:"log_level"`
 	DBFile         string      `toml:"db_file" `
@@ -51,6 +52,7 @@ func GetDefaultConfig() Config {
 		Environment:    EnvironmentDev,
 		APIHost:        "0.0.0.0:8305",
 		ListenAddress:  "/ip4/0.0.0.0/tcp/8503",
+		BootstrapPeers: []string{},
 		LogLocation:    "log",
 		LogLevel:       "debug",
 		DBFile:         "diddht.db",
