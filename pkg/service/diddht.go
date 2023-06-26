@@ -66,7 +66,7 @@ func NewDIDDHTService(cfg *config.Config) (*DIDDHTService, error) {
 		return nil, err
 	}
 
-	multiaddrString := fmt.Sprintf("/ip4/%s/tcp/%d", cfg.APIHost, cfg.APIPort)
+	multiaddrString := fmt.Sprintf("/ip4/%s/tcp/%d", cfg.APIHost, cfg.ListenPort)
 
 	// 0.0.0.0 will listen on any interface device.
 	sourceMultiAddr, _ := multiaddr.NewMultiaddr(multiaddrString)
