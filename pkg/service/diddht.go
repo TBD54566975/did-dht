@@ -65,8 +65,13 @@ func NewDIDDHTService(cfg *config.Config) (*DIDDHTService, error) {
 	}
 
 	// create a new libp2p host that listens on a random TCP port
-	// TODO(gabe): allow for known bootstrap peers
-	h, err := libp2p.New(libp2p.ListenAddrStrings(cfg.ListenAddress), libp2p.Identity(privKey))
+	h, err := libp2p.New(
+		libp2p.ListenAddrStrings(cfg.ListenAddress),
+		libp2p.Identity(privKey),
+		libp2p.EnableNATService(),
+		libp2p.EnableRelayService(),
+		libp2p.ForceReachabilityPublic(),
+	)
 	if err != nil {
 		logrus.WithError(err).Error("failed to instantiate libp2p host")
 		return nil, err
@@ -148,16 +153,20 @@ func (s *DIDDHTService) bootstrapPeers(ctx context.Context) error {
 	var wg sync.WaitGroup
 	numBootstrapPeers := len(s.cfg.BootstrapPeers)
 	for _, peerAddr := range s.cfg.BootstrapPeers {
-		peerInfo, err := peer.AddrInfoFromString(peerAddr)
+		peerInfo, err := multiaddr.NewMultiaddr(peerAddr)
 		if err != nil {
-			logrus.WithError(err).Errorf("failed to parse bootstrap peer to p2p multiaddr: %s", peerAddr)
+			logrus.WithError(err).Errorf("failed to parse bootstrap peer: %s", peerAddr)
 			numBootstrapPeers--
 			continue
+		}
+		ai := peer.AddrInfo{
+			ID:    peer.ID(peerAddr),
+			Addrs: []multiaddr.Multiaddr{peerInfo},
 		}
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err = s.host.Connect(ctx, *peerInfo); err != nil {
+			if err = s.host.Connect(ctx, ai); err != nil {
 				logrus.WithError(err).Warnf("could not connect to bootstrap peer: %s", peerInfo.String())
 			} else {
 				logrus.Infof("connection established with bootstrap node: %s", peerInfo.String())
