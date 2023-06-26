@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	advertisePeriod = time.Minute * 30
+	advertisePeriod = time.Second * 5
 	peerLimit       = 10
 )
 
@@ -64,13 +64,13 @@ func NewDIDDHTService(cfg *config.Config) (*DIDDHTService, error) {
 
 	// create a new libp2p host that listens on a random TCP port
 	// TODO(gabe): allow for known bootstrap peers
-	h, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"), libp2p.Identity(privKey))
+	h, err := libp2p.New(libp2p.ListenAddrStrings(cfg.ListenAddress), libp2p.Identity(privKey))
 	if err != nil {
 		logrus.WithError(err).Error("failed to instantiate libp2p host")
 		return nil, err
 	}
 	ddt.host = h
-	logrus.Infof("Host created with id: %s", h.ID())
+	logrus.Infof("Host created with id: %s, %q", h.ID(), h.Addrs())
 	logrus.Info(h.Addrs())
 
 	ctx := context.Background()
@@ -148,6 +148,7 @@ func (s *DIDDHTService) setupPeerDiscovery(ctx context.Context) error {
 	discutil.Advertise(ctx, d, s.cfg.Namespace, discovery.TTL(advertisePeriod))
 
 	// connect to peers
+	logrus.Info("finding peers")
 	peerChan, err := d.FindPeers(ctx, s.cfg.Namespace, discovery.Limit(peerLimit))
 	if err != nil {
 		logrus.WithError(err).Error("failed to find peers")

@@ -1,5 +1,6 @@
 env = "dev"
 api_host = "0.0.0.0:8305"
+listen_address = "/ip4/0.0.0.0/tcp/8503"
 log_location = "log"
 log_level = "debug"
 db_file = "diddht.db"
