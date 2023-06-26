@@ -56,15 +56,6 @@ func Clean() {
 	_ = os.RemoveAll("bin")
 }
 
-// CleanRun removes Docker container, network, and image artifacts.
-func CleanRun() error {
-	if err := isDockerReady(); err != nil {
-		return err
-	}
-	fmt.Println("Cleaning containers...")
-	return sh.Run("docker-compose", "--project-directory", "build", "down", "--rmi", "local")
-}
-
 // Deps installs the dependencies needed for the build toolchain.
 func Deps() error {
 	return brewInstall("golangci-lint")
@@ -81,10 +72,8 @@ func Lint() error {
 
 // Run the service via docker-compose.
 func Run() error {
-	if err := isDockerReady(); err != nil {
-		return err
-	}
-	return sh.Run("docker-compose", "--project-directory", "build", "up", "--build")
+	return runGo("cmd/main.go")
+	//return sh.Run("go", "run", "cmd/main.go")
 }
 
 // Test runs unit tests without coverage.
