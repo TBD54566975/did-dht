@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"crypto/rand"
+	"fmt"
 	"sync"
 	"time"
 
@@ -65,9 +66,35 @@ func NewDIDDHTService(cfg *config.Config) (*DIDDHTService, error) {
 		return nil, err
 	}
 
+	multiaddrString := fmt.Sprintf("/ip4/%s/tcp/%d", cfg.APIHost, cfg.APIPort)
+
+	// 0.0.0.0 will listen on any interface device.
+	sourceMultiAddr, _ := multiaddr.NewMultiaddr(multiaddrString)
+
+	var extMultiAddr multiaddr.Multiaddr
+	if cfg.BroadcastIP == "" {
+		logrus.Warn("external IP not defined, Peers might not be able to resolve this node if behind NAT")
+	} else {
+		// here we're creating the multiaddr that others should use to connect to me
+		extMultiAddr, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", cfg.BroadcastIP, cfg.ListenPort))
+		if err != nil {
+			logrus.WithError(err).Error("error creating multiaddress")
+			return nil, err
+		}
+	}
+	addressFactory := func(addrs []multiaddr.Multiaddr) []multiaddr.Multiaddr {
+		if extMultiAddr != nil {
+			// append the external facing multiaddr we created above to the addressFactory so it will be broadcast
+			// out when connecting to a bootstrap node.
+			addrs = append(addrs, extMultiAddr)
+		}
+		return addrs
+	}
+
 	// create a new libp2p host that listens on a random TCP port
 	h, err := libp2p.New(
-		libp2p.ListenAddrStrings(cfg.ListenAddress),
+		libp2p.ListenAddrStrings(sourceMultiAddr.String()),
+		libp2p.AddrsFactory(addressFactory),
 		libp2p.Identity(privKey),
 		libp2p.EnableNATService(),
 		libp2p.EnableRelayService(),

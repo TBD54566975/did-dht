@@ -20,8 +20,9 @@ const (
 	EnvironmentTest Environment = "test"
 	EnvironmentProd Environment = "prod"
 
-	ConfigPath EnvironmentVariable = "CONFIG_PATH"
-	NameEnvVar EnvironmentVariable = "NAME"
+	ConfigPath        EnvironmentVariable = "CONFIG_PATH"
+	NameEnvVar        EnvironmentVariable = "NAME"
+	BroadcastIPEnvVar EnvironmentVariable = "BROADCAST_IP"
 )
 
 type (
@@ -36,7 +37,9 @@ func (e EnvironmentVariable) String() string {
 type Config struct {
 	Environment    Environment `toml:"env"`
 	APIHost        string      `toml:"api_host"`
-	ListenAddress  string      `toml:"listen_address"`
+	APIPort        int         `toml:"api_port"`
+	ListenPort     int         `toml:"listen_port"`
+	BroadcastIP    string      `toml:"broadcast_ip"`
 	BootstrapPeers []string    `toml:"bootstrap_peers"`
 	LogLocation    string      `toml:"log_location"`
 	LogLevel       string      `toml:"log_level"`
@@ -50,9 +53,10 @@ type Config struct {
 func GetDefaultConfig() Config {
 	return Config{
 		Environment:    EnvironmentDev,
-		APIHost:        "0.0.0.0:8305",
-		ListenAddress:  "/ip4/0.0.0.0/tcp/8503",
-		BootstrapPeers: []string{"/ip4/54.226.19.143/tcp/8503", "/ip4/54.226.19.143/tcp/8305"},
+		APIHost:        "0.0.0.0",
+		APIPort:        8305,
+		ListenPort:     8503,
+		BootstrapPeers: []string{},
 		LogLocation:    "log",
 		LogLevel:       "debug",
 		DBFile:         "diddht.db",
@@ -125,5 +129,9 @@ func applyEnvVariables(cfg Config) error {
 		cfg.Name = nameEnv
 	}
 
+	broadcastIPEnv, present := os.LookupEnv(BroadcastIPEnvVar.String())
+	if present {
+		cfg.BroadcastIP = broadcastIPEnv
+	}
 	return nil
 }
