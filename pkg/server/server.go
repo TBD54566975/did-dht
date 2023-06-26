@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -76,7 +77,7 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 
 	return &Server{
 		Server: &http.Server{
-			Addr:              cfg.APIHost,
+			Addr:              fmt.Sprintf("%s:%d", cfg.APIHost, cfg.APIPort),
 			Handler:           handler,
 			ReadTimeout:       time.Second * 5,
 			ReadHeaderTimeout: time.Second * 5,

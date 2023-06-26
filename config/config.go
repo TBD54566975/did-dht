@@ -119,9 +119,9 @@ func applyEnvVariables(cfg Config) error {
 		// The error indicates that the file or directory does not exist.
 		if os.IsNotExist(err) {
 			logrus.Info("no .env file found, skipping apply env variables...")
-			return nil
+		} else {
+			return errors.Wrap(err, "dotenv parsing")
 		}
-		return errors.Wrap(err, "dotenv parsing")
 	}
 
 	nameEnv, present := os.LookupEnv(NameEnvVar.String())
