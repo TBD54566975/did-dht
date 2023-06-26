@@ -2,6 +2,10 @@
 
 A DID-based network relying upon the IPFS DHT which facilitates the discovery of DID Documents and associated endpoints.
 
+## Design
+
+- Able to ...
+
 ## Project Resources
 
 | Resource                                                                               | Description                                                                   |

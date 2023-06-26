@@ -60,7 +60,7 @@ func GetDefaultConfig() Config {
 		LogLocation:    "log",
 		LogLevel:       "debug",
 		DBFile:         "diddht.db",
-		Name:           "diddht-og",
+		Name:           "gabe",
 		Namespace:      "diddht",
 		Topic:          "diddht",
 		LocalDiscovery: true,

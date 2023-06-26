@@ -1,6 +1,8 @@
 env = "dev"
-api_host = "0.0.0.0:8305"
-listen_address = "/ip4/0.0.0.0/tcp/8503"
+api_host = "0.0.0.0"
+api_port = 8305
+listen_port = 8503
+bootstrap_peers = ["/ip4/54.226.19.143/tcp/8503/p2p/12D3KooWEgKRaVKRpdzsYDgFtXVGYGC21o5BrxMivvpXtapgcAXm"]
 log_location = "log"
 log_level = "debug"
 db_file = "diddht.db"

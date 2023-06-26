@@ -19,7 +19,6 @@ import (
 	discutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 	"github.com/libp2p/go-libp2p/p2p/host/autonat"
 	routedhost "github.com/libp2p/go-libp2p/p2p/host/routed"
-	"github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -36,6 +35,8 @@ const (
 type DIDDHTService struct {
 	cfg     *config.Config
 	storage *db.Storage
+
+	externalAddress string
 
 	// p2p host
 	host host.Host
@@ -70,11 +71,16 @@ func NewDIDDHTService(cfg *config.Config) (*DIDDHTService, error) {
 	multiaddrString := fmt.Sprintf("/ip4/%s/tcp/%d", cfg.APIHost, cfg.ListenPort)
 
 	// 0.0.0.0 will listen on any interface device.
-	sourceMultiAddr, _ := multiaddr.NewMultiaddr(multiaddrString)
+	sourceMultiAddr, err := multiaddr.NewMultiaddr(multiaddrString)
+	if err != nil {
+		logrus.WithError(err).Error("failed to parse multiaddr")
+		return nil, err
+	}
 
 	var extMultiAddr multiaddr.Multiaddr
 	if cfg.BroadcastIP == "" {
 		logrus.Warn("external IP not defined, Peers might not be able to resolve this node if behind NAT")
+		ddt.externalAddress = fmt.Sprintf("%s/p2p/%s", multiaddrString, ddt.host.ID())
 	} else {
 		// here we're creating the multiaddr that others should use to connect to me
 		extMultiAddr, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", cfg.BroadcastIP, cfg.ListenPort))
@@ -82,6 +88,7 @@ func NewDIDDHTService(cfg *config.Config) (*DIDDHTService, error) {
 			logrus.WithError(err).Error("error creating multiaddress")
 			return nil, err
 		}
+		ddt.externalAddress = fmt.Sprintf("%s/p2p/%s", extMultiAddr, ddt.host.ID())
 	}
 	addressFactory := func(addrs []multiaddr.Multiaddr) []multiaddr.Multiaddr {
 		if extMultiAddr != nil {
@@ -100,6 +107,7 @@ func NewDIDDHTService(cfg *config.Config) (*DIDDHTService, error) {
 		libp2p.EnableNATService(),
 		libp2p.EnableRelayService(),
 		libp2p.ForceReachabilityPublic(),
+		libp2p.EnableHolePunching(),
 	)
 	if err != nil {
 		logrus.WithError(err).Error("failed to instantiate libp2p host")
@@ -110,13 +118,6 @@ func NewDIDDHTService(cfg *config.Config) (*DIDDHTService, error) {
 	logrus.Info(h.Addrs())
 
 	ctx := context.Background()
-
-	// set up relay
-	_, err = relay.New(h)
-	if err != nil {
-		logrus.WithError(err).Error("failed to set up relay")
-		return nil, err
-	}
 
 	// set up autonat
 	if _, err = autonat.New(h); err != nil {
@@ -299,8 +300,8 @@ func (s *DIDDHTService) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *DIDDHTService) Info() (string, []multiaddr.Multiaddr, []peer.ID) {
-	return s.host.ID().String(), s.host.Addrs(), s.gossiper.ListPeers()
+func (s *DIDDHTService) Info() (string, string, []peer.ID) {
+	return s.host.ID().String(), s.externalAddress, s.gossiper.ListPeers()
 }
 
 func (s *DIDDHTService) Gossip(ctx context.Context, msg string) error {

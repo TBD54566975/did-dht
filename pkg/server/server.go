@@ -63,11 +63,11 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	})
 
 	handler.GET("/info", func(c *gin.Context) {
-		id, addrs, peers := ddtSvc.Info()
+		id, addr, peers := ddtSvc.Info()
 		c.JSON(http.StatusOK, gin.H{
-			"id":    id,
-			"addrs": addrs,
-			"peers": peers,
+			"id":      id,
+			"address": addr,
+			"peers":   peers,
 		})
 	})
 
