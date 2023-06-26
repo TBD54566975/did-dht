@@ -1,4 +1,4 @@
-name: ssi-service-ci
+name: did-dht-ci
 
 # when:
 #   - a pull request is opened against main
