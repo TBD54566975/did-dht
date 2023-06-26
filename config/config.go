@@ -52,7 +52,7 @@ func GetDefaultConfig() Config {
 		Environment:    EnvironmentDev,
 		APIHost:        "0.0.0.0:8305",
 		ListenAddress:  "/ip4/0.0.0.0/tcp/8503",
-		BootstrapPeers: []string{},
+		BootstrapPeers: []string{"/ip4/54.226.19.143/tcp/8503", "/ip4/54.226.19.143/tcp/8305"},
 		LogLocation:    "log",
 		LogLevel:       "debug",
 		DBFile:         "diddht.db",

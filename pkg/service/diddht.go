@@ -16,6 +16,7 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	"github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	discutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
+	"github.com/libp2p/go-libp2p/p2p/host/autonat"
 	routedhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
@@ -81,6 +82,13 @@ func NewDIDDHTService(cfg *config.Config) (*DIDDHTService, error) {
 	logrus.Info(h.Addrs())
 
 	ctx := context.Background()
+
+	// set up autonat
+	if _, err = autonat.New(h); err != nil {
+		logrus.WithError(err).Error("failed to set up autonat")
+		return nil, err
+	}
+
 	// create a new PubSub service using the GossipSub router
 	if err = ddt.setupGossipSub(ctx); err != nil {
 		logrus.WithError(err).Error("failed to set up gossipsub")
