@@ -80,7 +80,6 @@ func NewDHTService(cfg *config.Config) (*DHTService, error) {
 	var extMultiAddr multiaddr.Multiaddr
 	if cfg.BroadcastIP == "" {
 		logrus.Warn("external IP not defined, Peers might not be able to resolve this node if behind NAT")
-		ddt.externalAddress = fmt.Sprintf("%s/p2p/%s", multiaddrString, ddt.host.ID())
 	} else {
 		// here we're creating the multiaddr that others should use to connect to me
 		extMultiAddr, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", cfg.BroadcastIP, cfg.ListenPort))
@@ -88,7 +87,6 @@ func NewDHTService(cfg *config.Config) (*DHTService, error) {
 			logrus.WithError(err).Error("error creating multiaddress")
 			return nil, err
 		}
-		ddt.externalAddress = fmt.Sprintf("%s/p2p/%s", extMultiAddr, ddt.host.ID())
 	}
 	addressFactory := func(addrs []multiaddr.Multiaddr) []multiaddr.Multiaddr {
 		if extMultiAddr != nil {
@@ -116,6 +114,13 @@ func NewDHTService(cfg *config.Config) (*DHTService, error) {
 	ddt.host = h
 	logrus.Infof("Host created with id: %s, %q", h.ID(), h.Addrs())
 	logrus.Info(h.Addrs())
+
+	// set variable for our external address
+	if extMultiAddr != nil {
+		ddt.externalAddress = fmt.Sprintf("%s/p2p/%s", extMultiAddr, ddt.host.ID())
+	} else {
+		ddt.externalAddress = fmt.Sprintf("%s/p2p/%s", multiaddrString, ddt.host.ID())
+	}
 
 	ctx := context.Background()
 

@@ -73,7 +73,7 @@ func Lint() error {
 // Run the service via docker-compose.
 func Run() error {
 	return runGo("cmd/main.go")
-	//return sh.Run("go", "run", "cmd/main.go")
+	// return sh.Run("go", "run", "cmd/main.go")
 }
 
 // Test runs unit tests without coverage.
@@ -107,13 +107,13 @@ func Spec() error {
 		return err
 	}
 
-	if err := sh.Run(swagCommand, "fmt", "-d", "pkg/server/router"); err != nil {
+	if err := sh.Run(swagCommand, "fmt", "-d", "pkg/server"); err != nil {
 		logrus.WithError(err).Error("failed to format swagger docs")
 		return err
 	}
 
 	// We need to enable dependencies because many of our external API objects have ssi-sdk objects.
-	return sh.Run(swagCommand, "init", "-g", "cmd/main.go", "--pd", "--parseInternal", "-o", "doc", "-ot", "go,yaml")
+	return sh.Run(swagCommand, "init", "-g", "cmd/main.go", "--pd", "--parseInternal", "-ot", "go,yaml")
 }
 
 func runCITests(extraTestArgs ...string) error {
