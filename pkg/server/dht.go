@@ -44,6 +44,18 @@ type AddRecordResponse struct {
 	Message string `json:"message"`
 }
 
+// AddRecord godoc
+//
+//	@Summary		Add a record to the DHT
+//	@Description	Add a record to the DHT
+//	@Tags			DHT
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		AddRecordRequest	true	"Add Record Request"
+//	@Success		202		{object}	AddRecordResponse
+//	@Failure		400		{string}	string	"Bad request"
+//	@Failure		500		{string}	string	"Internal server error"
+//	@Router			/v1/dht [put]
 func (r *DHTRouter) AddRecord(c *gin.Context) {
 	// TODO(gabe): validate before adding record
 	var request AddRecordRequest
@@ -57,7 +69,7 @@ func (r *DHTRouter) AddRecord(c *gin.Context) {
 		return
 	}
 
-	Respond(c, AddRecordResponse{Message: "success"}, http.StatusOK)
+	Respond(c, AddRecordResponse{Message: "success"}, http.StatusAccepted)
 }
 
 const (
@@ -68,6 +80,18 @@ type GetRecordResponse struct {
 	Record service.DDTMessage `json:"record"`
 }
 
+// ReadRecord godoc
+//
+//	@Summary		Read a record from the DHT
+//	@Description	Read a record from the DHT
+//	@Tags			DHT
+//	@Accept			json
+//	@Produce		json
+//	@Param			did	path		string	true	"did to query"
+//	@Success		200	{object}	GetRecordResponse
+//	@Failure		400	{string}	string	"Bad request"
+//	@Failure		500	{string}	string	"Internal server error"
+//	@Router			/v1/dht/{did} [get]
 func (r *DHTRouter) ReadRecord(c *gin.Context) {
 	did := GetParam(c, DIDParam)
 	if did == nil || *did == "" {
@@ -84,6 +108,16 @@ func (r *DHTRouter) ReadRecord(c *gin.Context) {
 	Respond(c, GetRecordResponse{Record: *resp}, http.StatusOK)
 }
 
+// ListRecords godoc
+//
+//	@Summary		List all records from the DHT
+//	@Description	List all records from the DHT
+//	@Tags			DHT
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{array}		GetRecordResponse
+//	@Failure		500	{string}	string	"Internal server error"
+//	@Router			/v1/dht [get]
 func (r *DHTRouter) ListRecords(c *gin.Context) {
 	resp, err := r.service.ListRecords(c)
 	if err != nil {
@@ -103,6 +137,18 @@ type RemoveRecordResponse struct {
 	Message string `json:"message"`
 }
 
+// RemoveRecord godoc
+//
+//	@Summary		Remove a record from the DHT
+//	@Description	Remove a record from the DHT
+//	@Tags			DHT
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		RemoveRecordRequest	true	"Remove Record Request"
+//	@Success		200		{object}	RemoveRecordResponse
+//	@Failure		400		{string}	string	"Bad request"
+//	@Failure		500		{string}	string	"Internal server error"
+//	@Router			/v1/dht [delete]
 func (r *DHTRouter) RemoveRecord(c *gin.Context) {
 	// TODO(gabe): validate before removing record
 	var request RemoveRecordRequest

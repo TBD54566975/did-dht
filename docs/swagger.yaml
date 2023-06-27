@@ -1,0 +1,228 @@
+definitions:
+  did-dht_pkg_service.DDTMessage:
+    properties:
+      publisher:
+        $ref: '#/definitions/did-dht_pkg_service.Publisher'
+      record:
+        $ref: '#/definitions/did-dht_pkg_service.Record'
+      requester:
+        $ref: '#/definitions/did-dht_pkg_service.Requester'
+    type: object
+  did-dht_pkg_service.Publisher:
+    properties:
+      did:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  did-dht_pkg_service.Record:
+    properties:
+      did:
+        type: string
+      endpoint:
+        type: string
+    type: object
+  did-dht_pkg_service.Requester:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  pkg_server.AddRecordRequest:
+    properties:
+      did:
+        type: string
+      endpoint:
+        type: string
+      requesterId:
+        type: string
+      requesterName:
+        type: string
+    required:
+    - did
+    - endpoint
+    - requesterId
+    - requesterName
+    type: object
+  pkg_server.AddRecordResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  pkg_server.GetHealthCheckResponse:
+    properties:
+      status:
+        description: Status is always equal to `OK`.
+        type: string
+    type: object
+  pkg_server.GetRecordResponse:
+    properties:
+      record:
+        $ref: '#/definitions/did-dht_pkg_service.DDTMessage'
+    type: object
+  pkg_server.InfoResponse:
+    properties:
+      address:
+        type: string
+      id:
+        type: string
+      peers:
+        items:
+          type: string
+        type: array
+    type: object
+  pkg_server.RemoveRecordRequest:
+    properties:
+      did:
+        type: string
+      requester:
+        type: string
+    required:
+    - did
+    - requester
+    type: object
+  pkg_server.RemoveRecordResponse:
+    properties:
+      message:
+        type: string
+    type: object
+host: '{{.Server.APIHost}}'
+info:
+  contact:
+    email: tbd-developer@squareup.com
+    name: TBD
+    url: https://github.com/TBD54566975/did-dht/issues
+  description: The DID DHT Service
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: DID DHT Service API
+  version: '{{.SVN}}'
+paths:
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Health is a simple handler that always responds with a 200 OK
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg_server.GetHealthCheckResponse'
+      summary: Health Check
+      tags:
+      - HealthCheck
+  /v1/dht:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a record from the DHT
+      parameters:
+      - description: Remove Record Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/pkg_server.RemoveRecordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg_server.RemoveRecordResponse'
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Remove a record from the DHT
+      tags:
+      - DHT
+    get:
+      consumes:
+      - application/json
+      description: List all records from the DHT
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/pkg_server.GetRecordResponse'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: List all records from the DHT
+      tags:
+      - DHT
+    put:
+      consumes:
+      - application/json
+      description: Add a record to the DHT
+      parameters:
+      - description: Add Record Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/pkg_server.AddRecordRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/pkg_server.AddRecordResponse'
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Add a record to the DHT
+      tags:
+      - DHT
+  /v1/dht/{did}:
+    get:
+      consumes:
+      - application/json
+      description: Read a record from the DHT
+      parameters:
+      - description: did to query
+        in: path
+        name: did
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg_server.GetRecordResponse'
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Read a record from the DHT
+      tags:
+      - DHT
+swagger: "2.0"

@@ -9,8 +9,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	swaggerfiles "github.com/swaggo/files"
+	ginswagger "github.com/swaggo/gin-swagger"
 
 	"did-dht/config"
+	"did-dht/docs"
 	"did-dht/pkg/service"
 )
 
@@ -39,18 +42,14 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 		return nil, err
 	}
 
-	handler.GET("/ping", func(c *gin.Context) {
-		c.String(http.StatusOK, "pong")
-	})
+	handler.GET("/health", Health)
+	handler.GET("/info", Info(ddtSvc))
 
-	handler.GET("/info", func(c *gin.Context) {
-		id, addr, peers := ddtSvc.Info()
-		c.JSON(http.StatusOK, gin.H{
-			"id":      id,
-			"address": addr,
-			"peers":   peers,
-		})
-	})
+	// set up swagger
+	docs.SwaggerInfo.Host = fmt.Sprintf("%s:%d", cfg.APIHost, cfg.APIPort)
+	docs.SwaggerInfo.Version = "0.0.1"
+	handler.StaticFile("swagger.yaml", "./docs/swagger.yaml")
+	handler.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler, ginswagger.URL("/swagger.yaml")))
 
 	v1 := handler.Group("/v1")
 	if err = DHTAPI(v1, ddtSvc); err != nil {
