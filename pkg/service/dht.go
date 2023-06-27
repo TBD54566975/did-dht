@@ -177,6 +177,7 @@ func (s *DHTService) setupGossipSub(ctx context.Context) error {
 }
 
 func (s *DHTService) setupDHT(ctx context.Context) error {
+	// TODO(gabe): make a custom validator using DIDs with record.Validator
 	dht, err := dht.New(ctx, s.host, dht.Mode(dht.ModeServer))
 	if err != nil {
 		logrus.WithError(err).Error("failed to instantiate dht service")
@@ -304,9 +305,61 @@ func (s *DHTService) Info() (string, string, []peer.ID) {
 	return s.host.ID().String(), s.externalAddress, s.gossiper.ListPeers()
 }
 
-func (s *DHTService) Gossip(ctx context.Context, msg DHTMessage) error {
+func (s *DHTService) GossipRecord(ctx context.Context, msg DDTMessage) error {
 	if s.gossiper == nil {
 		return errors.New("gossiper not started")
 	}
-	return s.gossiper.Publish(ctx, msg)
+	return s.gossiper.publish(ctx, msg)
+}
+
+func (s *DHTService) QueryRecord(_ context.Context, did string) (*DDTMessage, error) {
+	if s.gossiper == nil {
+		return nil, errors.New("gossiper not started")
+	}
+
+	record, err := s.storage.ReadRecord(did)
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to read record")
+	}
+	if record == nil {
+		return nil, errors.New("record not found")
+	}
+
+	// TODO(gabe): when we don't have the record locally, query the DHT using our custom protocol when we have it
+	// TODO(gabe): as an alternative, consider a way to query APIs of specific peers using IPNS records
+	return &DDTMessage{
+		Requester: Requester(record.Requester),
+		Publisher: Publisher(record.Publisher),
+		Record:    Record(record.Record),
+	}, nil
+}
+
+func (s *DHTService) ListRecords(_ context.Context) ([]DDTMessage, error) {
+	if s.gossiper == nil {
+		return nil, errors.New("gossiper not started")
+	}
+
+	records, err := s.storage.ListRecords()
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to list records")
+	}
+
+	var messages []DDTMessage
+	for _, record := range records {
+		messages = append(messages, DDTMessage{
+			Requester: Requester(record.Requester),
+			Publisher: Publisher(record.Publisher),
+			Record:    Record(record.Record),
+		})
+	}
+	return messages, nil
+}
+
+func (s *DHTService) RemoveRecord(_ context.Context, did string) error {
+	if s.gossiper == nil {
+		return errors.New("gossiper not started")
+	}
+
+	// TODO(gabe): when we don't have the record locally, query the DHT using our custom protocol to invalidate the record
+	return s.storage.DeleteRecord(did)
 }

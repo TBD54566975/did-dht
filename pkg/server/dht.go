@@ -20,15 +20,15 @@ func NewDHTRouter(service *service.DHTService) (*DHTRouter, error) {
 	return &DHTRouter{service: service}, nil
 }
 
-type AddDHTRecordRequest struct {
+type AddRecordRequest struct {
 	RequesterID   string `json:"requesterId" validate:"required"`
 	RequesterName string `json:"requesterName" validate:"required"`
 	DID           string `json:"did" validate:"required"`
 	Endpoint      string `json:"endpoint" validate:"required"`
 }
 
-func (r AddDHTRecordRequest) toServiceRequest() service.DHTMessage {
-	return service.DHTMessage{
+func (r AddRecordRequest) toServiceRequest() service.DDTMessage {
+	return service.DDTMessage{
 		Requester: service.Requester{
 			ID:   r.RequesterID,
 			Name: r.RequesterName,
@@ -40,28 +40,81 @@ func (r AddDHTRecordRequest) toServiceRequest() service.DHTMessage {
 	}
 }
 
-func (r *DHTRouter) AddDHTRecord(c *gin.Context) {
-	var request AddDHTRecordRequest
+type AddRecordResponse struct {
+	Message string `json:"message"`
+}
+
+func (r *DHTRouter) AddRecord(c *gin.Context) {
+	// TODO(gabe): validate before adding record
+	var request AddRecordRequest
 	if err := Decode(c.Request, &request); err != nil {
 		LoggingRespondErrWithMsg(c, err, "invalid add dht record request", http.StatusBadRequest)
 		return
 	}
 
-	if err := r.service.Gossip(c, request.toServiceRequest()); err != nil {
+	if err := r.service.GossipRecord(c, request.toServiceRequest()); err != nil {
 		LoggingRespondErrWithMsg(c, err, "failed to gossip", http.StatusInternalServerError)
 		return
 	}
 
-	Respond(c, "success", http.StatusOK)
+	Respond(c, AddRecordResponse{Message: "success"}, http.StatusOK)
 }
 
-type ReadDHTRecordRequest struct {
-	DID string `json:"did" validate:"required"`
+const (
+	DIDParam = "did"
+)
+
+type GetRecordResponse struct {
+	Record service.DDTMessage `json:"record"`
 }
 
-type ReadDHTRecordsRequest struct{}
+func (r *DHTRouter) ReadRecord(c *gin.Context) {
+	did := GetParam(c, DIDParam)
+	if did == nil || *did == "" {
+		LoggingRespondErrMsg(c, "missing did param", http.StatusBadRequest)
+		return
+	}
 
-type RemoveDHTRecordRequest struct {
+	resp, err := r.service.QueryRecord(c, *did)
+	if err != nil {
+		LoggingRespondErrWithMsg(c, err, "failed to query", http.StatusInternalServerError)
+		return
+	}
+
+	Respond(c, GetRecordResponse{Record: *resp}, http.StatusOK)
+}
+
+func (r *DHTRouter) ListRecords(c *gin.Context) {
+	resp, err := r.service.ListRecords(c)
+	if err != nil {
+		LoggingRespondErrWithMsg(c, err, "failed to query", http.StatusInternalServerError)
+		return
+	}
+
+	Respond(c, resp, http.StatusOK)
+}
+
+type RemoveRecordRequest struct {
 	Requester string `json:"requester" validate:"required"`
 	DID       string `json:"did" validate:"required"`
+}
+
+type RemoveRecordResponse struct {
+	Message string `json:"message"`
+}
+
+func (r *DHTRouter) RemoveRecord(c *gin.Context) {
+	// TODO(gabe): validate before removing record
+	var request RemoveRecordRequest
+	if err := Decode(c.Request, &request); err != nil {
+		LoggingRespondErrWithMsg(c, err, "invalid remove dht record request", http.StatusBadRequest)
+		return
+	}
+
+	if err := r.service.RemoveRecord(c, request.DID); err != nil {
+		LoggingRespondErrWithMsg(c, err, "failed to remove", http.StatusInternalServerError)
+		return
+	}
+
+	Respond(c, RemoveRecordResponse{Message: "success"}, http.StatusOK)
 }

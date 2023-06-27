@@ -119,6 +119,9 @@ func DHTAPI(rg *gin.RouterGroup, service *service.DHTService) error {
 	}
 
 	dhtAPI := rg.Group("/dht")
-	dhtAPI.PUT("", dhtRouter.AddDHTRecord)
+	dhtAPI.PUT("", dhtRouter.AddRecord)
+	dhtAPI.GET("", dhtRouter.ListRecords)
+	dhtAPI.GET("/:key", dhtRouter.ReadRecord)
+	dhtAPI.DELETE("/:key", dhtRouter.RemoveRecord)
 	return nil
 }

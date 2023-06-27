@@ -36,7 +36,8 @@ type Record struct {
 type DDTStorage interface {
 	WriteRecord(record DDTRecord) error
 	ReadRecord(id string) (*DDTRecord, error)
-	ReadRecords() ([]DDTRecord, error)
+	ListRecords() ([]DDTRecord, error)
+	DeleteRecord(id string) error
 }
 
 func (s *Storage) WriteRecord(record DDTRecord) error {
@@ -62,7 +63,7 @@ func (s *Storage) ReadRecord(id string) (*DDTRecord, error) {
 	return &recordResult, nil
 }
 
-func (s *Storage) ReadRecords() ([]DDTRecord, error) {
+func (s *Storage) ListRecords() ([]DDTRecord, error) {
 	records, err := s.ReadAll(namespace)
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to read records")
@@ -76,4 +77,8 @@ func (s *Storage) ReadRecords() ([]DDTRecord, error) {
 		recordResults = append(recordResults, recordResult)
 	}
 	return recordResults, nil
+}
+
+func (s *Storage) DeleteRecord(id string) error {
+	return s.Delete(namespace, id)
 }

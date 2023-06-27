@@ -18,7 +18,7 @@ const (
 )
 
 type Gossiper struct {
-	Messages chan *DHTMessage
+	Messages chan *DDTMessage
 	storage  db.DDTStorage
 
 	ctx   context.Context
@@ -33,7 +33,7 @@ type Gossiper struct {
 	name string
 }
 
-type DHTMessage struct {
+type DDTMessage struct {
 	Requester Requester `json:"requester,omitempty"`
 	Publisher Publisher `json:"publisher,omitempty"`
 	Record    Record    `json:"record,omitempty"`
@@ -69,7 +69,7 @@ func StartGossiper(ctx context.Context, storage db.DDTStorage, ps *pubsub.PubSub
 	}
 
 	ddt := &Gossiper{
-		Messages: make(chan *DHTMessage, TopicBufferSize),
+		Messages: make(chan *DDTMessage, TopicBufferSize),
 		storage:  storage,
 
 		ctx:   ctx,
@@ -100,7 +100,7 @@ func (ddt *Gossiper) ListPeers() []peer.ID {
 	return ddt.ps.ListPeers(ddt.topicName)
 }
 
-func (ddt *Gossiper) Publish(ctx context.Context, msg DHTMessage) error {
+func (ddt *Gossiper) publish(ctx context.Context, msg DDTMessage) error {
 	msgBytes, err := json.Marshal(msg)
 	if err != nil {
 		return err
@@ -138,7 +138,7 @@ func (ddt *Gossiper) pullMessages() {
 			continue
 		}
 
-		var m DHTMessage
+		var m DDTMessage
 		if err = json.Unmarshal(msg.Data, &m); err != nil {
 			logrus.WithError(err).Warn("failed to unmarshal message")
 			continue
