@@ -28,11 +28,11 @@ import (
 )
 
 const (
-	advertisePeriod = time.Second * 5
+	advertisePeriod = time.Minute * 30
 	peerLimit       = 10
 )
 
-type DIDDHTService struct {
+type DHTService struct {
 	cfg     *config.Config
 	storage *db.Storage
 
@@ -50,8 +50,8 @@ type DIDDHTService struct {
 	gossiper *Gossiper
 }
 
-func NewDIDDHTService(cfg *config.Config) (*DIDDHTService, error) {
-	var ddt DIDDHTService
+func NewDHTService(cfg *config.Config) (*DHTService, error) {
+	var ddt DHTService
 	ddt.cfg = cfg
 	storage, err := db.NewStorage(cfg.DBFile)
 	if err != nil {
@@ -162,7 +162,7 @@ func NewDIDDHTService(cfg *config.Config) (*DIDDHTService, error) {
 	return &ddt, nil
 }
 
-func (s *DIDDHTService) setupGossipSub(ctx context.Context) error {
+func (s *DHTService) setupGossipSub(ctx context.Context) error {
 	opts := []pubsub.Option{
 		pubsub.WithMessageAuthor(s.host.ID()),
 		pubsub.WithPeerExchange(true),
@@ -176,7 +176,7 @@ func (s *DIDDHTService) setupGossipSub(ctx context.Context) error {
 	return nil
 }
 
-func (s *DIDDHTService) setupDHT(ctx context.Context) error {
+func (s *DHTService) setupDHT(ctx context.Context) error {
 	dht, err := dht.New(ctx, s.host, dht.Mode(dht.ModeServer))
 	if err != nil {
 		logrus.WithError(err).Error("failed to instantiate dht service")
@@ -191,7 +191,7 @@ func (s *DIDDHTService) setupDHT(ctx context.Context) error {
 	return nil
 }
 
-func (s *DIDDHTService) bootstrapPeers(ctx context.Context) error {
+func (s *DHTService) bootstrapPeers(ctx context.Context) error {
 	// connect to bootstrap peers
 	logrus.Info("connecting to bootstrap peers")
 	var wg sync.WaitGroup
@@ -223,7 +223,7 @@ func (s *DIDDHTService) bootstrapPeers(ctx context.Context) error {
 	return nil
 }
 
-func (s *DIDDHTService) setupPeerDiscovery(ctx context.Context) error {
+func (s *DHTService) setupPeerDiscovery(ctx context.Context) error {
 	// refresh the dht route table
 	select {
 	case <-ctx.Done():
@@ -256,7 +256,7 @@ func (s *DIDDHTService) setupPeerDiscovery(ctx context.Context) error {
 	return nil
 }
 
-func (s *DIDDHTService) setupLocalDiscovery(ctx context.Context) error {
+func (s *DHTService) setupLocalDiscovery(ctx context.Context) error {
 	ldn := new(localDiscoveryNotifee)
 	ldn.PeerChan = make(chan peer.AddrInfo)
 	svc := mdns.NewMdnsService(s.host, s.cfg.Namespace, ldn)
@@ -290,7 +290,7 @@ func (ldn *localDiscoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
 	ldn.PeerChan <- pi
 }
 
-func (s *DIDDHTService) Start(ctx context.Context) error {
+func (s *DHTService) Start(ctx context.Context) error {
 	gossiper, err := StartGossiper(ctx, s.storage, s.gossipSub, s.host.ID(), s.cfg.Name, s.cfg.Topic)
 	if err != nil {
 		logrus.WithError(err).Error("failed to start gossiper")
@@ -300,11 +300,11 @@ func (s *DIDDHTService) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *DIDDHTService) Info() (string, string, []peer.ID) {
+func (s *DHTService) Info() (string, string, []peer.ID) {
 	return s.host.ID().String(), s.externalAddress, s.gossiper.ListPeers()
 }
 
-func (s *DIDDHTService) Gossip(ctx context.Context, msg string) error {
+func (s *DHTService) Gossip(ctx context.Context, msg DHTMessage) error {
 	if s.gossiper == nil {
 		return errors.New("gossiper not started")
 	}

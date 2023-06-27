@@ -11,10 +11,26 @@ const (
 )
 
 type DDTRecord struct {
-	ID        string `json:"id,omitempty"`
-	Name      string `json:"name,omitempty"`
-	Message   string `json:"message,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
+	Requester Requester `json:"requester,omitempty"`
+	Publisher Publisher `json:"publisher,omitempty"`
+	Record    Record    `json:"record,omitempty"`
+	CreatedAt string    `json:"createdAt,omitempty"`
+}
+
+type Requester struct {
+	ID   string `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+}
+
+type Publisher struct {
+	ID   string `json:"id,omitempty"`
+	DID  string `json:"did,omitempty"`
+	Name string `json:"name,omitempty"`
+}
+
+type Record struct {
+	DID      string `json:"did,omitempty"`
+	Endpoint string `json:"endpoint,omitempty"`
 }
 
 type DDTStorage interface {
@@ -28,7 +44,7 @@ func (s *Storage) WriteRecord(record DDTRecord) error {
 	if err != nil {
 		return errors.WithMessage(err, "failed to marshal record")
 	}
-	return s.Write(namespace, record.ID, recordBytes)
+	return s.Write(namespace, record.Record.DID, recordBytes)
 }
 
 func (s *Storage) ReadRecord(id string) (*DDTRecord, error) {

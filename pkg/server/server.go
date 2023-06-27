@@ -17,10 +17,12 @@ import (
 
 type Server struct {
 	*http.Server
-	cfg      *config.Config
-	svc      *service.DIDDHTService
-	handler  *gin.Engine
+	handler *gin.Engine
+	
 	shutdown chan os.Signal
+
+	cfg *config.Config
+	svc *service.DHTService
 }
 
 // NewServer returns a new instance of Server with the given db and host.
@@ -28,7 +30,7 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	// set up server prerequisites
 	setupLogger(cfg.LogLevel)
 	handler := setupHandler(cfg.Environment)
-	ddtSvc, err := service.NewDIDDHTService(cfg)
+	ddtSvc, err := service.NewDHTService(cfg)
 	if err != nil {
 		logrus.WithError(err).Error("could not instantiate did dht service")
 		return nil, err
@@ -42,7 +44,7 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 		c.String(http.StatusOK, "pong")
 	})
 
-	handler.PUT("/msg", func(c *gin.Context) {
+	handler.PUT("/did", func(c *gin.Context) {
 		decoder := json.NewDecoder(c.Request.Body)
 		decoder.DisallowUnknownFields()
 

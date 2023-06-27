@@ -18,7 +18,7 @@ const (
 )
 
 type Gossiper struct {
-	Messages chan *DIDDHTMessage
+	Messages chan *DHTMessage
 	storage  db.DDTStorage
 
 	ctx   context.Context
@@ -33,10 +33,26 @@ type Gossiper struct {
 	name string
 }
 
-type DIDDHTMessage struct {
-	ID      string `json:"id,omitempty"`
-	Name    string `json:"name,omitempty"`
-	Message string `json:"message,omitempty"`
+type DHTMessage struct {
+	Requester Requester `json:"requester,omitempty"`
+	Publisher Publisher `json:"publisher,omitempty"`
+	Record    Record    `json:"record,omitempty"`
+}
+
+type Requester struct {
+	ID   string `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+}
+
+type Publisher struct {
+	ID   string `json:"id,omitempty"`
+	DID  string `json:"did,omitempty"`
+	Name string `json:"name,omitempty"`
+}
+
+type Record struct {
+	DID      string `json:"did,omitempty"`
+	Endpoint string `json:"endpoint,omitempty"`
 }
 
 func StartGossiper(ctx context.Context, storage db.DDTStorage, ps *pubsub.PubSub, id peer.ID, name, topic string) (*Gossiper, error) {
@@ -53,7 +69,7 @@ func StartGossiper(ctx context.Context, storage db.DDTStorage, ps *pubsub.PubSub
 	}
 
 	ddt := &Gossiper{
-		Messages: make(chan *DIDDHTMessage, TopicBufferSize),
+		Messages: make(chan *DHTMessage, TopicBufferSize),
 		storage:  storage,
 
 		ctx:   ctx,
@@ -84,16 +100,26 @@ func (ddt *Gossiper) ListPeers() []peer.ID {
 	return ddt.ps.ListPeers(ddt.topicName)
 }
 
-func (ddt *Gossiper) Publish(ctx context.Context, msg string) error {
-	m := &DIDDHTMessage{
-		ID:      ddt.id.String(),
-		Name:    ddt.name,
-		Message: msg,
-	}
-	msgBytes, err := json.Marshal(m)
+func (ddt *Gossiper) Publish(ctx context.Context, msg DHTMessage) error {
+	msgBytes, err := json.Marshal(msg)
 	if err != nil {
 		return err
 	}
+
+	if err = ddt.storage.WriteRecord(db.DDTRecord{
+		Requester: db.Requester{
+			ID:   msg.Requester.ID,
+			Name: msg.Requester.Name,
+		},
+		Record: db.Record(Record{
+			DID:      msg.Record.DID,
+			Endpoint: msg.Record.Endpoint,
+		}),
+	}); err != nil {
+		logrus.WithError(err).Warn("failed to write record, not publishing to network...")
+		return err
+	}
+
 	return ddt.topic.Publish(ctx, msgBytes)
 }
 
@@ -112,7 +138,7 @@ func (ddt *Gossiper) pullMessages() {
 			continue
 		}
 
-		var m DIDDHTMessage
+		var m DHTMessage
 		if err = json.Unmarshal(msg.Data, &m); err != nil {
 			logrus.WithError(err).Warn("failed to unmarshal message")
 			continue
@@ -130,11 +156,17 @@ func (ddt *Gossiper) processMessages() {
 			logrus.Info("context cancelled, closing...")
 			return
 		case msg := <-ddt.Messages:
-			logrus.Infof("Received message from %s: %s", msg.Name, msg.Message)
+			logrus.Infof("Received message from %q: %q", msg, msg.Record)
 			if err := ddt.storage.WriteRecord(db.DDTRecord{
-				ID:        msg.ID,
-				Name:      msg.Name,
-				Message:   msg.Message,
+				Publisher: db.Publisher{
+					ID:   msg.Publisher.ID,
+					DID:  msg.Publisher.DID,
+					Name: msg.Publisher.Name,
+				},
+				Record: db.Record(Record{
+					DID:      msg.Record.DID,
+					Endpoint: msg.Record.Endpoint,
+				}),
 				CreatedAt: time.Now().Format(time.RFC3339),
 			}); err != nil {
 				logrus.WithError(err).Warn("failed to write record")
