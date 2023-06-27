@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
 
 	"did-dht/config"
@@ -18,7 +17,7 @@ import (
 type Server struct {
 	*http.Server
 	handler *gin.Engine
-	
+
 	shutdown chan os.Signal
 
 	cfg *config.Config
@@ -44,26 +43,6 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 		c.String(http.StatusOK, "pong")
 	})
 
-	handler.PUT("/did", func(c *gin.Context) {
-		decoder := json.NewDecoder(c.Request.Body)
-		decoder.DisallowUnknownFields()
-
-		var msg string
-		if err = decoder.Decode(&msg); err != nil {
-			logrus.WithError(err).Error("could not decode request body")
-			c.String(http.StatusBadRequest, "could not decode request body")
-			return
-		}
-
-		if err = ddtSvc.Gossip(c.Request.Context(), msg); err != nil {
-			logrus.WithError(err).Error("could not send message")
-			c.String(http.StatusInternalServerError, "could not send message")
-			return
-		}
-
-		c.String(http.StatusOK, "sent")
-	})
-
 	handler.GET("/info", func(c *gin.Context) {
 		id, addr, peers := ddtSvc.Info()
 		c.JSON(http.StatusOK, gin.H{
@@ -73,9 +52,13 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 		})
 	})
 
-	handler.GET("/got", func(c *gin.Context) {
+	v1 := handler.Group("/v1")
+	if err = DHTAPI(v1, ddtSvc); err != nil {
+		logrus.WithError(err).Error("could not setup dht api")
+		return nil, err
+	}
 
-	})
+	// TODO(gabe): add more routes here
 
 	return &Server{
 		Server: &http.Server{
@@ -126,4 +109,16 @@ func setupHandler(env config.Environment) *gin.Engine {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	return handler
+}
+
+func DHTAPI(rg *gin.RouterGroup, service *service.DHTService) error {
+	dhtRouter, err := NewDHTRouter(service)
+	if err != nil {
+		logrus.WithError(err).Error("could not instantiate dht router")
+		return err
+	}
+
+	dhtAPI := rg.Group("/dht")
+	dhtAPI.PUT("", dhtRouter.AddDHTRecord)
+	return nil
 }
