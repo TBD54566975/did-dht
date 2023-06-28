@@ -1,1 +1,5 @@
 package internal
+
+func SignJWS() {
+
+}

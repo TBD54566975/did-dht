@@ -10,6 +10,7 @@ require (
 	github.com/go-playground/validator/v10 v10.14.1
 	github.com/goccy/go-json v0.10.2
 	github.com/joho/godotenv v1.5.1
+	github.com/lestrrat-go/jwx/v2 v2.0.11
 	github.com/libp2p/go-libp2p v0.28.1
 	github.com/libp2p/go-libp2p-kad-dht v0.24.2
 	github.com/libp2p/go-libp2p-pubsub v0.9.3
@@ -80,6 +81,7 @@ require (
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/jbenet/goprocess v0.1.4 // indirect
+	github.com/jorrizza/ed2curve25519 v0.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kilic/bls12-381 v0.1.1-0.20210503002446-7b7597926c69 // indirect
@@ -91,7 +93,6 @@ require (
 	github.com/lestrrat-go/httpcc v1.0.1 // indirect
 	github.com/lestrrat-go/httprc v1.0.4 // indirect
 	github.com/lestrrat-go/iter v1.0.2 // indirect
-	github.com/lestrrat-go/jwx/v2 v2.0.11 // indirect
 	github.com/lestrrat-go/option v1.0.1 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-cidranger v1.1.0 // indirect
@@ -144,6 +145,7 @@ require (
 	github.com/quic-go/quic-go v0.33.0 // indirect
 	github.com/quic-go/webtransport-go v0.5.3 // indirect
 	github.com/raulk/go-watchdog v1.3.0 // indirect
+	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/sv-tools/openapi v0.2.1 // indirect
 	github.com/swaggo/swag v1.8.12 // indirect
