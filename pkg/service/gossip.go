@@ -34,25 +34,14 @@ type Gossiper struct {
 }
 
 type DDTMessage struct {
-	Requester Requester `json:"requester,omitempty"`
-	Publisher Publisher `json:"publisher,omitempty"`
-	Record    Record    `json:"record,omitempty"`
-}
-
-type Requester struct {
-	ID   string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
-}
-
-type Publisher struct {
-	ID   string `json:"id,omitempty"`
-	DID  string `json:"did,omitempty"`
-	Name string `json:"name,omitempty"`
+	PublisherID string `json:"publisherId,omitempty"`
+	Record      Record `json:"record,omitempty"`
 }
 
 type Record struct {
 	DID      string `json:"did,omitempty"`
 	Endpoint string `json:"endpoint,omitempty"`
+	JWS      string `json:"jws,omitempty"`
 }
 
 func StartGossiper(ctx context.Context, storage db.DDTStorage, ps *pubsub.PubSub, id peer.ID, name, topic string) (*Gossiper, error) {
@@ -107,16 +96,14 @@ func (ddt *Gossiper) publish(ctx context.Context, msg DDTMessage) error {
 	}
 
 	if err = ddt.storage.WriteRecord(db.DDTRecord{
-		Requester: db.Requester{
-			ID:   msg.Requester.ID,
-			Name: msg.Requester.Name,
-		},
+		PublisherID: ddt.id.String(),
 		Record: db.Record(Record{
 			DID:      msg.Record.DID,
 			Endpoint: msg.Record.Endpoint,
+			JWS:      msg.Record.JWS,
 		}),
 	}); err != nil {
-		logrus.WithError(err).Warn("failed to write record, not publishing to network...")
+		logrus.WithError(err).Error("failed to write record, not publishing to network...")
 		return err
 	}
 
@@ -134,12 +121,14 @@ func (ddt *Gossiper) pullMessages() {
 		}
 
 		// make sure we're not the sender
-		if msg.GetFrom() == ddt.id {
+		from := msg.GetFrom()
+		if from == ddt.id {
 			continue
 		}
 
-		var m DDTMessage
-		if err = json.Unmarshal(msg.Data, &m); err != nil {
+		// TODO(gabe): validate message here
+		m := DDTMessage{PublisherID: from.String()}
+		if err = json.Unmarshal(msg.Data, &m.Record); err != nil {
 			logrus.WithError(err).Warn("failed to unmarshal message")
 			continue
 		}
@@ -158,14 +147,11 @@ func (ddt *Gossiper) processMessages() {
 		case msg := <-ddt.Messages:
 			logrus.Infof("Received message from %q: %q", msg, msg.Record)
 			if err := ddt.storage.WriteRecord(db.DDTRecord{
-				Publisher: db.Publisher{
-					ID:   msg.Publisher.ID,
-					DID:  msg.Publisher.DID,
-					Name: msg.Publisher.Name,
-				},
+				PublisherID: msg.PublisherID,
 				Record: db.Record(Record{
 					DID:      msg.Record.DID,
 					Endpoint: msg.Record.Endpoint,
+					JWS:      msg.Record.JWS,
 				}),
 				CreatedAt: time.Now().Format(time.RFC3339),
 			}); err != nil {

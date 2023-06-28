@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	sdkcrypto "github.com/TBD54566975/ssi-sdk/crypto"
+	"github.com/TBD54566975/ssi-sdk/did/key"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -53,22 +55,14 @@ type DHTService struct {
 func NewDHTService(cfg *config.Config) (*DHTService, error) {
 	var ddt DHTService
 	ddt.cfg = cfg
-	storage, err := db.NewStorage(cfg.DBFile)
+	storage, err := db.NewStorage(cfg.ServerConfig.DBFile)
 	if err != nil {
 		logrus.WithError(err).Error("failed to instantiate storage")
 		return nil, err
 	}
 	ddt.storage = storage
 
-	// TODO(gabe) use a persistent identity
-	// generate an identity for the node
-	privKey, _, err := crypto.GenerateEd25519Key(rand.Reader)
-	if err != nil {
-		logrus.WithError(err).Error("failed to generate key")
-		return nil, err
-	}
-
-	multiaddrString := fmt.Sprintf("/ip4/%s/tcp/%d", cfg.APIHost, cfg.ListenPort)
+	multiaddrString := fmt.Sprintf("/ip4/%s/tcp/%d", cfg.ServerConfig.APIHost, cfg.ServerConfig.ListenPort)
 
 	// 0.0.0.0 will listen on any interface device.
 	sourceMultiAddr, err := multiaddr.NewMultiaddr(multiaddrString)
@@ -78,11 +72,11 @@ func NewDHTService(cfg *config.Config) (*DHTService, error) {
 	}
 
 	var extMultiAddr multiaddr.Multiaddr
-	if cfg.BroadcastIP == "" {
+	if cfg.ServerConfig.BroadcastIP == "" {
 		logrus.Warn("external IP not defined, Peers might not be able to resolve this node if behind NAT")
 	} else {
 		// here we're creating the multiaddr that others should use to connect to me
-		extMultiAddr, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", cfg.BroadcastIP, cfg.ListenPort))
+		extMultiAddr, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", cfg.ServerConfig.BroadcastIP, cfg.ServerConfig.ListenPort))
 		if err != nil {
 			logrus.WithError(err).Error("error creating multiaddress")
 			return nil, err
@@ -95,6 +89,13 @@ func NewDHTService(cfg *config.Config) (*DHTService, error) {
 			addrs = append(addrs, extMultiAddr)
 		}
 		return addrs
+	}
+
+	// get or create a new service identity
+	privKey, err := ddt.setupServiceIdentity()
+	if err != nil {
+		logrus.WithError(err).Error("failed to setup service identity")
+		return nil, err
 	}
 
 	// create a new libp2p host that listens on a random TCP port
@@ -131,7 +132,7 @@ func NewDHTService(cfg *config.Config) (*DHTService, error) {
 	}
 
 	// connect to bootstrap peers
-	if len(cfg.BootstrapPeers) > 0 {
+	if len(cfg.DHTConfig.BootstrapPeers) > 0 {
 		if err = ddt.bootstrapPeers(ctx); err != nil {
 			logrus.WithError(err).Error("failed to bootstrap peers")
 			return nil, err
@@ -151,7 +152,7 @@ func NewDHTService(cfg *config.Config) (*DHTService, error) {
 	}
 
 	// if local is set, set up local discovery
-	if cfg.LocalDiscovery {
+	if cfg.DHTConfig.LocalDiscovery {
 		if err = ddt.setupLocalDiscovery(ctx); err != nil {
 			logrus.WithError(err).Error("failed to set up local discovery")
 			return nil, err
@@ -165,6 +166,42 @@ func NewDHTService(cfg *config.Config) (*DHTService, error) {
 	}
 
 	return &ddt, nil
+}
+
+// gets or creates a service identity
+func (s *DHTService) setupServiceIdentity() (*crypto.Ed25519PrivateKey, error) {
+	did, gotPrivKey, err := s.storage.ReadIdentity()
+	if err != nil {
+		logrus.WithError(err).Error("failed to read identity")
+		return nil, err
+	}
+	if did != "" && gotPrivKey != nil {
+		logrus.Infof("found existing identity: %s", did)
+		return gotPrivKey, nil
+	}
+
+	logrus.Info("generating new identity")
+	privKey, pubKey, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		logrus.WithError(err).Error("failed to generate key")
+		return nil, err
+	}
+	pubKeyBytes, err := pubKey.Raw()
+	if err != nil {
+		logrus.WithError(err).Error("failed to get raw public key bytes")
+		return nil, err
+	}
+	didKey, err := key.CreateDIDKey(sdkcrypto.Ed25519, pubKeyBytes)
+	if err != nil {
+		logrus.WithError(err).Error("failed to create did key")
+		return nil, err
+	}
+	logrus.Infof("generated new identity: %s", didKey.String())
+	if err := s.storage.WriteIdentity(didKey.String(), *privKey.(*crypto.Ed25519PrivateKey)); err != nil {
+		logrus.WithError(err).Error("failed to write identity")
+		return nil, err
+	}
+	return privKey.(*crypto.Ed25519PrivateKey), nil
 }
 
 func (s *DHTService) setupGossipSub(ctx context.Context) error {
@@ -198,12 +235,13 @@ func (s *DHTService) setupDHT(ctx context.Context) error {
 }
 
 func (s *DHTService) bootstrapPeers(ctx context.Context) error {
-	// connect to bootstrap peers
-	logrus.Info("connecting to bootstrap peers")
+	// connect to bootstrap bootstrapPeers
+	logrus.Info("connecting to bootstrap bootstrapPeers")
 	var wg sync.WaitGroup
 
-	numBootstrapPeers := len(s.cfg.BootstrapPeers)
-	for _, peerAddr := range s.cfg.BootstrapPeers {
+	bootstrapPeers := s.cfg.DHTConfig.BootstrapPeers
+	numBootstrapPeers := len(bootstrapPeers)
+	for _, peerAddr := range bootstrapPeers {
 		peerInfo, err := peer.AddrInfoFromString(peerAddr)
 		if err != nil {
 			logrus.WithError(err).Errorf("failed to parse bootstrap peer: %s", peerAddr)
@@ -224,7 +262,7 @@ func (s *DHTService) bootstrapPeers(ctx context.Context) error {
 	wg.Wait()
 
 	if numBootstrapPeers == 0 {
-		return errors.New("no bootstrap peers could be connected to")
+		return errors.New("no bootstrap bootstrapPeers could be connected to")
 	}
 	return nil
 }
@@ -240,11 +278,11 @@ func (s *DHTService) setupPeerDiscovery(ctx context.Context) error {
 	s.discovery = d
 
 	// advertise ourselves
-	discutil.Advertise(ctx, d, s.cfg.Namespace, discovery.TTL(advertisePeriod))
+	discutil.Advertise(ctx, d, s.cfg.DHTConfig.Namespace, discovery.TTL(advertisePeriod))
 
 	// connect to peers
 	logrus.Info("finding peers")
-	peerChan, err := d.FindPeers(ctx, s.cfg.Namespace, discovery.Limit(peerLimit))
+	peerChan, err := d.FindPeers(ctx, s.cfg.DHTConfig.Namespace, discovery.Limit(peerLimit))
 	if err != nil {
 		logrus.WithError(err).Error("failed to find peers")
 		return err
@@ -265,7 +303,7 @@ func (s *DHTService) setupPeerDiscovery(ctx context.Context) error {
 func (s *DHTService) setupLocalDiscovery(ctx context.Context) error {
 	ldn := new(localDiscoveryNotifee)
 	ldn.PeerChan = make(chan peer.AddrInfo)
-	svc := mdns.NewMdnsService(s.host, s.cfg.Namespace, ldn)
+	svc := mdns.NewMdnsService(s.host, s.cfg.DHTConfig.Namespace, ldn)
 	if err := svc.Start(); err != nil {
 		logrus.WithError(err).Error("failed to start mdns service")
 		return err
@@ -297,7 +335,7 @@ func (ldn *localDiscoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
 }
 
 func (s *DHTService) Start(ctx context.Context) error {
-	gossiper, err := StartGossiper(ctx, s.storage, s.gossipSub, s.host.ID(), s.cfg.Name, s.cfg.Topic)
+	gossiper, err := StartGossiper(ctx, s.storage, s.gossipSub, s.host.ID(), s.cfg.DHTConfig.Name, s.cfg.DHTConfig.Topic)
 	if err != nil {
 		logrus.WithError(err).Error("failed to start gossiper")
 		return err
@@ -314,6 +352,7 @@ func (s *DHTService) GossipRecord(ctx context.Context, msg DDTMessage) error {
 	if s.gossiper == nil {
 		return errors.New("gossiper not started")
 	}
+	msg.PublisherID = s.host.ID().String()
 	return s.gossiper.publish(ctx, msg)
 }
 
@@ -333,9 +372,8 @@ func (s *DHTService) QueryRecord(_ context.Context, did string) (*DDTMessage, er
 	// TODO(gabe): when we don't have the record locally, query the DHT using our custom protocol when we have it
 	// TODO(gabe): as an alternative, consider a way to query APIs of specific peers using IPNS records
 	return &DDTMessage{
-		Requester: Requester(record.Requester),
-		Publisher: Publisher(record.Publisher),
-		Record:    Record(record.Record),
+		PublisherID: record.PublisherID,
+		Record:      Record(record.Record),
 	}, nil
 }
 
@@ -352,9 +390,8 @@ func (s *DHTService) ListRecords(_ context.Context) ([]DDTMessage, error) {
 	var messages []DDTMessage
 	for _, record := range records {
 		messages = append(messages, DDTMessage{
-			Requester: Requester(record.Requester),
-			Publisher: Publisher(record.Publisher),
-			Record:    Record(record.Record),
+			PublisherID: record.PublisherID,
+			Record:      Record(record.Record),
 		})
 	}
 	return messages, nil

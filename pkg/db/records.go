@@ -7,19 +7,13 @@ import (
 )
 
 const (
-	namespace = "did-dht"
+	dhtNamespace = "did-dht"
 )
 
 type DDTRecord struct {
-	Requester Requester `json:"requester,omitempty"`
-	Publisher Publisher `json:"publisher,omitempty"`
-	Record    Record    `json:"record,omitempty"`
-	CreatedAt string    `json:"createdAt,omitempty"`
-}
-
-type Requester struct {
-	ID   string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
+	PublisherID string `json:"publisherID,omitempty"`
+	Record      Record `json:"record,omitempty"`
+	CreatedAt   string `json:"createdAt,omitempty"`
 }
 
 type Publisher struct {
@@ -31,6 +25,7 @@ type Publisher struct {
 type Record struct {
 	DID      string `json:"did,omitempty"`
 	Endpoint string `json:"endpoint,omitempty"`
+	JWS      string `json:"jws,omitempty"`
 }
 
 type DDTStorage interface {
@@ -45,11 +40,11 @@ func (s *Storage) WriteRecord(record DDTRecord) error {
 	if err != nil {
 		return errors.WithMessage(err, "failed to marshal record")
 	}
-	return s.Write(namespace, record.Record.DID, recordBytes)
+	return s.Write(dhtNamespace, record.Record.DID, recordBytes)
 }
 
 func (s *Storage) ReadRecord(id string) (*DDTRecord, error) {
-	record, err := s.Read(namespace, id)
+	record, err := s.Read(dhtNamespace, id)
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to read record")
 	}
@@ -64,7 +59,7 @@ func (s *Storage) ReadRecord(id string) (*DDTRecord, error) {
 }
 
 func (s *Storage) ListRecords() ([]DDTRecord, error) {
-	records, err := s.ReadAll(namespace)
+	records, err := s.ReadAll(dhtNamespace)
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to read records")
 	}
@@ -80,5 +75,5 @@ func (s *Storage) ListRecords() ([]DDTRecord, error) {
 }
 
 func (s *Storage) DeleteRecord(id string) error {
-	return s.Delete(namespace, id)
+	return s.Delete(dhtNamespace, id)
 }

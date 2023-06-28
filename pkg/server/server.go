@@ -30,8 +30,8 @@ type Server struct {
 // NewServer returns a new instance of Server with the given db and host.
 func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	// set up server prerequisites
-	setupLogger(cfg.LogLevel)
-	handler := setupHandler(cfg.Environment)
+	setupLogger(cfg.ServerConfig.LogLevel)
+	handler := setupHandler(cfg.ServerConfig.Environment)
 	ddtSvc, err := service.NewDHTService(cfg)
 	if err != nil {
 		logrus.WithError(err).Error("could not instantiate did dht service")
@@ -46,7 +46,7 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	handler.GET("/info", Info(ddtSvc))
 
 	// set up swagger
-	docs.SwaggerInfo.Host = fmt.Sprintf("%s:%d", cfg.APIHost, cfg.APIPort)
+	docs.SwaggerInfo.Host = fmt.Sprintf("%s:%d", cfg.ServerConfig.APIHost, cfg.ServerConfig.APIPort)
 	docs.SwaggerInfo.Version = "0.0.1"
 	handler.StaticFile("swagger.yaml", "./docs/swagger.yaml")
 	handler.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler, ginswagger.URL("/swagger.yaml")))
@@ -61,7 +61,7 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 
 	return &Server{
 		Server: &http.Server{
-			Addr:              fmt.Sprintf("%s:%d", cfg.APIHost, cfg.APIPort),
+			Addr:              fmt.Sprintf("%s:%d", cfg.ServerConfig.APIHost, cfg.ServerConfig.APIPort),
 			Handler:           handler,
 			ReadTimeout:       time.Second * 5,
 			ReadHeaderTimeout: time.Second * 5,
