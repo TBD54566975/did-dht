@@ -1,37 +1,41 @@
 package internal
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
-	"log"
 	"testing"
 
-	"github.com/lestrrat-go/jwx/v2/jwa"
-	"github.com/lestrrat-go/jwx/v2/jws"
+	sdkcrypto "github.com/TBD54566975/ssi-sdk/crypto"
+	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
+	"github.com/TBD54566975/ssi-sdk/did/jwk"
+	"github.com/stretchr/testify/assert"
+
+	"did-dht/pkg/service"
 )
 
-func TestSignJWS(t *testing.T) {
-	privkey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		log.Printf("failed to generate private key: %s", err)
-		return
-	}
+func TestSignVerifyRecordJWS(t *testing.T) {
+	privKey, jwk, err := jwk.GenerateDIDJWK(sdkcrypto.Ed25519)
+	assert.NoError(t, err)
 
-	headers := jws.NewHeaders()
-	headers.Set(jws.KeyIDKey, "mykeyid")
-	buf, err := jws.Sign([]byte("Lorem ipsum"), jws.WithKey(jwa.RS256, privkey, jws.WithProtectedHeaders(headers)))
-	if err != nil {
-		log.Printf("failed to created JWS message: %s", err)
-		return
-	}
+	didDoc, err := jwk.Expand()
+	assert.NoError(t, err)
 
-	// When you receive a JWS message, you can verify the signature
-	// and grab the payload sent in the message in one go:
-	verified, err := jws.Verify(buf, jws.WithKey(jwa.RS256, &privkey.PublicKey))
-	if err != nil {
-		log.Printf("failed to verify message: %s", err)
-		return
+	id := didDoc.ID
+	kid := didDoc.VerificationMethod[0].ID
+
+	signer, err := jwx.NewJWXSigner(id, kid, privKey)
+	assert.NoError(t, err)
+
+	record := service.Record{
+		DID:      id,
+		Endpoint: "http://tbd.dev",
 	}
-	println(string(buf))
-	println(string(verified))
+	signedRecord, err := SignRecordJWS(*signer, record)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, signedRecord.JWS)
+
+	pubKeyJWK := didDoc.VerificationMethod[0].PublicKeyJWK
+	verifier, err := jwx.NewJWXVerifierFromJWK(id, *pubKeyJWK)
+	assert.NoError(t, err)
+
+	err = VerifyRecordJWS(*verifier, *signedRecord)
+	assert.NoError(t, err)
 }
