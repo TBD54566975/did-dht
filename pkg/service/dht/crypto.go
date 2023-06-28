@@ -1,16 +1,14 @@
-package internal
+package dht
 
 import (
 	"fmt"
 
 	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
 	"github.com/pkg/errors"
-
-	"did-dht/pkg/service"
 )
 
 // SignRecordJWS signs a record by creating a JWS, returning the signed record.
-func SignRecordJWS(signer jwx.Signer, record service.Record) (*service.Record, error) {
+func SignRecordJWS(signer jwx.Signer, record Record) (*Record, error) {
 	if record.JWS != "" {
 		return nil, errors.New("record already has a JWS")
 	}
@@ -33,7 +31,7 @@ func SignRecordJWS(signer jwx.Signer, record service.Record) (*service.Record, e
 }
 
 // VerifyRecordJWS verifies a record by checking the JWS, returning an error if the record is invalid.
-func VerifyRecordJWS(verifier jwx.Verifier, record service.Record) error {
+func VerifyRecordJWS(verifier jwx.Verifier, record Record) error {
 	if record.JWS == "" {
 		return errors.New("record does not have a JWS")
 	}

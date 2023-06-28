@@ -1,4 +1,4 @@
-package service
+package dht
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	record "github.com/libp2p/go-libp2p-record"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/discovery"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -32,9 +33,10 @@ import (
 const (
 	advertisePeriod = time.Minute * 30
 	peerLimit       = 10
+	protocolPrefix  = "/diddht"
 )
 
-type DHTService struct {
+type Service struct {
 	cfg     *config.Config
 	storage *db.Storage
 
@@ -52,8 +54,8 @@ type DHTService struct {
 	gossiper *Gossiper
 }
 
-func NewDHTService(cfg *config.Config) (*DHTService, error) {
-	var ddt DHTService
+func NewService(cfg *config.Config) (*Service, error) {
+	var ddt Service
 	ddt.cfg = cfg
 	storage, err := db.NewStorage(cfg.ServerConfig.DBFile)
 	if err != nil {
@@ -169,7 +171,7 @@ func NewDHTService(cfg *config.Config) (*DHTService, error) {
 }
 
 // gets or creates a service identity
-func (s *DHTService) setupServiceIdentity() (*crypto.Ed25519PrivateKey, error) {
+func (s *Service) setupServiceIdentity() (*crypto.Ed25519PrivateKey, error) {
 	did, gotPrivKey, err := s.storage.ReadIdentity()
 	if err != nil {
 		logrus.WithError(err).Error("failed to read identity")
@@ -197,14 +199,14 @@ func (s *DHTService) setupServiceIdentity() (*crypto.Ed25519PrivateKey, error) {
 		return nil, err
 	}
 	logrus.Infof("generated new identity: %s", didKey.String())
-	if err := s.storage.WriteIdentity(didKey.String(), *privKey.(*crypto.Ed25519PrivateKey)); err != nil {
+	if err = s.storage.WriteIdentity(didKey.String(), *privKey.(*crypto.Ed25519PrivateKey)); err != nil {
 		logrus.WithError(err).Error("failed to write identity")
 		return nil, err
 	}
 	return privKey.(*crypto.Ed25519PrivateKey), nil
 }
 
-func (s *DHTService) setupGossipSub(ctx context.Context) error {
+func (s *Service) setupGossipSub(ctx context.Context) error {
 	opts := []pubsub.Option{
 		pubsub.WithMessageAuthor(s.host.ID()),
 		pubsub.WithPeerExchange(true),
@@ -218,23 +220,31 @@ func (s *DHTService) setupGossipSub(ctx context.Context) error {
 	return nil
 }
 
-func (s *DHTService) setupDHT(ctx context.Context) error {
-	// TODO(gabe): make a custom validator using DIDs with record.Validator
-	dht, err := dht.New(ctx, s.host, dht.Mode(dht.ModeServer))
+func (s *Service) setupDHT(ctx context.Context) error {
+	validator := record.NamespacedValidator{
+		s.cfg.DHTConfig.Namespace: NewValidator(s.cfg.DHTConfig.Namespace),
+	}
+	d, err := dht.New(
+		ctx,
+		s.host,
+		dht.Mode(dht.ModeServer),
+		dht.Validator(validator),
+		dht.ProtocolPrefix(protocolPrefix),
+	)
 	if err != nil {
-		logrus.WithError(err).Error("failed to instantiate dht service")
+		logrus.WithError(err).Error("failed to instantiate d service")
 		return err
 	}
-	if err = dht.Bootstrap(ctx); err != nil {
-		logrus.WithError(err).Error("failed to bootstrap dht service")
+	if err = d.Bootstrap(ctx); err != nil {
+		logrus.WithError(err).Error("failed to bootstrap d service")
 		return err
 	}
-	s.host = routedhost.Wrap(s.host, dht)
-	s.dht = dht
+	s.host = routedhost.Wrap(s.host, d)
+	s.dht = d
 	return nil
 }
 
-func (s *DHTService) bootstrapPeers(ctx context.Context) error {
+func (s *Service) bootstrapPeers(ctx context.Context) error {
 	// connect to bootstrap bootstrapPeers
 	logrus.Info("connecting to bootstrap bootstrapPeers")
 	var wg sync.WaitGroup
@@ -267,7 +277,7 @@ func (s *DHTService) bootstrapPeers(ctx context.Context) error {
 	return nil
 }
 
-func (s *DHTService) setupPeerDiscovery(ctx context.Context) error {
+func (s *Service) setupPeerDiscovery(ctx context.Context) error {
 	// refresh the dht route table
 	select {
 	case <-ctx.Done():
@@ -300,7 +310,7 @@ func (s *DHTService) setupPeerDiscovery(ctx context.Context) error {
 	return nil
 }
 
-func (s *DHTService) setupLocalDiscovery(ctx context.Context) error {
+func (s *Service) setupLocalDiscovery(ctx context.Context) error {
 	ldn := new(localDiscoveryNotifee)
 	ldn.PeerChan = make(chan peer.AddrInfo)
 	svc := mdns.NewMdnsService(s.host, s.cfg.DHTConfig.Namespace, ldn)
@@ -332,76 +342,4 @@ type localDiscoveryNotifee struct {
 
 func (ldn *localDiscoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
 	ldn.PeerChan <- pi
-}
-
-func (s *DHTService) Start(ctx context.Context) error {
-	gossiper, err := StartGossiper(ctx, s.storage, s.gossipSub, s.host.ID(), s.cfg.DHTConfig.Name, s.cfg.DHTConfig.Topic)
-	if err != nil {
-		logrus.WithError(err).Error("failed to start gossiper")
-		return err
-	}
-	s.gossiper = gossiper
-	return nil
-}
-
-func (s *DHTService) Info() (string, string, []peer.ID) {
-	return s.host.ID().String(), s.externalAddress, s.gossiper.ListPeers()
-}
-
-func (s *DHTService) GossipRecord(ctx context.Context, msg DDTMessage) error {
-	if s.gossiper == nil {
-		return errors.New("gossiper not started")
-	}
-	msg.PublisherID = s.host.ID().String()
-	return s.gossiper.publish(ctx, msg)
-}
-
-func (s *DHTService) QueryRecord(_ context.Context, did string) (*DDTMessage, error) {
-	if s.gossiper == nil {
-		return nil, errors.New("gossiper not started")
-	}
-
-	record, err := s.storage.ReadRecord(did)
-	if err != nil {
-		return nil, errors.WithMessage(err, "failed to read record")
-	}
-	if record == nil {
-		return nil, errors.New("record not found")
-	}
-
-	// TODO(gabe): when we don't have the record locally, query the DHT using our custom protocol when we have it
-	// TODO(gabe): as an alternative, consider a way to query APIs of specific peers using IPNS records
-	return &DDTMessage{
-		PublisherID: record.PublisherID,
-		Record:      Record(record.Record),
-	}, nil
-}
-
-func (s *DHTService) ListRecords(_ context.Context) ([]DDTMessage, error) {
-	if s.gossiper == nil {
-		return nil, errors.New("gossiper not started")
-	}
-
-	records, err := s.storage.ListRecords()
-	if err != nil {
-		return nil, errors.WithMessage(err, "failed to list records")
-	}
-
-	var messages []DDTMessage
-	for _, record := range records {
-		messages = append(messages, DDTMessage{
-			PublisherID: record.PublisherID,
-			Record:      Record(record.Record),
-		})
-	}
-	return messages, nil
-}
-
-func (s *DHTService) RemoveRecord(_ context.Context, did string) error {
-	if s.gossiper == nil {
-		return errors.New("gossiper not started")
-	}
-
-	// TODO(gabe): when we don't have the record locally, query the DHT using our custom protocol to invalidate the record
-	return s.storage.DeleteRecord(did)
 }
