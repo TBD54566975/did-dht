@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/libp2p/go-libp2p/core/peer"
 
-	"did-dht/pkg/service"
+	"did-dht/pkg/service/dht"
 )
 
 type InfoResponse struct {
@@ -23,7 +23,7 @@ type InfoResponse struct {
 //	@Accept			json
 //	@Produce		json
 //	@Success		200	{object}	InfoResponse
-func Info(svc *service.DHTService) gin.HandlerFunc {
+func Info(svc *dht.Service) gin.HandlerFunc {
 	id, addr, peers := svc.Info()
 	return func(c *gin.Context) {
 		Respond(c, InfoResponse{

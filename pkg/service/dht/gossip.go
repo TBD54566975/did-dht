@@ -1,4 +1,4 @@
-package service
+package dht
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"did-dht/pkg/db"
@@ -89,10 +90,10 @@ func (ddt *Gossiper) ListPeers() []peer.ID {
 	return ddt.ps.ListPeers(ddt.topicName)
 }
 
-func (ddt *Gossiper) publish(ctx context.Context, msg DDTMessage) error {
+func (ddt *Gossiper) Publish(ctx context.Context, msg DDTMessage) error {
 	msgBytes, err := json.Marshal(msg)
 	if err != nil {
-		return err
+		return errors.WithMessage(err, "failed to marshal message")
 	}
 
 	if err = ddt.storage.WriteRecord(db.DDTRecord{
@@ -104,7 +105,7 @@ func (ddt *Gossiper) publish(ctx context.Context, msg DDTMessage) error {
 		}),
 	}); err != nil {
 		logrus.WithError(err).Error("failed to write record, not publishing to network...")
-		return err
+		return errors.Wrap(err, "failed to write record")
 	}
 
 	return ddt.topic.Publish(ctx, msgBytes)

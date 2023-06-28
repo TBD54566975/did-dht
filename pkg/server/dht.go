@@ -6,14 +6,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 
-	"did-dht/pkg/service"
+	"did-dht/pkg/service/dht"
 )
 
 type DHTRouter struct {
-	service *service.DHTService
+	service *dht.Service
 }
 
-func NewDHTRouter(service *service.DHTService) (*DHTRouter, error) {
+func NewDHTRouter(service *dht.Service) (*DHTRouter, error) {
 	if service == nil {
 		return nil, errors.New("service cannot be nil")
 	}
@@ -26,9 +26,9 @@ type AddRecordRequest struct {
 	JWS      string `json:"jws" validate:"required"`
 }
 
-func (r AddRecordRequest) toServiceRequest() service.DDTMessage {
-	return service.DDTMessage{
-		Record: service.Record{
+func (r AddRecordRequest) toServiceRequest() dht.DDTMessage {
+	return dht.DDTMessage{
+		Record: dht.Record{
 			DID:      r.DID,
 			Endpoint: r.Endpoint,
 			JWS:      r.JWS,
@@ -60,7 +60,7 @@ func (r *DHTRouter) AddRecord(c *gin.Context) {
 		return
 	}
 
-	if err := r.service.GossipRecord(c, request.toServiceRequest()); err != nil {
+	if err := r.service.PublishRecord(c, request.toServiceRequest()); err != nil {
 		LoggingRespondErrWithMsg(c, err, "failed to gossip", http.StatusInternalServerError)
 		return
 	}
@@ -73,7 +73,7 @@ const (
 )
 
 type GetRecordResponse struct {
-	Record service.DDTMessage `json:"record"`
+	Record dht.DDTMessage `json:"record"`
 }
 
 // ReadRecord godoc

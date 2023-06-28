@@ -14,7 +14,7 @@ import (
 
 	"did-dht/config"
 	"did-dht/docs"
-	"did-dht/pkg/service"
+	"did-dht/pkg/service/dht"
 )
 
 type Server struct {
@@ -24,7 +24,7 @@ type Server struct {
 	shutdown chan os.Signal
 
 	cfg *config.Config
-	svc *service.DHTService
+	svc *dht.Service
 }
 
 // NewServer returns a new instance of Server with the given db and host.
@@ -32,7 +32,7 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	// set up server prerequisites
 	setupLogger(cfg.ServerConfig.LogLevel)
 	handler := setupHandler(cfg.ServerConfig.Environment)
-	ddtSvc, err := service.NewDHTService(cfg)
+	ddtSvc, err := dht.NewService(cfg)
 	if err != nil {
 		logrus.WithError(err).Error("could not instantiate did dht service")
 		return nil, err
@@ -110,7 +110,7 @@ func setupHandler(env config.Environment) *gin.Engine {
 	return handler
 }
 
-func DHTAPI(rg *gin.RouterGroup, service *service.DHTService) error {
+func DHTAPI(rg *gin.RouterGroup, service *dht.Service) error {
 	dhtRouter, err := NewDHTRouter(service)
 	if err != nil {
 		logrus.WithError(err).Error("could not instantiate dht router")

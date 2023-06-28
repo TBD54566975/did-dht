@@ -7,6 +7,18 @@ import (
 	"github.com/pkg/errors"
 )
 
+// IsValidDID checks if a string is a valid DID
+func IsValidDID(id string) bool {
+	split := strings.Split(id, ":")
+	if len(split) < 3 {
+		return false
+	}
+	if split[0] != "did" {
+		return false
+	}
+	return true
+}
+
 // GetMethodForDID gets a DID method from a did, the second part of the did (e.g. did:test:abcd, the method is 'test')
 func GetMethodForDID(id string) (did.Method, error) {
 	split := strings.Split(id, ":")
