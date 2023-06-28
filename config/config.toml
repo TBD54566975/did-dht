@@ -1,3 +1,4 @@
+[server]
 env = "dev"
 api_host = "0.0.0.0"
 api_port = 8305
@@ -6,7 +7,10 @@ bootstrap_peers = ["/ip4/54.226.19.143/tcp/8503/p2p/12D3KooWEgKRaVKRpdzsYDgFtXVG
 log_location = "log"
 log_level = "debug"
 db_file = "diddht.db"
+
+[dht]
 name = "tbd"
 namespace = "diddht"
 topic = "diddht"
 local_discovery = false
+resolver_endpoint = "https://dev.uniresolver.io/"

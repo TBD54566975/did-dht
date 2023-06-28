@@ -13,7 +13,7 @@ import (
 
 const (
 	DefaultConfigPath = "config/config.toml"
-	DefaultEnvPath    = "config/.env"
+	DefaultEnvPath    = "config/config.env"
 	Extension         = ".toml"
 
 	EnvironmentDev  Environment = "dev"
@@ -35,6 +35,11 @@ func (e EnvironmentVariable) String() string {
 }
 
 type Config struct {
+	ServerConfig     ServiceConfig    `json:"server"`
+	DHTServiceConfig DHTServiceConfig `json:"dht"`
+}
+
+type ServiceConfig struct {
 	Environment    Environment `toml:"env"`
 	APIHost        string      `toml:"api_host"`
 	APIPort        int         `toml:"api_port"`
@@ -44,26 +49,35 @@ type Config struct {
 	LogLocation    string      `toml:"log_location"`
 	LogLevel       string      `toml:"log_level"`
 	DBFile         string      `toml:"db_file" `
-	Name           string      `toml:"name"`
-	Namespace      string      `toml:"namespace"`
-	Topic          string      `toml:"topic"`
-	LocalDiscovery bool        `toml:"local_discovery"`
+}
+
+type DHTServiceConfig struct {
+	Name             string `toml:"name"`
+	Namespace        string `toml:"namespace"`
+	Topic            string `toml:"topic"`
+	LocalDiscovery   bool   `toml:"local_discovery"`
+	ResolverEndpoint string `toml:"resolver_endpoint"`
 }
 
 func GetDefaultConfig() Config {
 	return Config{
-		Environment:    EnvironmentDev,
-		APIHost:        "0.0.0.0",
-		APIPort:        8305,
-		ListenPort:     8503,
-		BootstrapPeers: []string{"/ip4/54.226.19.143/tcp/8503/p2p/12D3KooWEgKRaVKRpdzsYDgFtXVGYGC21o5BrxMivvpXtapgcAXm"},
-		LogLocation:    "log",
-		LogLevel:       "debug",
-		DBFile:         "diddht.db",
-		Name:           "gabe",
-		Namespace:      "diddht",
-		Topic:          "diddht",
-		LocalDiscovery: true,
+		ServerConfig: ServiceConfig{
+			Environment:    EnvironmentDev,
+			APIHost:        "0.0.0.0",
+			APIPort:        8305,
+			ListenPort:     8503,
+			BootstrapPeers: []string{"/ip4/54.226.19.143/tcp/8503/p2p/12D3KooWEgKRaVKRpdzsYDgFtXVGYGC21o5BrxMivvpXtapgcAXm"},
+			LogLocation:    "log",
+			LogLevel:       "debug",
+			DBFile:         "diddht.db",
+		},
+		DHTServiceConfig: DHTServiceConfig{
+			Name:             "gabe",
+			Namespace:        "diddht",
+			Topic:            "diddht",
+			LocalDiscovery:   true,
+			ResolverEndpoint: "https://dev.uniresolver.io/",
+		},
 	}
 }
 
@@ -126,12 +140,12 @@ func applyEnvVariables(cfg Config) error {
 
 	nameEnv, present := os.LookupEnv(NameEnvVar.String())
 	if present {
-		cfg.Name = nameEnv
+		cfg.DHTServiceConfig.Name = nameEnv
 	}
 
 	broadcastIPEnv, present := os.LookupEnv(BroadcastIPEnvVar.String())
 	if present {
-		cfg.BroadcastIP = broadcastIPEnv
+		cfg.ServerConfig.BroadcastIP = broadcastIPEnv
 	}
 	return nil
 }

@@ -11,15 +11,9 @@ const (
 )
 
 type DDTRecord struct {
-	Requester Requester `json:"requester,omitempty"`
-	Publisher Publisher `json:"publisher,omitempty"`
-	Record    Record    `json:"record,omitempty"`
-	CreatedAt string    `json:"createdAt,omitempty"`
-}
-
-type Requester struct {
-	ID   string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
+	PublisherID string `json:"publisherID,omitempty"`
+	Record      Record `json:"record,omitempty"`
+	CreatedAt   string `json:"createdAt,omitempty"`
 }
 
 type Publisher struct {
@@ -31,6 +25,7 @@ type Publisher struct {
 type Record struct {
 	DID      string `json:"did,omitempty"`
 	Endpoint string `json:"endpoint,omitempty"`
+	JWS      string `json:"jws,omitempty"`
 }
 
 type DDTStorage interface {

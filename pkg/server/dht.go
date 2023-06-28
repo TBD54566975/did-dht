@@ -21,21 +21,17 @@ func NewDHTRouter(service *service.DHTService) (*DHTRouter, error) {
 }
 
 type AddRecordRequest struct {
-	RequesterID   string `json:"requesterId" validate:"required"`
-	RequesterName string `json:"requesterName" validate:"required"`
-	DID           string `json:"did" validate:"required"`
-	Endpoint      string `json:"endpoint" validate:"required"`
+	DID      string `json:"did" validate:"required"`
+	Endpoint string `json:"endpoint" validate:"required"`
+	JWS      string `json:"jws" validate:"required"`
 }
 
 func (r AddRecordRequest) toServiceRequest() service.DDTMessage {
 	return service.DDTMessage{
-		Requester: service.Requester{
-			ID:   r.RequesterID,
-			Name: r.RequesterName,
-		},
 		Record: service.Record{
 			DID:      r.DID,
 			Endpoint: r.Endpoint,
+			JWS:      r.JWS,
 		},
 	}
 }
