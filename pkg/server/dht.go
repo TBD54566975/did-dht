@@ -61,7 +61,7 @@ func (r *DHTRouter) AddRecord(c *gin.Context) {
 	}
 
 	if err := r.service.PublishRecord(c, request.toServiceRequest()); err != nil {
-		LoggingRespondErrWithMsg(c, err, "failed to gossip", http.StatusInternalServerError)
+		LoggingRespondErrWithMsg(c, err, "failed to publish record", http.StatusInternalServerError)
 		return
 	}
 

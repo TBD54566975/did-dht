@@ -7,7 +7,6 @@ import (
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"did-dht/pkg/db"
@@ -90,25 +89,8 @@ func (ddt *Gossiper) ListPeers() []peer.ID {
 	return ddt.ps.ListPeers(ddt.topicName)
 }
 
-func (ddt *Gossiper) Publish(ctx context.Context, msg DDTMessage) error {
-	msgBytes, err := json.Marshal(msg)
-	if err != nil {
-		return errors.WithMessage(err, "failed to marshal message")
-	}
-
-	if err = ddt.storage.WriteRecord(db.DDTRecord{
-		PublisherID: ddt.id.String(),
-		Record: db.Record(Record{
-			DID:      msg.Record.DID,
-			Endpoint: msg.Record.Endpoint,
-			JWS:      msg.Record.JWS,
-		}),
-	}); err != nil {
-		logrus.WithError(err).Error("failed to write record, not publishing to network...")
-		return errors.Wrap(err, "failed to write record")
-	}
-
-	return ddt.topic.Publish(ctx, msgBytes)
+func (ddt *Gossiper) Publish(ctx context.Context, msg []byte) error {
+	return ddt.topic.Publish(ctx, msg)
 }
 
 // readLoop pulls messages from the pubsub topic and pushes them onto the Messages channel.

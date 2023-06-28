@@ -2,6 +2,8 @@ package server
 
 import (
 	"net/http"
+	"reflect"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -11,8 +13,23 @@ import (
 )
 
 var (
-	validate validator.Validate
+	validate *validator.Validate
 )
+
+func init() {
+	// Instantiate validator.
+	validate = validator.New()
+
+	// Use JSON tag names for errors instead of Go struct field names
+	validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
+		name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
+		if name == "-" {
+			return ""
+		}
+
+		return name
+	})
+}
 
 func Decode(r *http.Request, val any) error {
 	decoder := json.NewDecoder(r.Body)

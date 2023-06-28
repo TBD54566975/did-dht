@@ -7,6 +7,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
+	"did-dht/pkg/db"
 )
 
 func (s *Service) Start(ctx context.Context) error {
@@ -25,10 +27,29 @@ func (s *Service) Info() (string, string, []peer.ID) {
 
 // PublishRecord publishes the given record to the DHT and gossip sub topic
 func (s *Service) PublishRecord(ctx context.Context, msg DDTMessage) error {
+	if s.storage == nil {
+		return errors.New("storage not initialized")
+	}
+	if s.dht == nil {
+		return errors.New("dht not initialized")
+	}
 	if s.gossiper == nil {
 		return errors.New("gossiper not started")
 	}
 	msg.PublisherID = s.host.ID().String()
+
+	// put the record in our local storage
+	if err := s.storage.WriteRecord(db.DDTRecord{
+		PublisherID: s.host.ID().String(),
+		Record: db.Record(Record{
+			DID:      msg.Record.DID,
+			Endpoint: msg.Record.Endpoint,
+			JWS:      msg.Record.JWS,
+		}),
+	}); err != nil {
+		logrus.WithError(err).Error("failed to write record, not publishing to network...")
+		return errors.Wrap(err, "failed to write record")
+	}
 
 	// put the record in the DHT
 	recordBytes, err := json.Marshal(msg.Record)
@@ -40,7 +61,7 @@ func (s *Service) PublishRecord(ctx context.Context, msg DDTMessage) error {
 	}
 
 	// broadcast via gossip sub
-	if err = s.gossiper.Publish(ctx, msg); err != nil {
+	if err = s.gossiper.Publish(ctx, recordBytes); err != nil {
 		return errors.WithMessage(err, "failed to publish record via gossip sub")
 	}
 
@@ -49,8 +70,11 @@ func (s *Service) PublishRecord(ctx context.Context, msg DDTMessage) error {
 
 // QueryRecord returns the record for the given DID first from local storage, then from the DHT
 func (s *Service) QueryRecord(ctx context.Context, did string) (*DDTMessage, error) {
-	if s.gossiper == nil {
-		return nil, errors.New("gossiper not started")
+	if s.storage == nil {
+		return nil, errors.New("storage not initialized")
+	}
+	if s.dht == nil {
+		return nil, errors.New("dht not initialized")
 	}
 
 	// attempt to read from local storage first
@@ -82,8 +106,8 @@ func (s *Service) QueryRecord(ctx context.Context, did string) (*DDTMessage, err
 
 // ListRecords returns all records stored locally
 func (s *Service) ListRecords(_ context.Context) ([]DDTMessage, error) {
-	if s.gossiper == nil {
-		return nil, errors.New("gossiper not started")
+	if s.storage == nil {
+		return nil, errors.New("storage not initialized")
 	}
 
 	records, err := s.storage.ListRecords()
@@ -111,5 +135,5 @@ func (s *Service) RemoveRecord(_ context.Context, did string) error {
 }
 
 func (s *Service) dhtKey(did string) string {
-	return s.cfg.DHTConfig.Namespace + "/" + did
+	return "/" + s.cfg.DHTConfig.Namespace + "/" + did
 }
