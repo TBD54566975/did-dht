@@ -9,7 +9,6 @@ import (
 
 	sdkcrypto "github.com/TBD54566975/ssi-sdk/crypto"
 	"github.com/TBD54566975/ssi-sdk/did/key"
-	"github.com/ipfs/boxo/ipns"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -34,6 +33,7 @@ import (
 const (
 	advertisePeriod = time.Minute * 30
 	peerLimit       = 10
+	protocolPrefix  = "/diddht"
 )
 
 type Service struct {
@@ -222,11 +222,15 @@ func (s *Service) setupGossipSub(ctx context.Context) error {
 
 func (s *Service) setupDHT(ctx context.Context) error {
 	validator := record.NamespacedValidator{
-		"pk":                      record.PublicKeyValidator{},
-		"ipns":                    ipns.Validator{KeyBook: s.host.Peerstore()},
 		s.cfg.DHTConfig.Namespace: NewValidator(s.cfg.DHTConfig.Namespace),
 	}
-	d, err := dht.New(ctx, s.host, dht.Mode(dht.ModeServer), dht.Validator(validator))
+	d, err := dht.New(
+		ctx,
+		s.host,
+		dht.Mode(dht.ModeServer),
+		dht.Validator(validator),
+		dht.ProtocolPrefix(protocolPrefix),
+	)
 	if err != nil {
 		logrus.WithError(err).Error("failed to instantiate d service")
 		return err
