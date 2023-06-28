@@ -31,17 +31,17 @@ func TestBoltDB_ReadWrite(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, players1, players1Result)
 
-	// get a value from a namespace that doesn't exist
+	// get a value from a dhtNamespace that doesn't exist
 	res, err := db.Read("bad", "worse")
 	assert.NoError(t, err)
 	assert.Empty(t, res)
 
-	// get a value that doesn't exist in the namespace
+	// get a value that doesn't exist in the dhtNamespace
 	noValue, err := db.Read(namespace, "Porsche")
 	assert.NoError(t, err)
 	assert.Empty(t, noValue)
 
-	// create a second value in the namespace
+	// create a second value in the dhtNamespace
 	team2 := "McLaren"
 	players2 := []string{"Lando Norris", "Daniel Ricciardo"}
 	p2Bytes, err := json.Marshal(players2)
@@ -50,7 +50,7 @@ func TestBoltDB_ReadWrite(t *testing.T) {
 	err = db.Write(namespace, team2, p2Bytes)
 	assert.NoError(t, err)
 
-	// get all values from the namespace
+	// get all values from the dhtNamespace
 	gotAll, err := db.ReadAll(namespace)
 	assert.NoError(t, err)
 	assert.True(t, len(gotAll) == 2)
@@ -61,7 +61,7 @@ func TestBoltDB_ReadWrite(t *testing.T) {
 	_, gotMcLaren := gotAll[team2]
 	assert.True(t, gotMcLaren)
 
-	// delete value in the namespace
+	// delete value in the dhtNamespace
 	err = db.Delete(namespace, team2)
 	assert.NoError(t, err)
 
@@ -69,16 +69,16 @@ func TestBoltDB_ReadWrite(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, gotPlayers2)
 
-	// delete value in a namespace that doesn't exist
+	// delete value in a dhtNamespace that doesn't exist
 	err = db.Delete("bad", team2)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "namespace<bad> does not exist")
+	assert.Contains(t, err.Error(), "dhtNamespace<bad> does not exist")
 
-	// delete a namespace that doesn't exist
+	// delete a dhtNamespace that doesn't exist
 	err = db.DeleteNamespace("bad")
-	assert.Contains(t, err.Error(), "could not delete namespace<bad>")
+	assert.Contains(t, err.Error(), "could not delete dhtNamespace<bad>")
 
-	// delete namespace
+	// delete dhtNamespace
 	err = db.DeleteNamespace(namespace)
 	assert.NoError(t, err)
 

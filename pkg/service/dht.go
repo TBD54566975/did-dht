@@ -2,11 +2,13 @@ package service
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
+	sdkcrypto "github.com/TBD54566975/ssi-sdk/crypto"
+	"github.com/TBD54566975/ssi-sdk/did/key"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -60,14 +62,6 @@ func NewDHTService(cfg *config.Config) (*DHTService, error) {
 	}
 	ddt.storage = storage
 
-	// TODO(gabe) use a persistent identity
-	// generate an identity for the node
-	privKey, _, err := crypto.GenerateEd25519Key(rand.Reader)
-	if err != nil {
-		logrus.WithError(err).Error("failed to generate key")
-		return nil, err
-	}
-
 	multiaddrString := fmt.Sprintf("/ip4/%s/tcp/%d", cfg.ServerConfig.APIHost, cfg.ServerConfig.ListenPort)
 
 	// 0.0.0.0 will listen on any interface device.
@@ -95,6 +89,13 @@ func NewDHTService(cfg *config.Config) (*DHTService, error) {
 			addrs = append(addrs, extMultiAddr)
 		}
 		return addrs
+	}
+
+	// get or create a new service identity
+	privKey, err := ddt.setupServiceIdentity()
+	if err != nil {
+		logrus.WithError(err).Error("failed to setup service identity")
+		return nil, err
 	}
 
 	// create a new libp2p host that listens on a random TCP port
@@ -165,6 +166,42 @@ func NewDHTService(cfg *config.Config) (*DHTService, error) {
 	}
 
 	return &ddt, nil
+}
+
+// gets or creates a service identity
+func (s *DHTService) setupServiceIdentity() (*crypto.Ed25519PrivateKey, error) {
+	did, gotPrivKey, err := s.storage.ReadIdentity()
+	if err != nil {
+		logrus.WithError(err).Error("failed to read identity")
+		return nil, err
+	}
+	if did != "" && gotPrivKey != nil {
+		logrus.Infof("found existing identity: %s", did)
+		return gotPrivKey, nil
+	}
+
+	logrus.Info("generating new identity")
+	privKey, pubKey, err := crypto.GenerateEd25519Key(rand.New(nil))
+	if err != nil {
+		logrus.WithError(err).Error("failed to generate key")
+		return nil, err
+	}
+	pubKeyBytes, err := pubKey.Raw()
+	if err != nil {
+		logrus.WithError(err).Error("failed to get raw public key bytes")
+		return nil, err
+	}
+	didKey, err := key.CreateDIDKey(sdkcrypto.Ed25519, pubKeyBytes)
+	if err != nil {
+		logrus.WithError(err).Error("failed to create did key")
+		return nil, err
+	}
+	logrus.Infof("generated new identity: %s", didKey.String())
+	if err := s.storage.WriteIdentity(didKey.String(), *privKey.(*crypto.Ed25519PrivateKey)); err != nil {
+		logrus.WithError(err).Error("failed to write identity")
+		return nil, err
+	}
+	return privKey.(*crypto.Ed25519PrivateKey), nil
 }
 
 func (s *DHTService) setupGossipSub(ctx context.Context) error {

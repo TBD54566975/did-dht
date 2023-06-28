@@ -10,7 +10,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var validate *validator.Validate
+var (
+	validate validator.Validate
+)
 
 func Decode(r *http.Request, val any) error {
 	decoder := json.NewDecoder(r.Body)
