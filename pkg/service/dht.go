@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 	"sync"
 	"time"
 
@@ -181,7 +181,7 @@ func (s *DHTService) setupServiceIdentity() (*crypto.Ed25519PrivateKey, error) {
 	}
 
 	logrus.Info("generating new identity")
-	privKey, pubKey, err := crypto.GenerateEd25519Key(rand.New(nil))
+	privKey, pubKey, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		logrus.WithError(err).Error("failed to generate key")
 		return nil, err
