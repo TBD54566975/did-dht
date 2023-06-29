@@ -10,9 +10,15 @@ The service has three components: the DHT, crawler, and indexer.
 
 ### DHT
 
-The DHT is a distributed hash table which stores the DID Documents and associated endpoints. 
-To enter into the DHT, we must receive a message signed by a DID Document containing the endpoint(s) it wishes
-to advertise.
+The DHT is a distributed hash table which stores the DID Documents and associated endpoints.
+
+To enter into the DHT, the service must receive a message signed by a DID Document containing the endpoint(s) it wishes
+to advertise. If the message is not signed, the service will sign the message with its own DID and publish it to the
+network. Future enhancements will enable strategies to only accept self-signed messages, prevent spam, and be able to 
+determine which record(s) should be overwritten in the event of a collision.
+
+In addition to writing the record to the DHT, the service will gossip the record over gossipsub to its
+peers. In this manner a node may become aware of a new entry in the DHT without having to query the DHT directly.
 
 The DHT handles queries for DID Documents and endpoints and re-publishes them to the network on a regular interval.
 
@@ -23,7 +29,8 @@ and make the data available for indexing via the indexer.
 
 It is anticipated that there are custom crawlers and indexers for different types of data. For example, a crawler
 can be specifically written for the ION network, which understands how to traverse the network and re-assemble the current
-state of any DID Document on it.
+state of any DID Document on it, and leverage it's [type registry](https://github.com/decentralized-identity/sidetree/blob/master/docs/type-registry.md)
+to discover new data.
 
 ### Indexer
 
