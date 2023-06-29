@@ -23,7 +23,7 @@ func NewDHTRouter(service *dht.Service) (*DHTRouter, error) {
 type AddRecordRequest struct {
 	DID      string `json:"did" validate:"required"`
 	Endpoint string `json:"endpoint" validate:"required"`
-	JWS      string `json:"jws" validate:"required"`
+	JWS      string `json:"jws,omitempty"`
 }
 
 func (r AddRecordRequest) toServiceRequest() dht.DDTMessage {
@@ -59,6 +59,8 @@ func (r *DHTRouter) AddRecord(c *gin.Context) {
 		LoggingRespondErrWithMsg(c, err, "invalid add dht record request", http.StatusBadRequest)
 		return
 	}
+
+	if request.JWS == "" && cfg.
 
 	if err := r.service.PublishRecord(c, request.toServiceRequest()); err != nil {
 		LoggingRespondErrWithMsg(c, err, "failed to publish record", http.StatusInternalServerError)
