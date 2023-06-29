@@ -9,6 +9,7 @@ import (
 
 	sdkcrypto "github.com/TBD54566975/ssi-sdk/crypto"
 	"github.com/TBD54566975/ssi-sdk/did/key"
+	"github.com/TBD54566975/ssi-sdk/util"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -59,8 +60,7 @@ func NewService(cfg *config.Config) (*Service, error) {
 	ddt.cfg = cfg
 	storage, err := db.NewStorage(cfg.ServerConfig.DBFile)
 	if err != nil {
-		logrus.WithError(err).Error("failed to instantiate storage")
-		return nil, err
+		return nil, util.LoggingErrorMsg(err, "failed to instantiate storage")
 	}
 	ddt.storage = storage
 
@@ -69,8 +69,7 @@ func NewService(cfg *config.Config) (*Service, error) {
 	// 0.0.0.0 will listen on any interface device.
 	sourceMultiAddr, err := multiaddr.NewMultiaddr(multiaddrString)
 	if err != nil {
-		logrus.WithError(err).Error("failed to parse multiaddr")
-		return nil, err
+		return nil, util.LoggingErrorMsgf(err, "failed to parse multiaddr: %s", multiaddrString)
 	}
 
 	var extMultiAddr multiaddr.Multiaddr
@@ -80,8 +79,7 @@ func NewService(cfg *config.Config) (*Service, error) {
 		// here we're creating the multiaddr that others should use to connect to me
 		extMultiAddr, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", cfg.ServerConfig.BroadcastIP, cfg.ServerConfig.ListenPort))
 		if err != nil {
-			logrus.WithError(err).Error("error creating multiaddress")
-			return nil, err
+			return nil, util.LoggingErrorMsg(err, "failed to create multiaddress")
 		}
 	}
 	addressFactory := func(addrs []multiaddr.Multiaddr) []multiaddr.Multiaddr {
@@ -96,8 +94,7 @@ func NewService(cfg *config.Config) (*Service, error) {
 	// get or create a new service identity
 	privKey, err := ddt.setupServiceIdentity()
 	if err != nil {
-		logrus.WithError(err).Error("failed to setup service identity")
-		return nil, err
+		return nil, util.LoggingErrorMsg(err, "failed to setup service identity")
 	}
 
 	// create a new libp2p host that listens on a random TCP port
@@ -111,8 +108,7 @@ func NewService(cfg *config.Config) (*Service, error) {
 		libp2p.EnableHolePunching(),
 	)
 	if err != nil {
-		logrus.WithError(err).Error("failed to instantiate libp2p host")
-		return nil, err
+		return nil, util.LoggingErrorMsg(err, "failed to instantiate libp2p host")
 	}
 	ddt.host = h
 	logrus.Infof("Host created with id: %s, %q", h.ID(), h.Addrs())
@@ -129,42 +125,36 @@ func NewService(cfg *config.Config) (*Service, error) {
 
 	// set up autonat
 	if _, err = autonat.New(h); err != nil {
-		logrus.WithError(err).Error("failed to set up autonat")
-		return nil, err
+		return nil, util.LoggingErrorMsg(err, "failed to set up autonat")
 	}
 
 	// connect to bootstrap peers
 	if len(cfg.DHTConfig.BootstrapPeers) > 0 {
 		if err = ddt.bootstrapPeers(ctx); err != nil {
-			logrus.WithError(err).Error("failed to bootstrap peers")
-			return nil, err
+			return nil, util.LoggingErrorMsg(err, "failed to bootstrap peers")
 		}
 	}
 
 	// init dht and associate it with the host
 	if err = ddt.setupDHT(ctx); err != nil {
-		logrus.WithError(err).Error("failed to set up dht")
-		return nil, err
+		return nil, util.LoggingErrorMsg(err, "failed to set up dht")
 	}
 
 	// create a new PubSub service using the GossipSub router
 	if err = ddt.setupGossipSub(ctx); err != nil {
-		logrus.WithError(err).Error("failed to set up gossipsub")
-		return nil, err
+		return nil, util.LoggingErrorMsg(err, "failed to set up gossipsub")
 	}
 
 	// if local is set, set up local discovery
 	if cfg.DHTConfig.LocalDiscovery {
 		if err = ddt.setupLocalDiscovery(ctx); err != nil {
-			logrus.WithError(err).Error("failed to set up local discovery")
-			return nil, err
+			return nil, util.LoggingErrorMsg(err, "failed to set up local discovery")
 		}
 	}
 
 	// set up peer discovery after refreshing the route table, try connecting to peers
 	if err = ddt.setupPeerDiscovery(ctx); err != nil {
-		logrus.WithError(err).Error("failed to set up peer discovery")
-		return nil, err
+		return nil, util.LoggingErrorMsg(err, "failed to set up peer discovery")
 	}
 
 	return &ddt, nil
@@ -174,8 +164,7 @@ func NewService(cfg *config.Config) (*Service, error) {
 func (s *Service) setupServiceIdentity() (*crypto.Ed25519PrivateKey, error) {
 	did, gotPrivKey, err := s.storage.ReadIdentity()
 	if err != nil {
-		logrus.WithError(err).Error("failed to read identity")
-		return nil, err
+		return nil, util.LoggingErrorMsg(err, "failed to read identity")
 	}
 	if did != "" && gotPrivKey != nil {
 		logrus.Infof("found existing identity: %s", did)
@@ -185,23 +174,19 @@ func (s *Service) setupServiceIdentity() (*crypto.Ed25519PrivateKey, error) {
 	logrus.Info("generating new identity")
 	privKey, pubKey, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
-		logrus.WithError(err).Error("failed to generate key")
-		return nil, err
+		return nil, util.LoggingErrorMsg(err, "failed to generate key")
 	}
 	pubKeyBytes, err := pubKey.Raw()
 	if err != nil {
-		logrus.WithError(err).Error("failed to get raw public key bytes")
-		return nil, err
+		return nil, util.LoggingErrorMsg(err, "failed to get raw public key bytes")
 	}
 	didKey, err := key.CreateDIDKey(sdkcrypto.Ed25519, pubKeyBytes)
 	if err != nil {
-		logrus.WithError(err).Error("failed to create did key")
-		return nil, err
+		return nil, util.LoggingErrorMsg(err, "failed to create did key")
 	}
 	logrus.Infof("generated new identity: %s", didKey.String())
 	if err = s.storage.WriteIdentity(didKey.String(), *privKey.(*crypto.Ed25519PrivateKey)); err != nil {
-		logrus.WithError(err).Error("failed to write identity")
-		return nil, err
+		return nil, util.LoggingErrorMsg(err, "failed to write identity")
 	}
 	return privKey.(*crypto.Ed25519PrivateKey), nil
 }
@@ -213,8 +198,7 @@ func (s *Service) setupGossipSub(ctx context.Context) error {
 	}
 	ps, err := pubsub.NewGossipSub(ctx, s.host, opts...)
 	if err != nil {
-		logrus.WithError(err).Error("failed to instantiate pubsub service")
-		return err
+		return util.LoggingErrorMsgf(err, "failed to instantiate pubsub service")
 	}
 	s.gossipSub = ps
 	return nil
@@ -232,12 +216,10 @@ func (s *Service) setupDHT(ctx context.Context) error {
 		dht.ProtocolPrefix(protocolPrefix),
 	)
 	if err != nil {
-		logrus.WithError(err).Error("failed to instantiate d service")
-		return err
+		return util.LoggingErrorMsg(err, "failed to instantiate d service")
 	}
 	if err = d.Bootstrap(ctx); err != nil {
-		logrus.WithError(err).Error("failed to bootstrap d service")
-		return err
+		return util.LoggingErrorMsg(err, "failed to bootstrap d service")
 	}
 	s.host = routedhost.Wrap(s.host, d)
 	s.dht = d
@@ -294,8 +276,7 @@ func (s *Service) setupPeerDiscovery(ctx context.Context) error {
 	logrus.Info("finding peers")
 	peerChan, err := d.FindPeers(ctx, s.cfg.DHTConfig.Namespace, discovery.Limit(peerLimit))
 	if err != nil {
-		logrus.WithError(err).Error("failed to find peers")
-		return err
+		return util.LoggingErrorMsg(err, "failed to find peers")
 	}
 	for p := range peerChan {
 		p := p
@@ -315,8 +296,7 @@ func (s *Service) setupLocalDiscovery(ctx context.Context) error {
 	ldn.PeerChan = make(chan peer.AddrInfo)
 	svc := mdns.NewMdnsService(s.host, s.cfg.DHTConfig.Namespace, ldn)
 	if err := svc.Start(); err != nil {
-		logrus.WithError(err).Error("failed to start mdns service")
-		return err
+		return util.LoggingErrorMsg(err, "failed to start mdns service")
 	}
 	go func() {
 		for {

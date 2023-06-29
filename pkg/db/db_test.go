@@ -72,11 +72,11 @@ func TestBoltDB_ReadWrite(t *testing.T) {
 	// delete value in a dhtNamespace that doesn't exist
 	err = db.Delete("bad", team2)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "dhtNamespace<bad> does not exist")
+	assert.Contains(t, err.Error(), "namespace<bad> does not exist")
 
 	// delete a dhtNamespace that doesn't exist
 	err = db.DeleteNamespace("bad")
-	assert.Contains(t, err.Error(), "could not delete dhtNamespace<bad>")
+	assert.Contains(t, err.Error(), "could not delete namespace<bad>")
 
 	// delete dhtNamespace
 	err = db.DeleteNamespace(namespace)

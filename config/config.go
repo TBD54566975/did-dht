@@ -57,6 +57,8 @@ type DHTServiceConfig struct {
 	LocalDiscovery   bool     `toml:"local_discovery"`
 	ResolverEndpoint string   `toml:"resolver_endpoint"`
 	BootstrapPeers   []string `toml:"bootstrap_peers"`
+	// if set, the API will only accept signed messages
+	EnforceSignedMessages bool `toml:"enforce_signed_messages"`
 }
 
 func GetDefaultConfig() Config {
@@ -71,7 +73,7 @@ func GetDefaultConfig() Config {
 			DBFile:      "diddht.db",
 		},
 		DHTConfig: DHTServiceConfig{
-			Name:             "gabe",
+			Name:             "tbd",
 			Namespace:        "diddht",
 			Topic:            "diddht",
 			LocalDiscovery:   true,

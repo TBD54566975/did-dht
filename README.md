@@ -29,7 +29,7 @@ and make the data available for indexing via the indexer.
 
 It is anticipated that there are custom crawlers and indexers for different types of data. For example, a crawler
 can be specifically written for the ION network, which understands how to traverse the network and re-assemble the current
-state of any DID Document on it, and leverage it's [type registry](https://github.com/decentralized-identity/sidetree/blob/master/docs/type-registry.md)
+state of any DID Document on it, and leverage its [type registry](https://github.com/decentralized-identity/sidetree/blob/master/docs/type-registry.md)
 to discover new data.
 
 ### Indexer
@@ -38,7 +38,20 @@ The indexer is responsible for indexing all content made available by the crawle
 database and make it available for query via a REST API.
 
 The indexer will be used to back a UI which allows users to search for DID Documents, their endpoints, and associated
-semantic data.
+semantic data. Similar to the crawler, it is anticipated that there are custom indexers for different types of data.
+
+## Verifiable Index
+
+Users may want to become discoverable with human-readable names. To do this we plan on designing and implementing a
+protocol for creating a verifiable index. This index will be created based on specific verifiable credential types
+which provide name/account information from reputable sources. For example, a user may want to be discoverable by
+their Twitter handle. To do this, they would create a verifiable credential which contains their Twitter handle, sign it
+with their DID, and post this as a tweet to prove control over their account. The crawler would then discover this 
+credential and index it. The indexer would then make this information available for query.
+
+### CLI
+
+TODO
 
 ## Project Resources
 
