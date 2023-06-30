@@ -149,16 +149,16 @@ func NewService(cfg *config.Config) (*Service, error) {
 		return nil, util.LoggingErrorMsg(err, "failed to set up relay")
 	}
 
+	// init dht and associate it with the host
+	if err = ddt.setupDHT(ctx); err != nil {
+		return nil, util.LoggingErrorMsg(err, "failed to set up dht")
+	}
+
 	// connect to bootstrap peers
 	if len(cfg.DHTConfig.BootstrapPeers) > 0 {
 		if err = ddt.bootstrapPeers(ctx); err != nil {
 			return nil, util.LoggingErrorMsg(err, "failed to bootstrap peers")
 		}
-	}
-
-	// init dht and associate it with the host
-	if err = ddt.setupDHT(ctx); err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to set up dht")
 	}
 
 	// create a new PubSub service using the GossipSub router
@@ -360,15 +360,24 @@ func (s *Service) discover(ctx context.Context) {
 			if p.ID == s.host.ID() {
 				continue
 			}
-			if err = s.host.Connect(ctx, p); err != nil {
-				logrus.WithError(err).Errorf("failed to connect to peer %s", p.ID)
-				if _, err = s.dht.RoutingTable().TryAddPeer(p.ID, false, true); err != nil {
-					logrus.WithError(err).Errorf("failed to add peer %s to routing table", p.ID)
+			alreadyConnected := false
+			for _, storedPeerID := range s.host.Peerstore().Peers() {
+				if p.ID == storedPeerID {
+					alreadyConnected = true
+					break
 				}
-			} else {
-				logrus.Infof("connected to peer %s", p.ID)
 			}
-			s.host.ConnManager().Protect(p.ID, "discoveredPeer")
+			if !alreadyConnected {
+				if err = s.host.Connect(ctx, p); err != nil {
+					logrus.WithError(err).Errorf("failed to connect to peer %s", p.ID)
+					if _, err = s.dht.RoutingTable().TryAddPeer(p.ID, false, true); err != nil {
+						logrus.WithError(err).Errorf("failed to add peer %s to routing table", p.ID)
+					}
+				} else {
+					logrus.Infof("connected to peer %s", p.ID)
+				}
+				s.host.ConnManager().Protect(p.ID, "discoveredPeer")
+			}
 		}
 	}
 }
