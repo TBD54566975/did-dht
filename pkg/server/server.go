@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/TBD54566975/ssi-sdk/util"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	swaggerfiles "github.com/swaggo/files"
@@ -34,12 +35,10 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	handler := setupHandler(cfg.ServerConfig.Environment)
 	ddtSvc, err := dht.NewService(cfg)
 	if err != nil {
-		logrus.WithError(err).Error("could not instantiate did dht service")
-		return nil, err
+		return nil, util.LoggingErrorMsg(err, "could not instantiate did dht service")
 	}
 	if err = ddtSvc.Start(context.Background()); err != nil {
-		logrus.WithError(err).Error("could not start did dht service")
-		return nil, err
+		return nil, util.LoggingErrorMsg(err, "could not start did dht service")
 	}
 
 	handler.GET("/health", Health)
@@ -53,8 +52,7 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 
 	v1 := handler.Group("/v1")
 	if err = DHTAPI(v1, ddtSvc); err != nil {
-		logrus.WithError(err).Error("could not setup dht api")
-		return nil, err
+		return nil, util.LoggingErrorMsg(err, "could not setup dht api")
 	}
 
 	// TODO(gabe): add more routes here
@@ -113,8 +111,7 @@ func setupHandler(env config.Environment) *gin.Engine {
 func DHTAPI(rg *gin.RouterGroup, service *dht.Service) error {
 	dhtRouter, err := NewDHTRouter(service)
 	if err != nil {
-		logrus.WithError(err).Error("could not instantiate dht router")
-		return err
+		return util.LoggingErrorMsg(err, "could not instantiate dht router")
 	}
 
 	dhtAPI := rg.Group("/dht")

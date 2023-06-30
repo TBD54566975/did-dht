@@ -7,6 +7,7 @@ import (
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"did-dht/pkg/db"
@@ -48,13 +49,13 @@ func StartGossiper(ctx context.Context, storage db.DDTStorage, ps *pubsub.PubSub
 	// join the topic
 	t, err := ps.Join(topic)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "failed to join topic")
 	}
 
 	// subscribe to it
 	sub, err := t.Subscribe()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "failed to subscribe to topic")
 	}
 
 	ddt := &Gossiper{
