@@ -88,7 +88,6 @@ func NewService(cfg *config.Config) (*Service, error) {
 		libp2p.ListenAddrStrings(sourceMultiAddr.String()),
 		libp2p.EnableNATService(),
 		libp2p.NATPortMap(),
-		libp2p.EnableRelay(),
 		libp2p.DefaultTransports,
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
@@ -103,8 +102,8 @@ func NewService(cfg *config.Config) (*Service, error) {
 		if err != nil {
 			return nil, util.LoggingErrorMsg(err, "failed to create multiaddress")
 		}
-		// TODO(gabe): use EnableAutoRelayWithStaticRelays with bootstrap peers instead of EnableAutoRelay
-		opts = append(opts, libp2p.EnableHolePunching(), libp2p.EnableAutoRelay())
+		// TODO(gabe): use EnableAutoRelayWithStaticRelays with bootstrap peers and/or have a way to discover relays
+		opts = append(opts, libp2p.EnableHolePunching(), libp2p.EnableRelay())
 	}
 	addressFactory := func(addrs []multiaddr.Multiaddr) []multiaddr.Multiaddr {
 		if extMultiAddr != nil {
