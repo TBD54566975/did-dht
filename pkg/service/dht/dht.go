@@ -25,8 +25,8 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	"github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	discutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
-	"github.com/libp2p/go-libp2p/p2p/host/autonat"
 	routedhost "github.com/libp2p/go-libp2p/p2p/host/routed"
+	"github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/client"
 	"github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
@@ -45,11 +45,11 @@ const (
 )
 
 type Service struct {
-	cfg             *config.Config
-	externalAddress string
-	signer          jwx.Signer
-	storage         *db.Storage
-	resolver        *resolution.ServiceResolver
+	cfg               *config.Config
+	externalAddresses []string
+	signer            jwx.Signer
+	storage           *db.Storage
+	resolver          *resolution.ServiceResolver
 
 	// p2p services
 
@@ -92,6 +92,17 @@ func NewService(cfg *config.Config) (*Service, error) {
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
 	}
+
+	// build a list of relay peers from our bootstrap peers
+	var relayPeers []peer.AddrInfo
+	for _, addr := range cfg.DHTConfig.BootstrapPeers {
+		peerAddr, err := peer.AddrInfoFromString(addr)
+		if err != nil {
+			return nil, util.LoggingErrorMsgf(err, "failed to parse multiaddr: %s", addr)
+		}
+		relayPeers = append(relayPeers, *peerAddr)
+	}
+
 	var extMultiAddr multiaddr.Multiaddr
 	if cfg.ServerConfig.BroadcastIP == "" {
 		logrus.Warn("external IP not defined, Peers might not be able to resolve this node if behind NAT")
@@ -101,14 +112,6 @@ func NewService(cfg *config.Config) (*Service, error) {
 		extMultiAddr, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", cfg.ServerConfig.BroadcastIP, cfg.ServerConfig.ListenPort))
 		if err != nil {
 			return nil, util.LoggingErrorMsg(err, "failed to create multiaddress")
-		}
-		var relayPeers []peer.AddrInfo
-		for _, addr := range cfg.DHTConfig.BootstrapPeers {
-			peerAddr, err := peer.AddrInfoFromString(addr)
-			if err != nil {
-				return nil, util.LoggingErrorMsgf(err, "failed to parse multiaddr: %s", addr)
-			}
-			relayPeers = append(relayPeers, *peerAddr)
 		}
 		opts = append(opts, libp2p.EnableHolePunching(), libp2p.EnableAutoRelayWithStaticRelays(relayPeers))
 	}
@@ -139,23 +142,26 @@ func NewService(cfg *config.Config) (*Service, error) {
 	logrus.Infof("Host created with id: %s, %q", h.ID(), h.Addrs())
 	logrus.Info(h.Addrs())
 
-	// set variable for our external address
-	if extMultiAddr != nil {
-		ddt.externalAddress = fmt.Sprintf("%s/p2p/%s", extMultiAddr, ddt.host.ID())
-	} else {
-		ddt.externalAddress = fmt.Sprintf("%s/p2p/%s", multiaddrString, ddt.host.ID())
-	}
-
 	ctx := context.Background()
 
-	// set up autonat
-	if _, err = autonat.New(h); err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to set up autonat")
-	}
+	// if we have a publicly addressable IP, we set a few different settings, like a relay
+	// set variable for our external address
+	if extMultiAddr != nil {
+		ddt.externalAddresses = append(ddt.externalAddresses, fmt.Sprintf("%s/p2p/%s", extMultiAddr, ddt.host.ID()))
+		if _, err = relay.New(h); err != nil {
+			return nil, util.LoggingErrorMsg(err, "failed to create relay")
+		}
+	} else {
+		// reserve a slot with our relay peers
+		for _, addr := range relayPeers {
+			if _, err = client.Reserve(ctx, h, addr); err != nil {
+				return nil, util.LoggingErrorMsgf(err, "failed to reserve relay slot with %s", addr)
+			}
 
-	// set up relay
-	if _, err = relay.New(h); err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to set up relay")
+			// create an address through the relay
+			ddt.externalAddresses = append(ddt.externalAddresses, fmt.Sprintf("/p2p/%s/p2p-circuit/p2p/%s", addr.ID.String(), h.ID().String()))
+
+		}
 	}
 
 	// init dht and associate it with the host

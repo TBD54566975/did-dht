@@ -22,8 +22,8 @@ func (s *Service) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service) Info() (string, string, []string, []peer.ID) {
-	return s.host.ID().String(), s.externalAddress, s.gossiper.GetTopics(), s.host.Network().Peers()
+func (s *Service) Info() (string, []string, []string, []peer.ID) {
+	return s.host.ID().String(), s.externalAddresses, s.gossiper.GetTopics(), s.host.Network().Peers()
 }
 
 // PublishRecord publishes the given record to the DHT and gossip sub topic
