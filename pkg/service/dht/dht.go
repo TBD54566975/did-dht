@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,13 +22,12 @@ import (
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/discovery"
 	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	"github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	discutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 	routedhost "github.com/libp2p/go-libp2p/p2p/host/routed"
-	"github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/client"
-	"github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -84,24 +84,20 @@ func NewService(cfg *config.Config) (*Service, error) {
 		return nil, util.LoggingErrorMsgf(err, "failed to parse multiaddr: %s", multiaddrString)
 	}
 
+	var h host.Host
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(sourceMultiAddr.String()),
 		libp2p.NATPortMap(),
 		libp2p.EnableNATService(),
+		libp2p.EnableRelay(),
 		libp2p.EnableRelayService(),
+		libp2p.EnableHolePunching(),
+		libp2p.EnableAutoRelayWithPeerSource(findRelayPeers(func() host.Host {
+			return h
+		})),
 		libp2p.DefaultTransports,
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
-	}
-
-	// build a list of relay peers from our bootstrap peers
-	var relayPeers []peer.AddrInfo
-	for _, addr := range cfg.DHTConfig.BootstrapPeers {
-		peerAddr, err := peer.AddrInfoFromString(addr)
-		if err != nil {
-			return nil, util.LoggingErrorMsgf(err, "failed to parse multiaddr: %s", addr)
-		}
-		relayPeers = append(relayPeers, *peerAddr)
 	}
 
 	var extMultiAddr multiaddr.Multiaddr
@@ -114,7 +110,7 @@ func NewService(cfg *config.Config) (*Service, error) {
 		if err != nil {
 			return nil, util.LoggingErrorMsg(err, "failed to create multiaddress")
 		}
-		opts = append(opts, libp2p.ForceReachabilityPublic(), libp2p.EnableHolePunching(), libp2p.EnableAutoRelayWithStaticRelays(relayPeers))
+		opts = append(opts, libp2p.ForceReachabilityPublic())
 	}
 
 	addressFactory := func(addrs []multiaddr.Multiaddr) []multiaddr.Multiaddr {
@@ -135,7 +131,7 @@ func NewService(cfg *config.Config) (*Service, error) {
 	opts = append(opts, libp2p.Identity(privKey))
 
 	// create a new libp2p host that listens on a random TCP port
-	h, err := libp2p.New(opts...)
+	h, err = libp2p.New(opts...)
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to instantiate libp2p host")
 	}
@@ -145,23 +141,11 @@ func NewService(cfg *config.Config) (*Service, error) {
 
 	ctx := context.Background()
 
-	// if we have a publicly addressable IP, we set a few different settings, like a relay
 	// set variable for our external address
 	if extMultiAddr != nil {
 		ddt.externalAddresses = append(ddt.externalAddresses, fmt.Sprintf("%s/p2p/%s", extMultiAddr, ddt.host.ID()))
-		if _, err = relay.New(h); err != nil {
-			return nil, util.LoggingErrorMsg(err, "failed to create relay")
-		}
 	} else {
-		// reserve a slot with our relay peers
-		for _, addr := range relayPeers {
-			if _, err = client.Reserve(ctx, h, addr); err != nil {
-				return nil, util.LoggingErrorMsgf(err, "failed to reserve relay slot with %s", addr)
-			}
-
-			// create an address through the relay
-			ddt.externalAddresses = append(ddt.externalAddresses, fmt.Sprintf("/p2p/%s/p2p-circuit/p2p/%s", addr.ID.String(), h.ID().String()))
-		}
+		ddt.externalAddresses = append(ddt.externalAddresses, fmt.Sprintf("%s/p2p/%s", multiaddrString, h.ID().String()))
 	}
 
 	// init dht and associate it with the host
@@ -194,6 +178,45 @@ func NewService(cfg *config.Config) (*Service, error) {
 	}
 
 	return &ddt, nil
+}
+
+func findRelayPeers(h func() host.Host) func(ctx context.Context, num int) <-chan peer.AddrInfo {
+	return func(ctx context.Context, num int) <-chan peer.AddrInfo {
+		ch := make(chan peer.AddrInfo)
+		go func() {
+			sent := 0
+		outer:
+			for {
+				for _, id := range h().Peerstore().PeersWithAddrs() {
+					if sent >= num {
+						break
+					}
+					protos, err := h().Peerstore().GetProtocols(id)
+					if err != nil {
+						continue
+					}
+					for _, proto := range protos {
+						if strings.HasPrefix(string(proto), "/libp2p/circuit/relay/") {
+							ch <- peer.AddrInfo{
+								ID:    id,
+								Addrs: h().Peerstore().Addrs(id),
+							}
+							sent++
+							break
+						}
+					}
+				}
+				select {
+				case <-time.After(time.Second):
+					continue
+				case <-ctx.Done():
+					break outer
+				}
+			}
+			close(ch)
+		}()
+		return ch
+	}
 }
 
 // gets or creates a service identity
@@ -374,22 +397,16 @@ func (s *Service) discover(ctx context.Context) {
 			if p.ID == s.host.ID() {
 				continue
 			}
-			alreadyConnected := false
-			for _, storedPeerID := range s.host.Peerstore().Peers() {
-				if p.ID == storedPeerID {
-					alreadyConnected = true
-					break
-				}
+			if s.host.Network().Connectedness(p.ID) == network.Connected {
+				continue
 			}
-			if !alreadyConnected {
-				logrus.Infof("attempting to connect to peer %s", p.ID)
-				if err = s.host.Connect(ctx, p); err != nil {
-					logrus.WithError(err).Errorf("failed to connect to peer %s", p.ID)
-				} else {
-					logrus.Infof("connected to peer %s", p.ID)
-				}
-				s.host.ConnManager().Protect(p.ID, "discoveredPeer")
+			logrus.Infof("attempting to connect to peer %s", p.ID)
+			if err = s.host.Connect(ctx, p); err != nil {
+				logrus.WithError(err).Errorf("failed to connect to peer %s", p.ID)
+			} else {
+				logrus.Infof("connected to peer %s", p.ID)
 			}
+			s.host.ConnManager().Protect(p.ID, "discoveredPeer")
 		}
 	}
 }
