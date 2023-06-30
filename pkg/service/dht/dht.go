@@ -267,6 +267,7 @@ func (s *Service) setupDHT(ctx context.Context) error {
 		dht.Mode(dht.ModeAutoServer),
 		dht.Validator(validator),
 		dht.ProtocolPrefix(protocolPrefix),
+		dht.RoutingTableRefreshPeriod(peerDiscoveryPeriod),
 	)
 	if err != nil {
 		return util.LoggingErrorMsg(err, "failed to instantiate dht service")
@@ -308,7 +309,7 @@ func (s *Service) bootstrapPeers(ctx context.Context) error {
 	wg.Wait()
 
 	if numBootstrapPeers == 0 {
-		return errors.New("no bootstrap bootstrapPeers could be connected to")
+		return errors.New("no bootstrap peers could be connected to")
 	}
 	return nil
 }
@@ -361,6 +362,9 @@ func (s *Service) discover(ctx context.Context) {
 			}
 			if err = s.host.Connect(ctx, p); err != nil {
 				logrus.WithError(err).Errorf("failed to connect to peer %s", p.ID)
+				if _, err = s.dht.RoutingTable().TryAddPeer(p.ID, false, true); err != nil {
+					logrus.WithError(err).Errorf("failed to add peer %s to routing table", p.ID)
+				}
 			} else {
 				logrus.Infof("connected to peer %s", p.ID)
 			}
@@ -384,6 +388,7 @@ func (s *Service) setupLocalDiscovery(ctx context.Context) error {
 			case pi := <-ldn.PeerChan:
 				logrus.Infof("found local peer %s", pi.ID)
 				if err := s.host.Connect(ctx, pi); err != nil {
+					s.dht.RoutingTable().TryAddPeer()
 					logrus.WithError(err).Errorf("failed to connect to peer %s", pi.ID)
 				} else {
 					logrus.Infof("connected to local peer %s", pi.ID)
