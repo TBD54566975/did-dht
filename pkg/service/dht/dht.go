@@ -16,6 +16,7 @@ import (
 	"github.com/ipfs/boxo/ipns"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	record "github.com/libp2p/go-libp2p-record"
 	"github.com/libp2p/go-libp2p/core/crypto"
@@ -264,6 +265,7 @@ func (s *Service) setupDHT(ctx context.Context) error {
 	if err = d.Bootstrap(ctx); err != nil {
 		return util.LoggingErrorMsg(err, "failed to bootstrap dht service")
 	}
+
 	s.host = routedhost.Wrap(s.host, d)
 	s.dht = d
 	return nil
@@ -309,7 +311,11 @@ func (s *Service) setupPeerDiscovery(ctx context.Context) error {
 		return ctx.Err()
 	case <-s.dht.RefreshRoutingTable():
 	}
-	d := routing.NewRoutingDiscovery(s.dht)
+	fullrt, err := fullrt.NewFullRT(s.host, protocolPrefix)
+	if err != nil {
+		return util.LoggingErrorMsg(err, "failed to instantiate fullrt")
+	}
+	d := routing.NewRoutingDiscovery(fullrt)
 	s.discovery = d
 
 	// advertise ourselves
@@ -353,6 +359,7 @@ func (s *Service) discover(ctx context.Context) {
 			} else {
 				logrus.Infof("connected to peer %s", p.ID)
 			}
+			s.host.ConnManager().Protect(p.ID, "discoveredPeer")
 		}
 	}
 }
@@ -374,7 +381,7 @@ func (s *Service) setupLocalDiscovery(ctx context.Context) error {
 				if err := s.host.Connect(ctx, pi); err != nil {
 					logrus.WithError(err).Errorf("failed to connect to peer %s", pi.ID)
 				} else {
-					logrus.Infof("connected to peer %s", pi.ID)
+					logrus.Infof("connected to local peer %s", pi.ID)
 				}
 			}
 		}

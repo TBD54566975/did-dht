@@ -98,6 +98,7 @@ func VerifyRecord(ctx context.Context, resolver *resolution.ServiceResolver, r R
 			if err != nil {
 				return errors.Wrapf(err, "resolving issuer DID: %s", parsedJWT.Issuer())
 			}
+			logrus.Infof("resolved iss DID: %s", resolved.Document.ID)
 		}
 	}
 
