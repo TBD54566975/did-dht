@@ -2,12 +2,15 @@ package dht
 
 import (
 	"context"
+	"crypto/ed25519"
 	"crypto/rand"
 	"fmt"
 	"sync"
 	"time"
 
 	sdkcrypto "github.com/TBD54566975/ssi-sdk/crypto"
+	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
+	"github.com/TBD54566975/ssi-sdk/did"
 	"github.com/TBD54566975/ssi-sdk/did/key"
 	"github.com/TBD54566975/ssi-sdk/util"
 	"github.com/libp2p/go-libp2p"
@@ -28,6 +31,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"did-dht/config"
+	"did-dht/internal/resolution"
 	"did-dht/pkg/db"
 )
 
@@ -38,21 +42,19 @@ const (
 )
 
 type Service struct {
-	cfg     *config.Config
-	storage *db.Storage
-
+	cfg             *config.Config
 	externalAddress string
+	signer          *jwx.Signer
+	storage         *db.Storage
+	resolver        *resolution.ServiceResolver
 
-	// p2p host
-	host host.Host
-	// p2p gossip sub router
+	// p2p services
+
+	host      host.Host
 	gossipSub *pubsub.PubSub
-	// p2p dht
-	dht *dht.IpfsDHT
-	// p2p discovery
+	dht       *dht.IpfsDHT
 	discovery *routing.RoutingDiscovery
-
-	gossiper *Gossiper
+	gossiper  *Gossiper
 }
 
 func NewService(cfg *config.Config) (*Service, error) {
@@ -63,6 +65,13 @@ func NewService(cfg *config.Config) (*Service, error) {
 		return nil, util.LoggingErrorMsg(err, "failed to instantiate storage")
 	}
 	ddt.storage = storage
+
+	// create a new resolver
+	localResolutionMethods := []string{did.KeyMethod.String(), did.PKHMethod.String(), did.WebMethod.String(), did.JWKMethod.String()}
+	ddt.resolver, err = resolution.NewServiceResolver(nil, localResolutionMethods, cfg.DHTConfig.ResolverEndpoint)
+	if err != nil {
+		return nil, util.LoggingErrorMsg(err, "failed to instantiate resolver")
+	}
 
 	multiaddrString := fmt.Sprintf("/ip4/%s/tcp/%d", cfg.ServerConfig.APIHost, cfg.ServerConfig.ListenPort)
 
@@ -188,6 +197,23 @@ func (s *Service) setupServiceIdentity() (*crypto.Ed25519PrivateKey, error) {
 	if err = s.storage.WriteIdentity(didKey.String(), *privKey.(*crypto.Ed25519PrivateKey)); err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to write identity")
 	}
+
+	// create and store a signer for the key
+	expanded, err := didKey.Expand()
+	if err != nil {
+		return nil, util.LoggingErrorMsg(err, "failed to expand did key")
+	}
+	privKeyBytes, err := privKey.Raw()
+	if err != nil {
+		return nil, util.LoggingErrorMsg(err, "failed to get raw private key bytes")
+	}
+	signer, err := jwx.NewJWXSigner(didKey.String(), expanded.VerificationMethod[0].ID, ed25519.PrivateKey(privKeyBytes))
+	if err != nil {
+		return nil, util.LoggingErrorMsg(err, "failed to create jwx signer")
+	}
+	s.signer = signer
+
+	// return the priv key
 	return privKey.(*crypto.Ed25519PrivateKey), nil
 }
 
@@ -206,7 +232,7 @@ func (s *Service) setupGossipSub(ctx context.Context) error {
 
 func (s *Service) setupDHT(ctx context.Context) error {
 	validator := record.NamespacedValidator{
-		s.cfg.DHTConfig.Namespace: NewValidator(s.cfg.DHTConfig.Namespace),
+		s.cfg.DHTConfig.Namespace: NewValidator(s.cfg.DHTConfig.Namespace, s.resolver),
 	}
 	d, err := dht.New(
 		ctx,

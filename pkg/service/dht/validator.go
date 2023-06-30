@@ -1,24 +1,26 @@
 package dht
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
 	record "github.com/libp2p/go-libp2p-record"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 
 	"did-dht/internal"
+	"did-dht/internal/resolution"
 )
 
 var _ record.Validator = (*Validator)(nil)
 
 type Validator struct {
-	ns string
+	ns       string
+	resolver *resolution.ServiceResolver
 }
 
-func NewValidator(ns string) Validator {
-	return Validator{ns: ns}
+func NewValidator(ns string, resolver *resolution.ServiceResolver) Validator {
+	return Validator{ns: ns, resolver: resolver}
 }
 
 func (v Validator) Validate(key string, value []byte) error {
@@ -48,11 +50,10 @@ func (v Validator) Validate(key string, value []byte) error {
 		return fmt.Errorf("endpoint is empty")
 	}
 
-	// TODO(gabe): enable signature validation
 	if r.JWS == "" {
-		logrus.Warn("JWS is empty")
+		return fmt.Errorf("jws is empty")
 	}
-	return nil
+	return VerifyRecord(context.Background(), v.resolver, r)
 }
 
 // Select conforms to the Validator interface, it always returns 0 as all records are equivalently valid.

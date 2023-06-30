@@ -53,14 +53,11 @@ type AddRecordResponse struct {
 //	@Failure		500		{string}	string	"Internal server error"
 //	@Router			/v1/dht [put]
 func (r *DHTRouter) AddRecord(c *gin.Context) {
-	// TODO(gabe): validate before adding record
 	var request AddRecordRequest
 	if err := Decode(c.Request, &request); err != nil {
 		LoggingRespondErrWithMsg(c, err, "invalid add dht record request", http.StatusBadRequest)
 		return
 	}
-
-	if request.JWS == "" && cfg.
 
 	if err := r.service.PublishRecord(c, request.toServiceRequest()); err != nil {
 		LoggingRespondErrWithMsg(c, err, "failed to publish record", http.StatusInternalServerError)
@@ -75,7 +72,7 @@ const (
 )
 
 type GetRecordResponse struct {
-	Record dht.DDTMessage `json:"record"`
+	*dht.DDTMessage
 }
 
 // ReadRecord godoc
@@ -103,7 +100,7 @@ func (r *DHTRouter) ReadRecord(c *gin.Context) {
 		return
 	}
 
-	Respond(c, GetRecordResponse{Record: *resp}, http.StatusOK)
+	Respond(c, GetRecordResponse{DDTMessage: resp}, http.StatusOK)
 }
 
 // ListRecords godoc

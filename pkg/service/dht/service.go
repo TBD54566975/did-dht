@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/TBD54566975/ssi-sdk/util"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -27,6 +28,9 @@ func (s *Service) Info() (string, string, []peer.ID) {
 
 // PublishRecord publishes the given record to the DHT and gossip sub topic
 func (s *Service) PublishRecord(ctx context.Context, msg DDTMessage) error {
+	if s.cfg.DHTConfig.EnforceSignedMessages && msg.Record.JWS == "" {
+		return errors.New("message must be signed")
+	}
 	if s.storage == nil {
 		return errors.New("storage not initialized")
 	}
@@ -38,6 +42,20 @@ func (s *Service) PublishRecord(ctx context.Context, msg DDTMessage) error {
 	}
 	msg.PublisherID = s.host.ID().String()
 
+	// if the record doesn't have a JWS, sign it with the service's key
+	if msg.Record.JWS == "" {
+		signedRecord, err := SignRecordJWS(*s.signer, msg.Record)
+		if err != nil {
+			return errors.WithMessage(err, "failed to sign message")
+		}
+		msg.Record.JWS = signedRecord.JWS
+	}
+
+	// verify the record's signature is correct
+	if err := VerifyRecord(ctx, s.resolver, msg.Record); err != nil {
+		return errors.WithMessage(err, "failed to verify message")
+	}
+
 	// put the record in our local storage
 	if err := s.storage.WriteRecord(db.DDTRecord{
 		PublisherID: s.host.ID().String(),
@@ -47,8 +65,7 @@ func (s *Service) PublishRecord(ctx context.Context, msg DDTMessage) error {
 			JWS:      msg.Record.JWS,
 		}),
 	}); err != nil {
-		logrus.WithError(err).Error("failed to write record, not publishing to network...")
-		return errors.Wrap(err, "failed to write record")
+		return util.LoggingErrorMsg(err, "failed to write record, not publishing to network...")
 	}
 
 	// put the record in the DHT

@@ -1,10 +1,15 @@
 package dht
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
+	"github.com/TBD54566975/ssi-sdk/did"
+	"github.com/lestrrat-go/jwx/v2/jws"
 	"github.com/pkg/errors"
+
+	"did-dht/internal/resolution"
 )
 
 // SignRecordJWS signs a record by creating a JWS, returning the signed record.
@@ -74,4 +79,41 @@ func VerifyRecordJWS(verifier jwx.Verifier, record Record) error {
 		return fmt.Errorf("record endpoint<%s> does not match endpoint in JWS<%s>", record.Endpoint, endpointStr)
 	}
 	return nil
+}
+
+// VerifyRecord verifies a record by resolving the DID and checking the JWS, returning an error if the record is invalid.
+func VerifyRecord(ctx context.Context, resolver *resolution.ServiceResolver, r Record) error {
+	resolved, err := resolver.Resolve(ctx, r.DID)
+	if err != nil {
+		return errors.WithMessagef(err, "failed to resolve DID: %s", r.DID)
+	}
+	if resolved.Document.IsEmpty() {
+		return errors.Errorf("resolved DID is empty: %s", r.DID)
+	}
+
+	// decode JWS and get the KID
+	headers, err := jwx.GetJWSHeaders([]byte(r.JWS))
+	if err != nil {
+		return errors.Wrapf(err, "getting JWS headers")
+	}
+	kid, ok := headers.Get(jws.KeyIDKey)
+	if !ok {
+		return errors.New("JWS missing kid")
+	}
+	kidStr, ok := kid.(string)
+	if !ok {
+		return errors.New("kid is not a string")
+	}
+
+	pubKey, err := did.GetKeyFromVerificationMethod(resolved.Document, kidStr)
+	if err != nil {
+		return errors.Wrapf(err, "getting verification information from DID Document: %s, for KID: %s", r.DID, kidStr)
+	}
+
+	// verify the JWS
+	verifier, err := jwx.NewJWXVerifier(r.DID, kidStr, pubKey)
+	if err != nil {
+		return errors.Wrapf(err, "creating JWS verifier")
+	}
+	return VerifyRecordJWS(*verifier, r)
 }
