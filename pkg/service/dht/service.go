@@ -44,7 +44,7 @@ func (s *Service) PublishRecord(ctx context.Context, msg DDTMessage) error {
 
 	// if the record doesn't have a JWS, sign it with the service's key
 	if msg.Record.JWS == "" {
-		signedRecord, err := SignRecordJWS(*s.signer, msg.Record)
+		signedRecord, err := SignRecordJWS(s.signer, msg.Record)
 		if err != nil {
 			return errors.WithMessage(err, "failed to sign message")
 		}

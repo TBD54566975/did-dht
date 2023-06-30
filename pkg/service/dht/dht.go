@@ -44,7 +44,7 @@ const (
 type Service struct {
 	cfg             *config.Config
 	externalAddress string
-	signer          *jwx.Signer
+	signer          jwx.Signer
 	storage         *db.Storage
 	resolver        *resolution.ServiceResolver
 
@@ -175,27 +175,20 @@ func (s *Service) setupServiceIdentity() (*crypto.Ed25519PrivateKey, error) {
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to read identity")
 	}
+
+	var privKey *crypto.Ed25519PrivateKey
+	var didKey *key.DIDKey
 	if did != "" && gotPrivKey != nil {
 		logrus.Infof("found existing identity: %s", did)
-		return gotPrivKey, nil
-	}
-
-	logrus.Info("generating new identity")
-	privKey, pubKey, err := crypto.GenerateEd25519Key(rand.Reader)
-	if err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to generate key")
-	}
-	pubKeyBytes, err := pubKey.Raw()
-	if err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to get raw public key bytes")
-	}
-	didKey, err := key.CreateDIDKey(sdkcrypto.Ed25519, pubKeyBytes)
-	if err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to create did key")
-	}
-	logrus.Infof("generated new identity: %s", didKey.String())
-	if err = s.storage.WriteIdentity(didKey.String(), *privKey.(*crypto.Ed25519PrivateKey)); err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to write identity")
+		privKey = gotPrivKey
+		k := key.DIDKey(did)
+		didKey = &k
+	} else {
+		logrus.Info("generating new identity")
+		privKey, didKey, err = s.generateNewIdentity()
+		if err != nil {
+			return nil, util.LoggingErrorMsg(err, "failed to generate new identity")
+		}
 	}
 
 	// create and store a signer for the key
@@ -211,10 +204,30 @@ func (s *Service) setupServiceIdentity() (*crypto.Ed25519PrivateKey, error) {
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to create jwx signer")
 	}
-	s.signer = signer
+	s.signer = *signer
 
 	// return the priv key
-	return privKey.(*crypto.Ed25519PrivateKey), nil
+	return privKey, nil
+}
+
+func (s *Service) generateNewIdentity() (*crypto.Ed25519PrivateKey, *key.DIDKey, error) {
+	privKey, pubKey, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		return nil, nil, util.LoggingErrorMsg(err, "failed to generate key")
+	}
+	pubKeyBytes, err := pubKey.Raw()
+	if err != nil {
+		return nil, nil, util.LoggingErrorMsg(err, "failed to get raw public key bytes")
+	}
+	didKey, err := key.CreateDIDKey(sdkcrypto.Ed25519, pubKeyBytes)
+	if err != nil {
+		return nil, nil, util.LoggingErrorMsg(err, "failed to create did key")
+	}
+	logrus.Infof("generated new identity: %s", didKey.String())
+	if err = s.storage.WriteIdentity(didKey.String(), *privKey.(*crypto.Ed25519PrivateKey)); err != nil {
+		return nil, nil, util.LoggingErrorMsg(err, "failed to write identity")
+	}
+	return privKey.(*crypto.Ed25519PrivateKey), didKey, nil
 }
 
 func (s *Service) setupGossipSub(ctx context.Context) error {

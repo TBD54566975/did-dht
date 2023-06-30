@@ -7,7 +7,9 @@ import (
 	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
 	"github.com/TBD54566975/ssi-sdk/did"
 	"github.com/lestrrat-go/jwx/v2/jws"
+	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	"did-dht/internal/resolution"
 )
@@ -85,8 +87,20 @@ func VerifyRecordJWS(verifier jwx.Verifier, record Record) error {
 func VerifyRecord(ctx context.Context, resolver *resolution.ServiceResolver, r Record) error {
 	resolved, err := resolver.Resolve(ctx, r.DID)
 	if err != nil {
-		return errors.WithMessagef(err, "failed to resolve DID: %s", r.DID)
+		logrus.WithError(err).Warnf("failed to resolve DID: %s, attemtping to get iss", r.DID)
+		parsedJWT, err := jwt.Parse([]byte(r.JWS), jwt.WithVerify(false))
+		if err != nil {
+			return errors.Wrapf(err, "parsing JWS")
+		}
+		if parsedJWT.Issuer() != "" && parsedJWT.Issuer() != r.DID {
+			logrus.Infof("iss is not the same as DID, attempting to resolve: %s", parsedJWT.Issuer())
+			resolved, err = resolver.Resolve(ctx, parsedJWT.Issuer())
+			if err != nil {
+				return errors.Wrapf(err, "resolving issuer DID: %s", parsedJWT.Issuer())
+			}
+		}
 	}
+
 	if resolved.Document.IsEmpty() {
 		return errors.Errorf("resolved DID is empty: %s", r.DID)
 	}
