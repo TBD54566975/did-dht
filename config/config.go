@@ -78,7 +78,7 @@ func GetDefaultConfig() Config {
 			Topic:                 "diddht",
 			LocalDiscovery:        true,
 			ResolverEndpoint:      "https://dev.uniresolver.io/",
-			BootstrapPeers:        []string{"/ip4/54.226.19.143/tcp/8503/p2p/12D3KooWKr6YYeWqYXohcJueecJNyBMUuDiY9w9ridx9Uq7XGhQV"},
+			BootstrapPeers:        []string{"/ip4/54.226.19.143/tcp/8503/p2p/12D3KooWNqM7VkU7dfM4Z2H2XDVE3cS9BAUJzVNvGuCqwiHmxzdx"},
 			EnforceSignedMessages: false,
 		},
 	}
