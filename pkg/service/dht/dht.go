@@ -13,6 +13,7 @@ import (
 	"github.com/TBD54566975/ssi-sdk/did"
 	"github.com/TBD54566975/ssi-sdk/did/key"
 	"github.com/TBD54566975/ssi-sdk/util"
+	"github.com/ipfs/boxo/ipns"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -245,6 +246,8 @@ func (s *Service) setupGossipSub(ctx context.Context) error {
 
 func (s *Service) setupDHT(ctx context.Context) error {
 	validator := record.NamespacedValidator{
+		"pk":                      record.PublicKeyValidator{},
+		"ipns":                    ipns.Validator{KeyBook: s.host.Peerstore()},
 		s.cfg.DHTConfig.Namespace: NewValidator(s.cfg.DHTConfig.Namespace, s.resolver),
 	}
 	d, err := dht.New(
