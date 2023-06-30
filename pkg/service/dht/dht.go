@@ -16,7 +16,6 @@ import (
 	"github.com/ipfs/boxo/ipns"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	record "github.com/libp2p/go-libp2p-record"
 	"github.com/libp2p/go-libp2p/core/crypto"
@@ -118,6 +117,12 @@ func NewService(cfg *config.Config) (*Service, error) {
 		libp2p.EnableRelayService(),
 		libp2p.ForceReachabilityPublic(),
 		libp2p.EnableHolePunching(),
+		libp2p.DefaultTransports,
+		libp2p.DefaultMuxers,
+		libp2p.DefaultSecurity,
+		libp2p.NATPortMap(),
+		libp2p.EnableNATService(),
+		libp2p.EnableRelay(),
 	)
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to instantiate libp2p host")
@@ -311,11 +316,7 @@ func (s *Service) setupPeerDiscovery(ctx context.Context) error {
 		return ctx.Err()
 	case <-s.dht.RefreshRoutingTable():
 	}
-	fullrt, err := fullrt.NewFullRT(s.host, protocolPrefix)
-	if err != nil {
-		return util.LoggingErrorMsg(err, "failed to instantiate fullrt")
-	}
-	d := routing.NewRoutingDiscovery(fullrt)
+	d := routing.NewRoutingDiscovery(s.dht)
 	s.discovery = d
 
 	// advertise ourselves
