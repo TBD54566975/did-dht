@@ -37,9 +37,10 @@ import (
 )
 
 const (
-	advertisePeriod = time.Minute * 30
-	peerLimit       = 10
-	protocolPrefix  = "/diddht"
+	advertisePeriod     = time.Minute * 30
+	peerDiscoveryPeriod = time.Minute * 5
+	peerLimit           = 10
+	protocolPrefix      = "/diddht"
 )
 
 type Service struct {
@@ -314,23 +315,46 @@ func (s *Service) setupPeerDiscovery(ctx context.Context) error {
 	// advertise ourselves
 	discutil.Advertise(ctx, d, s.cfg.DHTConfig.Namespace, discovery.TTL(advertisePeriod))
 
-	// connect to peers
+	// discover and connect to peers periodically
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				pctx, cancel := context.WithTimeout(ctx, peerDiscoveryPeriod)
+				s.discover(pctx)
+				cancel()
+				time.Sleep(peerDiscoveryPeriod)
+			}
+		}
+	}()
+	return nil
+}
+
+func (s *Service) discover(ctx context.Context) {
 	logrus.Info("finding peers")
-	peerChan, err := d.FindPeers(ctx, s.cfg.DHTConfig.Namespace, discovery.Limit(peerLimit))
+	peerChan, err := s.discovery.FindPeers(ctx, s.cfg.DHTConfig.Namespace, discovery.Limit(peerLimit))
 	if err != nil {
-		return util.LoggingErrorMsg(err, "failed to find peers")
+		logrus.WithError(err).Error("failed to find peers")
+		return
 	}
 	for p := range peerChan {
 		p := p
-		go func() {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			if p.ID == s.host.ID() {
+				continue
+			}
 			if err = s.host.Connect(ctx, p); err != nil {
 				logrus.WithError(err).Errorf("failed to connect to peer %s", p.ID)
 			} else {
 				logrus.Infof("connected to peer %s", p.ID)
 			}
-		}()
+		}
 	}
-	return nil
 }
 
 func (s *Service) setupLocalDiscovery(ctx context.Context) error {

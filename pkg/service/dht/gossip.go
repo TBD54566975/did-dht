@@ -86,8 +86,8 @@ func (ddt *Gossiper) Close() error {
 	return ddt.topic.Close()
 }
 
-func (ddt *Gossiper) ListPeers() []peer.ID {
-	return ddt.ps.ListPeers(ddt.topicName)
+func (ddt *Gossiper) GetTopics() []string {
+	return ddt.ps.GetTopics()
 }
 
 func (ddt *Gossiper) Publish(ctx context.Context, msg []byte) error {
