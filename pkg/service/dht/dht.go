@@ -45,11 +45,11 @@ const (
 )
 
 type Service struct {
-	cfg               *config.Config
-	externalAddresses []string
-	signer            jwx.Signer
-	storage           *db.Storage
-	resolver          *resolution.ServiceResolver
+	cfg             *config.Config
+	externalAddress string
+	signer          jwx.Signer
+	storage         *db.Storage
+	resolver        *resolution.ServiceResolver
 
 	// p2p services
 
@@ -92,9 +92,7 @@ func NewService(cfg *config.Config) (*Service, error) {
 		libp2p.EnableRelay(),
 		libp2p.EnableRelayService(),
 		libp2p.EnableHolePunching(),
-		libp2p.EnableAutoRelayWithPeerSource(findRelayPeers(func() host.Host {
-			return h
-		})),
+		libp2p.EnableAutoRelayWithPeerSource(findRelayPeers(func() host.Host { return h })),
 		libp2p.DefaultTransports,
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
@@ -143,9 +141,9 @@ func NewService(cfg *config.Config) (*Service, error) {
 
 	// set variable for our external address
 	if extMultiAddr != nil {
-		ddt.externalAddresses = append(ddt.externalAddresses, fmt.Sprintf("%s/p2p/%s", extMultiAddr, ddt.host.ID()))
+		ddt.externalAddress = fmt.Sprintf("%s/p2p/%s", extMultiAddr, ddt.host.ID())
 	} else {
-		ddt.externalAddresses = append(ddt.externalAddresses, fmt.Sprintf("%s/p2p/%s", multiaddrString, h.ID().String()))
+		ddt.externalAddress = fmt.Sprintf("%s/p2p/%s", multiaddrString, h.ID().String())
 	}
 
 	// init dht and associate it with the host
@@ -180,6 +178,7 @@ func NewService(cfg *config.Config) (*Service, error) {
 	return &ddt, nil
 }
 
+// findRelayPeers is a helper function that returns a function that can be used as a peer source
 func findRelayPeers(h func() host.Host) func(ctx context.Context, num int) <-chan peer.AddrInfo {
 	return func(ctx context.Context, num int) <-chan peer.AddrInfo {
 		ch := make(chan peer.AddrInfo)

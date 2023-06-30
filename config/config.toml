@@ -13,5 +13,5 @@ namespace = "diddht"
 topic = "diddht"
 local_discovery = false
 resolver_endpoint = "https://dev.uniresolver.io/"
-bootstrap_peers = ["/ip4/54.174.122.8/tcp/8503/p2p/12D3KooWLAxMJKEuW4EMELW8XZKtXqqftpr5ZnHookXpcFcYTiaX"]
+bootstrap_peers = ["/ip4/54.174.122.8/tcp/8503/p2p/12D3KooWR7KTAszwXmkfr5U18VrKvCgwDC3FHdrgMcrZBr3Z9Eig"]
 enforce_signed_messages = false

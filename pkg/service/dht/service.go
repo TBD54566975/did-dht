@@ -22,8 +22,10 @@ func (s *Service) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service) Info() (string, []string, []string, []peer.ID) {
-	return s.host.ID().String(), s.externalAddresses, s.gossiper.GetTopics(), s.host.Network().Peers()
+func (s *Service) Info() (string, string, []string, []peer.ID) {
+	logrus.Infof("host peers: %v", s.host.Peerstore().Peers())
+
+	return s.host.ID().String(), s.externalAddress, s.gossiper.GetTopics(), s.host.Peerstore().Peers()
 }
 
 // PublishRecord publishes the given record to the DHT and gossip sub topic
@@ -43,18 +45,18 @@ func (s *Service) PublishRecord(ctx context.Context, msg DDTMessage) error {
 	msg.PublisherID = s.host.ID().String()
 
 	// if the record doesn't have a JWS, sign it with the service's key
-	// if msg.Record.JWS == "" {
-	// 	signedRecord, err := SignRecordJWS(s.signer, msg.Record)
-	// 	if err != nil {
-	// 		return errors.WithMessage(err, "failed to sign message")
-	// 	}
-	// 	msg.Record.JWS = signedRecord.JWS
-	// }
-	//
-	// // verify the record's signature is correct
-	// if err := VerifyRecord(ctx, s.resolver, msg.Record); err != nil {
-	// 	return errors.WithMessage(err, "failed to verify message")
-	// }
+	if msg.Record.JWS == "" {
+		signedRecord, err := SignRecordJWS(s.signer, msg.Record)
+		if err != nil {
+			return errors.WithMessage(err, "failed to sign message")
+		}
+		msg.Record.JWS = signedRecord.JWS
+	} else {
+		// verify the record's signature is correct
+		if err := VerifyRecord(ctx, s.resolver, msg.Record); err != nil {
+			return errors.WithMessage(err, "failed to verify message")
+		}
+	}
 
 	// put the record in our local storage
 	if err := s.storage.WriteRecord(db.DDTRecord{

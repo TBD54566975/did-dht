@@ -10,10 +10,10 @@ import (
 )
 
 type InfoResponse struct {
-	ID        string    `json:"id"`
-	Addresses []string  `json:"addresses"`
-	Topics    []string  `json:"topics"`
-	Peers     []peer.ID `json:"peers"`
+	ID      string    `json:"id"`
+	Address string    `json:"address"`
+	Topics  []string  `json:"topics"`
+	Peers   []peer.ID `json:"peers"`
 }
 
 // Info godoc
@@ -28,10 +28,10 @@ func Info(svc *dht.Service) gin.HandlerFunc {
 	id, addr, topics, peers := svc.Info()
 	return func(c *gin.Context) {
 		Respond(c, InfoResponse{
-			ID:        id,
-			Addresses: addr,
-			Topics:    topics,
-			Peers:     peers,
+			ID:      id,
+			Address: addr,
+			Topics:  topics,
+			Peers:   peers,
 		}, http.StatusOK)
 	}
 }

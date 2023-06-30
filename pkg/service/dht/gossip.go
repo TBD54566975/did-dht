@@ -129,7 +129,7 @@ func (ddt *Gossiper) processMessages() {
 			logrus.Info("context cancelled, closing...")
 			return
 		case msg := <-ddt.Messages:
-			logrus.Infof("Received message from %q: %q", msg, msg.Record)
+			logrus.Infof("Received message from %q: %q", msg.PublisherID, msg.Record)
 			if err := ddt.storage.WriteRecord(db.DDTRecord{
 				PublisherID: msg.PublisherID,
 				Record: db.Record(Record{
