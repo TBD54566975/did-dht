@@ -84,15 +84,27 @@ func NewService(cfg *config.Config) (*Service, error) {
 		return nil, util.LoggingErrorMsgf(err, "failed to parse multiaddr: %s", multiaddrString)
 	}
 
+	opts := []libp2p.Option{
+		libp2p.ListenAddrStrings(sourceMultiAddr.String()),
+		libp2p.EnableNATService(),
+		libp2p.NATPortMap(),
+		libp2p.EnableRelay(),
+		libp2p.DefaultTransports,
+		libp2p.DefaultMuxers,
+		libp2p.DefaultSecurity,
+	}
 	var extMultiAddr multiaddr.Multiaddr
 	if cfg.ServerConfig.BroadcastIP == "" {
 		logrus.Warn("external IP not defined, Peers might not be able to resolve this node if behind NAT")
+		opts = append(opts, libp2p.ForceReachabilityPublic())
 	} else {
 		// here we're creating the multiaddr that others should use to connect to me
 		extMultiAddr, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", cfg.ServerConfig.BroadcastIP, cfg.ServerConfig.ListenPort))
 		if err != nil {
 			return nil, util.LoggingErrorMsg(err, "failed to create multiaddress")
 		}
+		// TODO(gabe): use EnableAutoRelayWithStaticRelays with bootstrap peers instead of EnableAutoRelay
+		opts = append(opts, libp2p.EnableHolePunching(), libp2p.EnableAutoRelay())
 	}
 	addressFactory := func(addrs []multiaddr.Multiaddr) []multiaddr.Multiaddr {
 		if extMultiAddr != nil {
@@ -102,27 +114,17 @@ func NewService(cfg *config.Config) (*Service, error) {
 		}
 		return addrs
 	}
+	opts = append(opts, libp2p.AddrsFactory(addressFactory))
 
 	// get or create a new service identity
 	privKey, err := ddt.setupServiceIdentity()
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to setup service identity")
 	}
+	opts = append(opts, libp2p.Identity(privKey))
 
 	// create a new libp2p host that listens on a random TCP port
-	h, err := libp2p.New(
-		libp2p.ListenAddrStrings(sourceMultiAddr.String()),
-		libp2p.AddrsFactory(addressFactory),
-		libp2p.Identity(privKey),
-		libp2p.EnableNATService(),
-		libp2p.ForceReachabilityPublic(),
-		libp2p.EnableHolePunching(),
-		libp2p.NATPortMap(),
-		libp2p.EnableRelay(),
-		libp2p.DefaultTransports,
-		libp2p.DefaultMuxers,
-		libp2p.DefaultSecurity,
-	)
+	h, err := libp2p.New(opts...)
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to instantiate libp2p host")
 	}
