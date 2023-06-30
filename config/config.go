@@ -78,7 +78,7 @@ func GetDefaultConfig() Config {
 			Topic:                 "diddht",
 			LocalDiscovery:        true,
 			ResolverEndpoint:      "https://dev.uniresolver.io/",
-			BootstrapPeers:        []string{"/ip4/54.226.19.143/tcp/8503/p2p/12D3KooWNqM7VkU7dfM4Z2H2XDVE3cS9BAUJzVNvGuCqwiHmxzdx"},
+			BootstrapPeers:        []string{"/ip4/54.226.19.143/tcp/8503/p2p/12D3KooWMmTajXNqysKJhR8LaED1cVjzz7RsaRgchHqzs3CZ1CMb"},
 			EnforceSignedMessages: false,
 		},
 	}
@@ -94,6 +94,7 @@ func LoadConfig(path string) (*Config, error) {
 
 	var cfg Config
 	if loadDefaultConfig {
+		logrus.Info("loading default config...")
 		cfg = GetDefaultConfig()
 	} else {
 		if path == "" {
