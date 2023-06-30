@@ -258,10 +258,10 @@ func (s *Service) setupDHT(ctx context.Context) error {
 		dht.ProtocolPrefix(protocolPrefix),
 	)
 	if err != nil {
-		return util.LoggingErrorMsg(err, "failed to instantiate d service")
+		return util.LoggingErrorMsg(err, "failed to instantiate dht service")
 	}
 	if err = d.Bootstrap(ctx); err != nil {
-		return util.LoggingErrorMsg(err, "failed to bootstrap d service")
+		return util.LoggingErrorMsg(err, "failed to bootstrap dht service")
 	}
 	s.host = routedhost.Wrap(s.host, d)
 	s.dht = d
@@ -270,7 +270,7 @@ func (s *Service) setupDHT(ctx context.Context) error {
 
 func (s *Service) bootstrapPeers(ctx context.Context) error {
 	// connect to bootstrap bootstrapPeers
-	logrus.Info("connecting to bootstrap bootstrapPeers")
+	logrus.Info("connecting to bootstrap peers")
 	var wg sync.WaitGroup
 
 	bootstrapPeers := s.cfg.DHTConfig.BootstrapPeers
