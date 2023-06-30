@@ -86,8 +86,8 @@ func (ddt *Gossiper) Close() error {
 	return ddt.topic.Close()
 }
 
-func (ddt *Gossiper) ListPeers() []peer.ID {
-	return ddt.ps.ListPeers(ddt.topicName)
+func (ddt *Gossiper) GetTopics() []string {
+	return ddt.ps.GetTopics()
 }
 
 func (ddt *Gossiper) Publish(ctx context.Context, msg []byte) error {
@@ -129,7 +129,7 @@ func (ddt *Gossiper) processMessages() {
 			logrus.Info("context cancelled, closing...")
 			return
 		case msg := <-ddt.Messages:
-			logrus.Infof("Received message from %q: %q", msg, msg.Record)
+			logrus.Infof("Received message from %q: %q", msg.PublisherID, msg.Record)
 			if err := ddt.storage.WriteRecord(db.DDTRecord{
 				PublisherID: msg.PublisherID,
 				Record: db.Record(Record{

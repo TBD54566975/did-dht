@@ -22,8 +22,10 @@ func (s *Service) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service) Info() (string, string, []peer.ID) {
-	return s.host.ID().String(), s.externalAddress, s.gossiper.ListPeers()
+func (s *Service) Info() (string, string, []string, []peer.ID) {
+	logrus.Infof("host peers: %v", s.host.Peerstore().Peers())
+
+	return s.host.ID().String(), s.externalAddress, s.gossiper.GetTopics(), s.host.Peerstore().Peers()
 }
 
 // PublishRecord publishes the given record to the DHT and gossip sub topic
@@ -49,11 +51,11 @@ func (s *Service) PublishRecord(ctx context.Context, msg DDTMessage) error {
 			return errors.WithMessage(err, "failed to sign message")
 		}
 		msg.Record.JWS = signedRecord.JWS
-	}
-
-	// verify the record's signature is correct
-	if err := VerifyRecord(ctx, s.resolver, msg.Record); err != nil {
-		return errors.WithMessage(err, "failed to verify message")
+	} else {
+		// verify the record's signature is correct
+		if err := VerifyRecord(ctx, s.resolver, msg.Record); err != nil {
+			return errors.WithMessage(err, "failed to verify message")
+		}
 	}
 
 	// put the record in our local storage
@@ -74,12 +76,12 @@ func (s *Service) PublishRecord(ctx context.Context, msg DDTMessage) error {
 		return errors.WithMessage(err, "failed to marshal record")
 	}
 	if err = s.dht.PutValue(ctx, s.dhtKey(msg.Record.DID), recordBytes); err != nil {
-		return errors.WithMessage(err, "failed to put record in DHT")
+		logrus.WithError(err).Error("failed to put record in DHT")
 	}
 
 	// broadcast via gossip sub
 	if err = s.gossiper.Publish(ctx, recordBytes); err != nil {
-		return errors.WithMessage(err, "failed to publish record via gossip sub")
+		logrus.WithError(err).Error("failed to publish record via gossip sub")
 	}
 
 	return nil

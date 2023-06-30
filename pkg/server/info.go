@@ -12,6 +12,7 @@ import (
 type InfoResponse struct {
 	ID      string    `json:"id"`
 	Address string    `json:"address"`
+	Topics  []string  `json:"topics"`
 	Peers   []peer.ID `json:"peers"`
 }
 
@@ -24,11 +25,12 @@ type InfoResponse struct {
 //	@Produce		json
 //	@Success		200	{object}	InfoResponse
 func Info(svc *dht.Service) gin.HandlerFunc {
-	id, addr, peers := svc.Info()
+	id, addr, topics, peers := svc.Info()
 	return func(c *gin.Context) {
 		Respond(c, InfoResponse{
 			ID:      id,
 			Address: addr,
+			Topics:  topics,
 			Peers:   peers,
 		}, http.StatusOK)
 	}
