@@ -27,6 +27,7 @@ import (
 	discutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 	"github.com/libp2p/go-libp2p/p2p/host/autonat"
 	routedhost "github.com/libp2p/go-libp2p/p2p/host/routed"
+	"github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -114,15 +115,13 @@ func NewService(cfg *config.Config) (*Service, error) {
 		libp2p.AddrsFactory(addressFactory),
 		libp2p.Identity(privKey),
 		libp2p.EnableNATService(),
-		libp2p.EnableRelayService(),
 		libp2p.ForceReachabilityPublic(),
 		libp2p.EnableHolePunching(),
+		libp2p.NATPortMap(),
+		libp2p.EnableRelay(),
 		libp2p.DefaultTransports,
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
-		libp2p.NATPortMap(),
-		libp2p.EnableNATService(),
-		libp2p.EnableRelay(),
 	)
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to instantiate libp2p host")
@@ -143,6 +142,11 @@ func NewService(cfg *config.Config) (*Service, error) {
 	// set up autonat
 	if _, err = autonat.New(h); err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to set up autonat")
+	}
+
+	// set up relay
+	if _, err = relay.New(h); err != nil {
+		return nil, util.LoggingErrorMsg(err, "failed to set up relay")
 	}
 
 	// connect to bootstrap peers
@@ -260,7 +264,7 @@ func (s *Service) setupDHT(ctx context.Context) error {
 	d, err := dht.New(
 		ctx,
 		s.host,
-		dht.Mode(dht.ModeServer),
+		dht.Mode(dht.ModeAutoServer),
 		dht.Validator(validator),
 		dht.ProtocolPrefix(protocolPrefix),
 	)
