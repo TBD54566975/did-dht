@@ -13,11 +13,9 @@ import (
 	"github.com/TBD54566975/ssi-sdk/did"
 	"github.com/TBD54566975/ssi-sdk/did/key"
 	"github.com/TBD54566975/ssi-sdk/util"
-	"github.com/ipfs/boxo/ipns"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	record "github.com/libp2p/go-libp2p-record"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/discovery"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -39,7 +37,7 @@ import (
 
 const (
 	advertisePeriod     = time.Second * 5
-	peerDiscoveryPeriod = time.Second * 5
+	peerDiscoveryPeriod = time.Second * 10
 	peerLimit           = 10
 	protocolPrefix      = "/diddht"
 )
@@ -88,6 +86,7 @@ func NewService(cfg *config.Config) (*Service, error) {
 		libp2p.ListenAddrStrings(sourceMultiAddr.String()),
 		libp2p.NATPortMap(),
 		libp2p.EnableNATService(),
+		libp2p.EnableRelayService(),
 		libp2p.DefaultTransports,
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
@@ -106,14 +105,14 @@ func NewService(cfg *config.Config) (*Service, error) {
 	var extMultiAddr multiaddr.Multiaddr
 	if cfg.ServerConfig.BroadcastIP == "" {
 		logrus.Warn("external IP not defined, Peers might not be able to resolve this node if behind NAT")
-		opts = append(opts, libp2p.ForceReachabilityPublic())
+		opts = append(opts, libp2p.ForceReachabilityPrivate())
 	} else {
 		// here we're creating the multiaddr that others should use to connect to me
 		extMultiAddr, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", cfg.ServerConfig.BroadcastIP, cfg.ServerConfig.ListenPort))
 		if err != nil {
 			return nil, util.LoggingErrorMsg(err, "failed to create multiaddress")
 		}
-		opts = append(opts, libp2p.EnableHolePunching(), libp2p.EnableAutoRelayWithStaticRelays(relayPeers))
+		opts = append(opts, libp2p.ForceReachabilityPublic(), libp2p.EnableHolePunching(), libp2p.EnableAutoRelayWithStaticRelays(relayPeers))
 	}
 
 	addressFactory := func(addrs []multiaddr.Multiaddr) []multiaddr.Multiaddr {
@@ -271,17 +270,17 @@ func (s *Service) setupGossipSub(ctx context.Context) error {
 }
 
 func (s *Service) setupDHT(ctx context.Context) error {
-	validator := record.NamespacedValidator{
-		"pk":                      record.PublicKeyValidator{},
-		"ipns":                    ipns.Validator{KeyBook: s.host.Peerstore()},
-		s.cfg.DHTConfig.Namespace: NewValidator(s.cfg.DHTConfig.Namespace, s.resolver),
-	}
+	// validator := record.NamespacedValidator{
+	// 	"pk":                      record.PublicKeyValidator{},
+	// 	"ipns":                    ipns.Validator{KeyBook: s.host.Peerstore()},
+	// 	s.cfg.DHTConfig.Namespace: NewValidator(s.cfg.DHTConfig.Namespace, s.resolver),
+	// }
 	d, err := dht.New(
 		ctx,
 		s.host,
 		dht.Mode(dht.ModeAutoServer),
-		dht.Validator(validator),
-		dht.ProtocolPrefix(protocolPrefix),
+		// dht.Validator(validator),
+		dht.ProtocolExtension(protocolPrefix),
 		dht.RoutingTableRefreshPeriod(peerDiscoveryPeriod),
 	)
 	if err != nil {
@@ -360,7 +359,6 @@ func (s *Service) setupPeerDiscovery(ctx context.Context) error {
 }
 
 func (s *Service) discover(ctx context.Context) {
-	logrus.Debug("finding peers")
 	peerChan, err := s.discovery.FindPeers(ctx, s.cfg.DHTConfig.Namespace, discovery.Limit(peerLimit))
 	if err != nil {
 		logrus.WithError(err).Error("failed to find peers")
@@ -386,9 +384,6 @@ func (s *Service) discover(ctx context.Context) {
 				logrus.Infof("attempting to connect to peer %s", p.ID)
 				if err = s.host.Connect(ctx, p); err != nil {
 					logrus.WithError(err).Errorf("failed to connect to peer %s", p.ID)
-					if _, err = s.dht.RoutingTable().TryAddPeer(p.ID, false, true); err != nil {
-						logrus.WithError(err).Errorf("failed to add peer %s to routing table", p.ID)
-					}
 				} else {
 					logrus.Infof("connected to peer %s", p.ID)
 				}

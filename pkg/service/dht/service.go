@@ -43,18 +43,18 @@ func (s *Service) PublishRecord(ctx context.Context, msg DDTMessage) error {
 	msg.PublisherID = s.host.ID().String()
 
 	// if the record doesn't have a JWS, sign it with the service's key
-	if msg.Record.JWS == "" {
-		signedRecord, err := SignRecordJWS(s.signer, msg.Record)
-		if err != nil {
-			return errors.WithMessage(err, "failed to sign message")
-		}
-		msg.Record.JWS = signedRecord.JWS
-	}
-
-	// verify the record's signature is correct
-	if err := VerifyRecord(ctx, s.resolver, msg.Record); err != nil {
-		return errors.WithMessage(err, "failed to verify message")
-	}
+	// if msg.Record.JWS == "" {
+	// 	signedRecord, err := SignRecordJWS(s.signer, msg.Record)
+	// 	if err != nil {
+	// 		return errors.WithMessage(err, "failed to sign message")
+	// 	}
+	// 	msg.Record.JWS = signedRecord.JWS
+	// }
+	//
+	// // verify the record's signature is correct
+	// if err := VerifyRecord(ctx, s.resolver, msg.Record); err != nil {
+	// 	return errors.WithMessage(err, "failed to verify message")
+	// }
 
 	// put the record in our local storage
 	if err := s.storage.WriteRecord(db.DDTRecord{
@@ -73,7 +73,7 @@ func (s *Service) PublishRecord(ctx context.Context, msg DDTMessage) error {
 	if err != nil {
 		return errors.WithMessage(err, "failed to marshal record")
 	}
-	if err = s.dht.PutValue(ctx, s.dhtKey(msg.Record.DID), recordBytes); err != nil {
+	if err = s.dht.PutValue(ctx, msg.Record.DID, recordBytes); err != nil {
 		return errors.WithMessage(err, "failed to put record in DHT")
 	}
 
@@ -107,7 +107,7 @@ func (s *Service) QueryRecord(ctx context.Context, did string) (*DDTMessage, err
 	}
 
 	logrus.Info("record not found locally, querying DHT")
-	dhtRecord, err := s.dht.GetValue(ctx, s.dhtKey(did))
+	dhtRecord, err := s.dht.GetValue(ctx, did)
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to get record from DHT")
 	}
