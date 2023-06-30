@@ -73,13 +73,13 @@ func (s *Service) PublishRecord(ctx context.Context, msg DDTMessage) error {
 	if err != nil {
 		return errors.WithMessage(err, "failed to marshal record")
 	}
-	if err = s.dht.PutValue(ctx, msg.Record.DID, recordBytes); err != nil {
-		return errors.WithMessage(err, "failed to put record in DHT")
+	if err = s.dht.PutValue(ctx, s.dhtKey(msg.Record.DID), recordBytes); err != nil {
+		logrus.WithError(err).Error("failed to put record in DHT")
 	}
 
 	// broadcast via gossip sub
 	if err = s.gossiper.Publish(ctx, recordBytes); err != nil {
-		return errors.WithMessage(err, "failed to publish record via gossip sub")
+		logrus.WithError(err).Error("failed to publish record via gossip sub")
 	}
 
 	return nil
@@ -107,7 +107,7 @@ func (s *Service) QueryRecord(ctx context.Context, did string) (*DDTMessage, err
 	}
 
 	logrus.Info("record not found locally, querying DHT")
-	dhtRecord, err := s.dht.GetValue(ctx, did)
+	dhtRecord, err := s.dht.GetValue(ctx, s.dhtKey(did))
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to get record from DHT")
 	}

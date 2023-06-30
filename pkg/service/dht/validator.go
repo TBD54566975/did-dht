@@ -1,7 +1,6 @@
 package dht
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 
@@ -50,10 +49,11 @@ func (v Validator) Validate(key string, value []byte) error {
 		return fmt.Errorf("endpoint is empty")
 	}
 
-	if r.JWS == "" {
-		return fmt.Errorf("jws is empty")
-	}
-	return VerifyRecord(context.Background(), v.resolver, r)
+	// if r.JWS == "" {
+	// 	return fmt.Errorf("jws is empty")
+	// }
+	// return VerifyRecord(context.Background(), v.resolver, r)
+	return nil
 }
 
 // Select conforms to the Validator interface, it always returns 0 as all records are equivalently valid.

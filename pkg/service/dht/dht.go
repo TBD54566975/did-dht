@@ -13,9 +13,11 @@ import (
 	"github.com/TBD54566975/ssi-sdk/did"
 	"github.com/TBD54566975/ssi-sdk/did/key"
 	"github.com/TBD54566975/ssi-sdk/util"
+	"github.com/ipfs/boxo/ipns"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	record "github.com/libp2p/go-libp2p-record"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/discovery"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -159,7 +161,6 @@ func NewService(cfg *config.Config) (*Service, error) {
 
 			// create an address through the relay
 			ddt.externalAddresses = append(ddt.externalAddresses, fmt.Sprintf("/p2p/%s/p2p-circuit/p2p/%s", addr.ID.String(), h.ID().String()))
-
 		}
 	}
 
@@ -270,17 +271,17 @@ func (s *Service) setupGossipSub(ctx context.Context) error {
 }
 
 func (s *Service) setupDHT(ctx context.Context) error {
-	// validator := record.NamespacedValidator{
-	// 	"pk":                      record.PublicKeyValidator{},
-	// 	"ipns":                    ipns.Validator{KeyBook: s.host.Peerstore()},
-	// 	s.cfg.DHTConfig.Namespace: NewValidator(s.cfg.DHTConfig.Namespace, s.resolver),
-	// }
+	validator := record.NamespacedValidator{
+		"pk":                      record.PublicKeyValidator{},
+		"ipns":                    ipns.Validator{KeyBook: s.host.Peerstore()},
+		s.cfg.DHTConfig.Namespace: NewValidator(s.cfg.DHTConfig.Namespace, s.resolver),
+	}
 	d, err := dht.New(
 		ctx,
 		s.host,
 		dht.Mode(dht.ModeAutoServer),
-		// dht.Validator(validator),
-		dht.ProtocolExtension(protocolPrefix),
+		dht.Validator(validator),
+		dht.ProtocolPrefix(protocolPrefix),
 		dht.RoutingTableRefreshPeriod(peerDiscoveryPeriod),
 	)
 	if err != nil {
