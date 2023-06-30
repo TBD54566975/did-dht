@@ -47,7 +47,7 @@ type ServiceConfig struct {
 	BroadcastIP string      `toml:"broadcast_ip"`
 	LogLocation string      `toml:"log_location"`
 	LogLevel    string      `toml:"log_level"`
-	DBFile      string      `toml:"db_file" `
+	DBFile      string      `toml:"db_file"`
 }
 
 type DHTServiceConfig struct {
@@ -93,7 +93,7 @@ func LoadConfig(path string) (*Config, error) {
 	}
 
 	var cfg Config
-	if loadDefaultConfig {
+	if !loadDefaultConfig {
 		logrus.Info("loading default config...")
 		cfg = GetDefaultConfig()
 	} else {
@@ -101,7 +101,7 @@ func LoadConfig(path string) (*Config, error) {
 			logrus.Info("no config path provided, trying default config path...")
 			path = DefaultConfigPath
 		}
-		if err = loadTOMLConfig(path, cfg); err != nil {
+		if err = loadTOMLConfig(path, &cfg); err != nil {
 			return nil, errors.Wrap(err, "load toml config")
 		}
 	}
@@ -114,17 +114,17 @@ func LoadConfig(path string) (*Config, error) {
 
 func checkValidConfigPath(path string) (bool, error) {
 	// no path, load default config
+	defaultConfig := false
 	if path == "" {
 		logrus.Info("no config path provided, loading default config...")
-		return true, nil
-	}
-	if filepath.Ext(path) != Extension {
+		defaultConfig = true
+	} else if filepath.Ext(path) != Extension {
 		return false, fmt.Errorf("file extension for path %q must be %q", path, Extension)
 	}
-	return true, nil
+	return defaultConfig, nil
 }
 
-func loadTOMLConfig(path string, cfg Config) error {
+func loadTOMLConfig(path string, cfg *Config) error {
 	// load from TOML file
 	if _, err := toml.DecodeFile(path, &cfg); err != nil {
 		return errors.Wrapf(err, "could not load config: %s", path)
