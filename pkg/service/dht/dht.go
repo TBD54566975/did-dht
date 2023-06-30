@@ -388,7 +388,6 @@ func (s *Service) setupLocalDiscovery(ctx context.Context) error {
 			case pi := <-ldn.PeerChan:
 				logrus.Infof("found local peer %s", pi.ID)
 				if err := s.host.Connect(ctx, pi); err != nil {
-					s.dht.RoutingTable().TryAddPeer()
 					logrus.WithError(err).Errorf("failed to connect to peer %s", pi.ID)
 				} else {
 					logrus.Infof("connected to local peer %s", pi.ID)
