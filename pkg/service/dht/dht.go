@@ -38,8 +38,8 @@ import (
 )
 
 const (
-	advertisePeriod     = time.Minute * 30
-	peerDiscoveryPeriod = time.Minute * 5
+	advertisePeriod     = time.Second * 5
+	peerDiscoveryPeriod = time.Second * 5
 	peerLimit           = 10
 	protocolPrefix      = "/diddht"
 )
