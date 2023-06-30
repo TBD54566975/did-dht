@@ -86,8 +86,8 @@ func NewService(cfg *config.Config) (*Service, error) {
 
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(sourceMultiAddr.String()),
-		libp2p.EnableNATService(),
 		libp2p.NATPortMap(),
+		libp2p.EnableNATService(),
 		libp2p.DefaultTransports,
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
@@ -102,9 +102,17 @@ func NewService(cfg *config.Config) (*Service, error) {
 		if err != nil {
 			return nil, util.LoggingErrorMsg(err, "failed to create multiaddress")
 		}
-		// TODO(gabe): use EnableAutoRelayWithStaticRelays with bootstrap peers and/or have a way to discover relays
-		opts = append(opts, libp2p.EnableHolePunching(), libp2p.EnableRelay())
+		var relayPeers []peer.AddrInfo
+		for _, addr := range cfg.DHTConfig.BootstrapPeers {
+			peerAddr, err := peer.AddrInfoFromString(addr)
+			if err != nil {
+				return nil, util.LoggingErrorMsgf(err, "failed to parse multiaddr: %s", addr)
+			}
+			relayPeers = append(relayPeers, *peerAddr)
+		}
+		opts = append(opts, libp2p.EnableHolePunching(), libp2p.EnableAutoRelayWithStaticRelays(relayPeers))
 	}
+
 	addressFactory := func(addrs []multiaddr.Multiaddr) []multiaddr.Multiaddr {
 		if extMultiAddr != nil {
 			// append the external facing multiaddr we created above to the addressFactory so it will be broadcast
@@ -346,7 +354,7 @@ func (s *Service) setupPeerDiscovery(ctx context.Context) error {
 }
 
 func (s *Service) discover(ctx context.Context) {
-	logrus.Info("finding peers")
+	logrus.Debug("finding peers")
 	peerChan, err := s.discovery.FindPeers(ctx, s.cfg.DHTConfig.Namespace, discovery.Limit(peerLimit))
 	if err != nil {
 		logrus.WithError(err).Error("failed to find peers")
@@ -369,6 +377,7 @@ func (s *Service) discover(ctx context.Context) {
 				}
 			}
 			if !alreadyConnected {
+				logrus.Infof("attempting to connect to peer %s", p.ID)
 				if err = s.host.Connect(ctx, p); err != nil {
 					logrus.WithError(err).Errorf("failed to connect to peer %s", p.ID)
 					if _, err = s.dht.RoutingTable().TryAddPeer(p.ID, false, true); err != nil {
