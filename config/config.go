@@ -35,8 +35,8 @@ func (e EnvironmentVariable) String() string {
 }
 
 type Config struct {
-	ServerConfig ServiceConfig    `json:"server"`
-	DHTConfig    DHTServiceConfig `json:"dht"`
+	ServerConfig ServiceConfig    `toml:"server"`
+	DHTConfig    DHTServiceConfig `toml:"dht"`
 }
 
 type ServiceConfig struct {
@@ -78,7 +78,6 @@ func GetDefaultConfig() Config {
 			Topic:                 "diddht",
 			LocalDiscovery:        true,
 			ResolverEndpoint:      "https://dev.uniresolver.io/",
-			BootstrapPeers:        []string{"/ip4/54.174.122.8/tcp/8503/p2p/12D3KooWFQ4YxAbLz7ecKAEHT8NsBPwxbAc1rDsWjXt1jgdyWAM3"},
 			EnforceSignedMessages: false,
 		},
 	}
@@ -93,7 +92,7 @@ func LoadConfig(path string) (*Config, error) {
 	}
 
 	var cfg Config
-	if !loadDefaultConfig {
+	if loadDefaultConfig {
 		logrus.Info("loading default config...")
 		cfg = GetDefaultConfig()
 	} else {
@@ -126,7 +125,7 @@ func checkValidConfigPath(path string) (bool, error) {
 
 func loadTOMLConfig(path string, cfg *Config) error {
 	// load from TOML file
-	if _, err := toml.DecodeFile(path, &cfg); err != nil {
+	if _, err := toml.DecodeFile(path, cfg); err != nil {
 		return errors.Wrapf(err, "could not load config: %s", path)
 	}
 	return nil
