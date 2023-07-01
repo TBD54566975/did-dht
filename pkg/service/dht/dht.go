@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"fmt"
+	mathrand "math/rand"
 	"strings"
 	"sync"
 	"time"
@@ -24,6 +25,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/p2p/discovery/backoff"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	"github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	discutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
@@ -56,7 +58,7 @@ type Service struct {
 	host      host.Host
 	gossipSub *pubsub.PubSub
 	dht       *dht.IpfsDHT
-	discovery *routing.RoutingDiscovery
+	discovery discovery.Discovery
 	gossiper  *Gossiper
 }
 
@@ -367,11 +369,17 @@ func (s *Service) setupPeerDiscovery(ctx context.Context) error {
 		return ctx.Err()
 	case <-s.dht.RefreshRoutingTable():
 	}
-	d := routing.NewRoutingDiscovery(s.dht)
-	s.discovery = d
+	routingDiscovery := routing.NewRoutingDiscovery(s.dht)
+	rng := mathrand.New(mathrand.NewSource(mathrand.Int63()))
+	exponentialBackoff := backoff.NewExponentialBackoff(peerDiscoveryPeriod, time.Hour*24, backoff.FullJitter, time.Second, 5.0, 0, rng)
+	backoffDiscovery, err := backoff.NewBackoffDiscovery(routingDiscovery, exponentialBackoff)
+	if err != nil {
+		return util.LoggingErrorMsg(err, "failed to create backoff discovery")
+	}
+	s.discovery = backoffDiscovery
 
 	// advertise ourselves
-	discutil.Advertise(ctx, d, s.cfg.DHTConfig.Namespace, discovery.TTL(advertisePeriod))
+	discutil.Advertise(ctx, backoffDiscovery, s.cfg.DHTConfig.Namespace, discovery.TTL(advertisePeriod))
 
 	// discover and connect to peers periodically
 	go func() {
@@ -391,12 +399,12 @@ func (s *Service) setupPeerDiscovery(ctx context.Context) error {
 }
 
 func (s *Service) discover(ctx context.Context) {
-	peerChan, err := s.discovery.FindPeers(ctx, s.cfg.DHTConfig.Namespace, discovery.Limit(peerLimit))
+	peerChan, err := discutil.FindPeers(ctx, s.discovery, s.cfg.DHTConfig.Namespace, discovery.Limit(peerLimit))
 	if err != nil {
 		logrus.WithError(err).Error("failed to find peers")
 		return
 	}
-	for p := range peerChan {
+	for _, p := range peerChan {
 		p := p
 		select {
 		case <-ctx.Done():
@@ -405,7 +413,8 @@ func (s *Service) discover(ctx context.Context) {
 			if p.ID == s.host.ID() {
 				continue
 			}
-			if s.host.Network().Connectedness(p.ID) == network.Connected {
+			connectedness := s.host.Network().Connectedness(p.ID)
+			if connectedness == network.Connected || connectedness == network.CannotConnect {
 				continue
 			}
 			logrus.Infof("attempting to connect to peer %s", p.ID)
@@ -414,7 +423,6 @@ func (s *Service) discover(ctx context.Context) {
 			} else {
 				logrus.Infof("connected to peer %s", p.ID)
 			}
-			s.host.ConnManager().Protect(p.ID, "discoveredPeer")
 		}
 	}
 }
