@@ -76,23 +76,32 @@ func NewService(cfg *config.Config) (*Service, error) {
 		return nil, util.LoggingErrorMsg(err, "failed to instantiate resolver")
 	}
 
-	multiaddrString := fmt.Sprintf("/ip4/%s/tcp/%d", cfg.ServerConfig.APIHost, cfg.ServerConfig.ListenPort)
+	apiHost := cfg.ServerConfig.APIHost
+	listenPort := cfg.ServerConfig.ListenPort
+	listenAddrStrings := []string{
+		fmt.Sprintf("/ip4/%s/tcp/%d", apiHost, listenPort),
+		fmt.Sprintf("/ip4/%s/udp/%d/quic", apiHost, listenPort),
+		fmt.Sprintf("/ip4/%s/udp/%d/quic-v1", apiHost, listenPort),
+		fmt.Sprintf("/ip4/%s/udp/%d/quic-v1/webtransport", apiHost, listenPort),
+	}
 
 	// 0.0.0.0 will listen on any interface device.
-	sourceMultiAddr, err := multiaddr.NewMultiaddr(multiaddrString)
-	if err != nil {
-		return nil, util.LoggingErrorMsgf(err, "failed to parse multiaddr: %s", multiaddrString)
+	var sourceMultiAddrs []multiaddr.Multiaddr
+	for _, addrString := range listenAddrStrings {
+		addr, err := multiaddr.NewMultiaddr(addrString)
+		if err != nil {
+			return nil, util.LoggingErrorMsgf(err, "failed to parse multiaddr: %s", addrString)
+		}
+		sourceMultiAddrs = append(sourceMultiAddrs, addr)
 	}
 
 	var h host.Host
 	opts := []libp2p.Option{
-		libp2p.ListenAddrStrings(sourceMultiAddr.String()),
+		libp2p.ListenAddrs(sourceMultiAddrs...),
 		libp2p.NATPortMap(),
 		libp2p.EnableNATService(),
 		libp2p.EnableRelay(),
-		libp2p.EnableRelayService(),
 		libp2p.EnableHolePunching(),
-		libp2p.EnableAutoRelayWithPeerSource(findRelayPeers(func() host.Host { return h })),
 		libp2p.DefaultTransports,
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
@@ -104,11 +113,11 @@ func NewService(cfg *config.Config) (*Service, error) {
 		opts = append(opts, libp2p.ForceReachabilityPrivate())
 	} else {
 		// here we're creating the multiaddr that others should use to connect to me
-		extMultiAddr, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", cfg.ServerConfig.BroadcastIP, cfg.ServerConfig.ListenPort))
+		extMultiAddr, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", cfg.ServerConfig.BroadcastIP, listenPort))
 		if err != nil {
 			return nil, util.LoggingErrorMsg(err, "failed to create multiaddress")
 		}
-		opts = append(opts, libp2p.ForceReachabilityPublic())
+		opts = append(opts, libp2p.ForceReachabilityPublic(), libp2p.EnableRelayService(), libp2p.EnableAutoRelayWithPeerSource(findRelayPeers(func() host.Host { return h })))
 	}
 
 	addressFactory := func(addrs []multiaddr.Multiaddr) []multiaddr.Multiaddr {
@@ -143,7 +152,7 @@ func NewService(cfg *config.Config) (*Service, error) {
 	if extMultiAddr != nil {
 		ddt.externalAddress = fmt.Sprintf("%s/p2p/%s", extMultiAddr, ddt.host.ID())
 	} else {
-		ddt.externalAddress = fmt.Sprintf("%s/p2p/%s", multiaddrString, h.ID().String())
+		ddt.externalAddress = fmt.Sprintf("%s/p2p/%s", listenAddrStrings[0], h.ID().String())
 	}
 
 	// init dht and associate it with the host
