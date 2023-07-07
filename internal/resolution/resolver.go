@@ -13,6 +13,7 @@ import (
 )
 
 // ServiceResolver is a resolver that can resolve DIDs using a combination of local and universal resolvers.
+// TODO(gabe): make this a caching resolver
 type ServiceResolver struct {
 	resolutionMethods []string
 	hr                resolution.Resolver

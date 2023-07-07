@@ -10,6 +10,7 @@ import (
 
 	"did-dht/internal"
 	"did-dht/internal/resolution"
+	"did-dht/pkg/service/gossip"
 )
 
 var _ record.Validator = (*Validator)(nil)
@@ -38,7 +39,7 @@ func (v Validator) Validate(key string, value []byte) error {
 	}
 
 	// validate the value
-	var r Record
+	var r gossip.Record
 	if err = json.Unmarshal(value, &r); err != nil {
 		return errors.WithMessage(err, "failed to unmarshal record")
 	}

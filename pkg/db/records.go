@@ -7,10 +7,10 @@ import (
 )
 
 const (
-	dhtNamespace = "did-dht"
+	dhtNamespace = "dht"
 )
 
-type DDTRecord struct {
+type DHTRecord struct {
 	PublisherID string `json:"publisherID,omitempty"`
 	Record      Record `json:"record,omitempty"`
 	CreatedAt   string `json:"createdAt,omitempty"`
@@ -28,14 +28,14 @@ type Record struct {
 	JWS      string `json:"jws,omitempty"`
 }
 
-type DDTStorage interface {
-	WriteRecord(record DDTRecord) error
-	ReadRecord(id string) (*DDTRecord, error)
-	ListRecords() ([]DDTRecord, error)
+type DHTRecordStorage interface {
+	WriteRecord(record DHTRecord) error
+	ReadRecord(id string) (*DHTRecord, error)
+	ListRecords() ([]DHTRecord, error)
 	DeleteRecord(id string) error
 }
 
-func (s *Storage) WriteRecord(record DDTRecord) error {
+func (s *Storage) WriteRecord(record DHTRecord) error {
 	recordBytes, err := json.Marshal(record)
 	if err != nil {
 		return errors.WithMessage(err, "failed to marshal record")
@@ -43,7 +43,7 @@ func (s *Storage) WriteRecord(record DDTRecord) error {
 	return s.Write(dhtNamespace, record.Record.DID, recordBytes)
 }
 
-func (s *Storage) ReadRecord(id string) (*DDTRecord, error) {
+func (s *Storage) ReadRecord(id string) (*DHTRecord, error) {
 	record, err := s.Read(dhtNamespace, id)
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to read record")
@@ -51,21 +51,21 @@ func (s *Storage) ReadRecord(id string) (*DDTRecord, error) {
 	if len(record) == 0 {
 		return nil, nil
 	}
-	var recordResult DDTRecord
+	var recordResult DHTRecord
 	if err = json.Unmarshal(record, &recordResult); err != nil {
 		return nil, errors.WithMessage(err, "failed to unmarshal record")
 	}
 	return &recordResult, nil
 }
 
-func (s *Storage) ListRecords() ([]DDTRecord, error) {
+func (s *Storage) ListRecords() ([]DHTRecord, error) {
 	records, err := s.ReadAll(dhtNamespace)
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to read records")
 	}
-	var recordResults []DDTRecord
+	var recordResults []DHTRecord
 	for _, record := range records {
-		var recordResult DDTRecord
+		var recordResult DHTRecord
 		if err = json.Unmarshal(record, &recordResult); err != nil {
 			return nil, errors.WithMessage(err, "failed to unmarshal record")
 		}

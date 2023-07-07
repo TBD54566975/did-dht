@@ -1,4 +1,4 @@
-package dht
+package gossip
 
 import (
 	"context"
@@ -20,7 +20,7 @@ const (
 
 type Gossiper struct {
 	Messages chan *DDTMessage
-	storage  db.DDTStorage
+	storage  db.DHTRecordStorage
 
 	ctx   context.Context
 	ps    *pubsub.PubSub
@@ -45,7 +45,7 @@ type Record struct {
 	JWS      string `json:"jws,omitempty"`
 }
 
-func StartGossiper(ctx context.Context, storage db.DDTStorage, ps *pubsub.PubSub, id peer.ID, name, topic string) (*Gossiper, error) {
+func StartGossiper(ctx context.Context, storage db.DHTRecordStorage, ps *pubsub.PubSub, id peer.ID, name, topic string) (*Gossiper, error) {
 	// join the topic
 	t, err := ps.Join(topic)
 	if err != nil {
@@ -130,7 +130,7 @@ func (ddt *Gossiper) processMessages() {
 			return
 		case msg := <-ddt.Messages:
 			logrus.Infof("Received message from %q: %q", msg.PublisherID, msg.Record)
-			if err := ddt.storage.WriteRecord(db.DDTRecord{
+			if err := ddt.storage.WriteRecord(db.DHTRecord{
 				PublisherID: msg.PublisherID,
 				Record: db.Record(Record{
 					DID:      msg.Record.DID,

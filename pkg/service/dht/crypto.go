@@ -12,10 +12,11 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"did-dht/internal/resolution"
+	"did-dht/pkg/service/gossip"
 )
 
 // SignRecordJWS signs a record by creating a JWS, returning the signed record.
-func SignRecordJWS(signer jwx.Signer, record Record) (*Record, error) {
+func SignRecordJWS(signer jwx.Signer, record gossip.Record) (*gossip.Record, error) {
 	if record.JWS != "" {
 		return nil, errors.New("record already has a JWS")
 	}
@@ -38,7 +39,7 @@ func SignRecordJWS(signer jwx.Signer, record Record) (*Record, error) {
 }
 
 // VerifyRecordJWS verifies a record by checking the JWS, returning an error if the record is invalid.
-func VerifyRecordJWS(verifier jwx.Verifier, record Record) error {
+func VerifyRecordJWS(verifier jwx.Verifier, record gossip.Record) error {
 	if record.JWS == "" {
 		return errors.New("record does not have a JWS")
 	}
@@ -84,7 +85,7 @@ func VerifyRecordJWS(verifier jwx.Verifier, record Record) error {
 }
 
 // VerifyRecord verifies a record by resolving the DID and checking the JWS, returning an error if the record is invalid.
-func VerifyRecord(ctx context.Context, resolver *resolution.ServiceResolver, r Record) error {
+func VerifyRecord(ctx context.Context, resolver *resolution.ServiceResolver, r gossip.Record) error {
 	resolved, err := resolver.Resolve(ctx, r.DID)
 	if err != nil {
 		logrus.WithError(err).Warnf("failed to resolve DID: %s, attemtping to get iss", r.DID)

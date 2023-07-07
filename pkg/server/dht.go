@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 
 	"did-dht/pkg/service/dht"
+	"did-dht/pkg/service/gossip"
 )
 
 type DHTRouter struct {
@@ -26,9 +27,9 @@ type AddRecordRequest struct {
 	JWS      string `json:"jws,omitempty"`
 }
 
-func (r AddRecordRequest) toServiceRequest() dht.DDTMessage {
-	return dht.DDTMessage{
-		Record: dht.Record{
+func (r AddRecordRequest) toServiceRequest() gossip.DDTMessage {
+	return gossip.DDTMessage{
+		Record: gossip.Record{
 			DID:      r.DID,
 			Endpoint: r.Endpoint,
 			JWS:      r.JWS,
@@ -72,7 +73,7 @@ const (
 )
 
 type GetRecordResponse struct {
-	*dht.DDTMessage
+	*gossip.DDTMessage
 }
 
 // ReadRecord godoc
