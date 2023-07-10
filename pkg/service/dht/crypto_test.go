@@ -7,8 +7,6 @@ import (
 	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
 	"github.com/TBD54566975/ssi-sdk/did/jwk"
 	"github.com/stretchr/testify/assert"
-
-	"did-dht/pkg/service/gossip"
 )
 
 func TestSignVerifyRecordJWS(t *testing.T) {
@@ -24,7 +22,7 @@ func TestSignVerifyRecordJWS(t *testing.T) {
 	signer, err := jwx.NewJWXSigner(id, kid, privKey)
 	assert.NoError(t, err)
 
-	record := gossip.Record{
+	record := Record{
 		DID:      id,
 		Endpoint: "http://tbd.dev",
 	}

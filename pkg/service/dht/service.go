@@ -18,7 +18,6 @@ import (
 	"github.com/ipfs/boxo/ipns"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	record "github.com/libp2p/go-libp2p-record"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/discovery"
@@ -37,6 +36,7 @@ import (
 	"did-dht/config"
 	"did-dht/internal/resolution"
 	"did-dht/pkg/db"
+	"did-dht/pkg/service/gossip"
 )
 
 const (
@@ -52,30 +52,27 @@ type Service struct {
 	signer          jwx.Signer
 	storage         *db.Storage
 	resolver        *resolution.ServiceResolver
+	gossipSvc       *gossip.Service
 
-	// p2p services
-
+	// libp2p services
 	host      host.Host
-	gossipSub *pubsub.PubSub
 	dht       *dht.IpfsDHT
 	discovery discovery.Discovery
 }
 
-func NewService(cfg *config.Config) (*Service, error) {
-	var ddt Service
-	ddt.cfg = cfg
-	storage, err := db.NewStorage(cfg.ServerConfig.DBFile)
-	if err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to instantiate storage")
+func NewService(ctx context.Context, cfg *config.Config, storage *db.Storage) (*Service, error) {
+	dhtSvc := Service{
+		cfg:     cfg,
+		storage: storage,
 	}
-	ddt.storage = storage
 
 	// create a new resolver
 	localResolutionMethods := []string{did.KeyMethod.String(), did.PKHMethod.String(), did.WebMethod.String(), did.JWKMethod.String()}
-	ddt.resolver, err = resolution.NewServiceResolver(nil, localResolutionMethods, cfg.DHTConfig.ResolverEndpoint)
+	resolver, err := resolution.NewServiceResolver(nil, localResolutionMethods, cfg.DHTConfig.ResolverEndpoint)
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to instantiate resolver")
 	}
+	dhtSvc.resolver = resolver
 
 	apiHost := cfg.ServerConfig.APIHost
 	listenPort := cfg.ServerConfig.ListenPort
@@ -132,7 +129,7 @@ func NewService(cfg *config.Config) (*Service, error) {
 	opts = append(opts, libp2p.AddrsFactory(addressFactory))
 
 	// get or create a new service identity
-	privKey, err := ddt.setupServiceIdentity()
+	privKey, err := dhtSvc.setupServiceIdentity()
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to setup service identity")
 	}
@@ -143,49 +140,48 @@ func NewService(cfg *config.Config) (*Service, error) {
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to instantiate libp2p host")
 	}
-	ddt.host = h
+	dhtSvc.host = h
+
 	logrus.Infof("Host created with id: %s, %q", h.ID(), h.Addrs())
 	logrus.Info(h.Addrs())
 
-	ctx := context.Background()
-
 	// set variable for our external address
 	if extMultiAddr != nil {
-		ddt.externalAddress = fmt.Sprintf("%s/p2p/%s", extMultiAddr, ddt.host.ID())
+		dhtSvc.externalAddress = fmt.Sprintf("%s/p2p/%s", extMultiAddr, dhtSvc.host.ID())
 	} else {
-		ddt.externalAddress = fmt.Sprintf("%s/p2p/%s", listenAddrStrings[0], h.ID().String())
+		dhtSvc.externalAddress = fmt.Sprintf("%s/p2p/%s", listenAddrStrings[0], h.ID().String())
 	}
 
 	// init dht and associate it with the host
-	if err = ddt.setupDHT(ctx); err != nil {
+	if err = dhtSvc.setupDHT(ctx); err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to set up dht")
 	}
 
 	// connect to bootstrap peers
 	if len(cfg.DHTConfig.BootstrapPeers) > 0 {
-		if err = ddt.bootstrapPeers(ctx); err != nil {
+		if err = dhtSvc.bootstrapPeers(ctx); err != nil {
 			return nil, util.LoggingErrorMsg(err, "failed to bootstrap peers")
 		}
 	}
 
-	// create a new PubSub service using the GossipSub router
-	if err = ddt.setupGossipSub(ctx); err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to set up gossipsub")
-	}
-
 	// if local is set, set up local discovery
 	if cfg.DHTConfig.LocalDiscovery {
-		if err = ddt.setupLocalDiscovery(ctx); err != nil {
+		if err = dhtSvc.setupLocalDiscovery(ctx); err != nil {
 			return nil, util.LoggingErrorMsg(err, "failed to set up local discovery")
 		}
 	}
 
 	// set up peer discovery after refreshing the route table, try connecting to peers
-	if err = ddt.setupPeerDiscovery(ctx); err != nil {
+	if err = dhtSvc.setupPeerDiscovery(ctx); err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to set up peer discovery")
 	}
 
-	return &ddt, nil
+	return &dhtSvc, nil
+}
+
+// GetHost returns the libp2p host associated with this service
+func (s *Service) GetHost() host.Host {
+	return s.host
 }
 
 // findRelayPeers is a helper function that returns a function that can be used as a peer source
@@ -287,19 +283,6 @@ func (s *Service) generateNewIdentity() (*crypto.Ed25519PrivateKey, *key.DIDKey,
 		return nil, nil, util.LoggingErrorMsg(err, "failed to write identity")
 	}
 	return privKey.(*crypto.Ed25519PrivateKey), didKey, nil
-}
-
-func (s *Service) setupGossipSub(ctx context.Context) error {
-	opts := []pubsub.Option{
-		pubsub.WithMessageAuthor(s.host.ID()),
-		pubsub.WithPeerExchange(true),
-	}
-	ps, err := pubsub.NewGossipSub(ctx, s.host, opts...)
-	if err != nil {
-		return util.LoggingErrorMsgf(err, "failed to instantiate pubsub service")
-	}
-	s.gossipSub = ps
-	return nil
 }
 
 func (s *Service) setupDHT(ctx context.Context) error {

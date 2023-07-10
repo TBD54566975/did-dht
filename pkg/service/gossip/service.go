@@ -39,8 +39,8 @@ func NewGossipService(ctx context.Context, cfg *config.Config, storage db.Gossip
 	}, nil
 }
 
-// NewGossiper creates a new gossiper for the given topic and starts listening for messages
-func (s *Service) NewGossiper(ctx context.Context, topic string) error {
+// StartGossiper creates a new gossiper for the given topic and starts listening for messages
+func (s *Service) StartGossiper(ctx context.Context, topic string) error {
 	if _, ok := s.gossipers[topic]; ok {
 		return util.LoggingNewErrorf("gossiper<%s> already exists", topic)
 	}
@@ -68,8 +68,8 @@ func (s *Service) NewGossiper(ctx context.Context, topic string) error {
 
 		topicName: topic,
 
-		id:   s.peerID,
-		name: s.cfg.DHTConfig.Name,
+		peerID:   s.peerID,
+		peerName: s.cfg.DHTConfig.Name,
 	}
 
 	// start reading messages from the topic in a loop
@@ -96,6 +96,15 @@ func (s *Service) StopGossiper(topic string) error {
 	return nil
 }
 
+// Publish publishes the given message to the given topic
+func (s *Service) Publish(ctx context.Context, topic string, msg []byte) error {
+	g, ok := s.gossipers[topic]
+	if !ok {
+		return util.LoggingNewErrorf("gossiper<%s> does not exist", topic)
+	}
+	return g.Publish(ctx, msg)
+}
+
 // GetGossipTopics returns the list of topics that the service is currently gossiping on
 func (s *Service) GetGossipTopics() []string {
 	var topics []string
@@ -116,13 +125,16 @@ func (s *Service) ListMessagesForTopic(topic string) ([]Message, error) {
 	if err != nil {
 		return nil, util.LoggingErrorMsgf(err, "failed to list messages for topic: %s", topic)
 	}
-	msgs := make([]Message, len(messages))
-	for i, m := range messages {
-		msgs = append(msgs, Message{
-			Topic:    m.Topic,
-			From:     m.From,
 
-		}
+	msgs := make([]Message, 0, len(messages))
+	for _, m := range messages {
+		msgs = append(msgs, Message{
+			ID:          m.ID,
+			Topic:       m.Topic,
+			PublisherID: m.PublisherID,
+			Record:      m.Record,
+			ReceivedAt:  m.ReceivedAt,
+		})
 	}
 	return msgs, nil
 }

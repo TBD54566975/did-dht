@@ -13,24 +13,23 @@ import (
 	"did-dht/pkg/service/gossip"
 )
 
-func (s *Service) Start(ctx context.Context) error {
-	gossiper, err := gossip.StartGossiper(ctx, s.storage, s.gossipSub, s.host.ID(), s.cfg.DHTConfig.Name, s.cfg.DHTConfig.Topic)
-	if err != nil {
-		logrus.WithError(err).Error("failed to start gossiper")
-		return err
+func (s *Service) Start(ctx context.Context, gossipSvc *gossip.Service) error {
+	if err := gossipSvc.StartGossiper(ctx, s.cfg.DHTConfig.Topic); err != nil {
+		return util.LoggingErrorMsg(err, "failed to start DHT gossiper")
 	}
-	s.gossiper = gossiper
+	s.gossipSvc = gossipSvc
 	return nil
 }
 
 func (s *Service) Info() (string, string, []string, []peer.ID) {
 	logrus.Infof("host peers: %v", s.host.Peerstore().Peers())
 
-	return s.host.ID().String(), s.externalAddress, s.gossiper.GetTopics(), s.host.Peerstore().Peers()
+	// TODO(gabe): move this out
+	return s.host.ID().String(), s.externalAddress, s.gossipSvc.GetGossipTopics(), s.host.Peerstore().Peers()
 }
 
 // PublishRecord publishes the given record to the DHT and gossip sub topic
-func (s *Service) PublishRecord(ctx context.Context, msg gossip.DDTMessage) error {
+func (s *Service) PublishRecord(ctx context.Context, msg Message) error {
 	if s.cfg.DHTConfig.EnforceSignedMessages && msg.Record.JWS == "" {
 		return errors.New("message must be signed")
 	}
@@ -40,8 +39,8 @@ func (s *Service) PublishRecord(ctx context.Context, msg gossip.DDTMessage) erro
 	if s.dht == nil {
 		return errors.New("dht not initialized")
 	}
-	if s.gossiper == nil {
-		return errors.New("gossiper not started")
+	if s.gossipSvc == nil {
+		return errors.New("gossip svc not started")
 	}
 	msg.PublisherID = s.host.ID().String()
 
@@ -62,7 +61,7 @@ func (s *Service) PublishRecord(ctx context.Context, msg gossip.DDTMessage) erro
 	// put the record in our local storage
 	if err := s.storage.WriteRecord(db.DHTRecord{
 		PublisherID: s.host.ID().String(),
-		Record: db.Record(gossip.Record{
+		Record: db.Record(Record{
 			DID:      msg.Record.DID,
 			Endpoint: msg.Record.Endpoint,
 			JWS:      msg.Record.JWS,
@@ -81,7 +80,7 @@ func (s *Service) PublishRecord(ctx context.Context, msg gossip.DDTMessage) erro
 	}
 
 	// broadcast via gossip sub
-	if err = s.gossiper.Publish(ctx, recordBytes); err != nil {
+	if err = s.gossipSvc.Publish(ctx, s.cfg.DHTConfig.Topic, recordBytes); err != nil {
 		logrus.WithError(err).Error("failed to publish record via gossip sub")
 	}
 
@@ -89,7 +88,7 @@ func (s *Service) PublishRecord(ctx context.Context, msg gossip.DDTMessage) erro
 }
 
 // QueryRecord returns the record for the given DID first from local storage, then from the DHT
-func (s *Service) QueryRecord(ctx context.Context, did string) (*gossip.DDTMessage, error) {
+func (s *Service) QueryRecord(ctx context.Context, did string) (*Message, error) {
 	if s.storage == nil {
 		return nil, errors.New("storage not initialized")
 	}
@@ -103,9 +102,9 @@ func (s *Service) QueryRecord(ctx context.Context, did string) (*gossip.DDTMessa
 		return nil, errors.WithMessage(err, "failed to read record")
 	}
 	if record != nil {
-		return &gossip.DDTMessage{
+		return &Message{
 			PublisherID: record.PublisherID,
-			Record:      gossip.Record(record.Record),
+			Record:      Record(record.Record),
 		}, nil
 	}
 
@@ -114,18 +113,16 @@ func (s *Service) QueryRecord(ctx context.Context, did string) (*gossip.DDTMessa
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to get record from DHT")
 	}
-	var r gossip.Record
+	var r Record
 	if err = json.Unmarshal(dhtRecord, &r); err != nil {
 		return nil, errors.WithMessage(err, "failed to unmarshal record")
 	}
 	// TODO(gabe): add publisher info here
-	return &gossip.DDTMessage{
-		Record: r,
-	}, nil
+	return &Message{Record: r}, nil
 }
 
 // ListRecords returns all records stored locally
-func (s *Service) ListRecords(_ context.Context) ([]gossip.DDTMessage, error) {
+func (s *Service) ListRecords(_ context.Context) ([]Message, error) {
 	if s.storage == nil {
 		return nil, errors.New("storage not initialized")
 	}
@@ -135,19 +132,19 @@ func (s *Service) ListRecords(_ context.Context) ([]gossip.DDTMessage, error) {
 		return nil, errors.WithMessage(err, "failed to list records")
 	}
 
-	var messages []gossip.DDTMessage
+	var messages []Message
 	for _, record := range records {
-		messages = append(messages, gossip.DDTMessage{
+		messages = append(messages, Message{
 			PublisherID: record.PublisherID,
-			Record:      gossip.Record(record.Record),
+			Record:      Record(record.Record),
 		})
 	}
 	return messages, nil
 }
 
 func (s *Service) RemoveRecord(_ context.Context, did string) error {
-	if s.gossiper == nil {
-		return errors.New("gossiper not started")
+	if s.gossipSvc == nil {
+		return errors.New("gossip service not started")
 	}
 
 	// TODO(gabe): when we don't have the record locally, query the DHT using our custom protocol to invalidate the record

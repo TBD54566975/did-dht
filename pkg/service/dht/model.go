@@ -1,6 +1,6 @@
 package dht
 
-type DDTMessage struct {
+type Message struct {
 	PublisherID string `json:"publisherId,omitempty"`
 	Record      Record `json:"record,omitempty"`
 }

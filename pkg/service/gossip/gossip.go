@@ -12,6 +12,7 @@ import (
 	"did-dht/pkg/db"
 )
 
+// Gossiper is a wrapper around a pubsub topic that reads messages from the topic and pushes them onto a channel.
 type Gossiper struct {
 	Messages chan *Message
 	storage  db.GossipStorage
@@ -24,19 +25,17 @@ type Gossiper struct {
 	topicName string
 
 	// our peer's id and name
-	id   peer.ID
-	name string
+	peerID   peer.ID
+	peerName string
 }
 
+// Close closes the gossiper by cancelling the context and closing the topic.
 func (g *Gossiper) Close() error {
 	g.sub.Cancel()
 	return g.topic.Close()
 }
 
-func (g *Gossiper) GetTopics() []string {
-	return g.ps.GetTopics()
-}
-
+// Publish publishes a message to the topic.
 func (g *Gossiper) Publish(ctx context.Context, msg []byte) error {
 	return g.topic.Publish(ctx, msg)
 }
@@ -46,14 +45,14 @@ func (g *Gossiper) pullMessages() {
 	for {
 		msg, err := g.sub.Next(g.ctx)
 		if err != nil {
-			logrus.WithError(err).Warn("failed to read message from topic<%s>, closing...", g.topicName)
+			logrus.WithError(err).Warnf("failed to read message from topic<%s>, closing...", g.topicName)
 			close(g.Messages)
 			return
 		}
 
 		// make sure we're not the sender
 		from := msg.GetFrom()
-		if from == g.id {
+		if from == g.peerID {
 			continue
 		}
 
@@ -68,11 +67,12 @@ func (g *Gossiper) pullMessages() {
 	}
 }
 
+// processMessages reads messages from the Messages channel and writes them to the database.
 func (g *Gossiper) processMessages() {
 	for {
 		select {
 		case <-g.ctx.Done():
-			logrus.Info("context cancelled, closing...")
+			logrus.Infof("context cancelled, closing message processor for topic<%s>...", g.topicName)
 			return
 		case msg := <-g.Messages:
 			logrus.Infof("Received message from %q: %q", msg.PublisherID, msg.Record)
