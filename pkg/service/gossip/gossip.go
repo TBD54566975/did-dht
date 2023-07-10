@@ -7,20 +7,14 @@ import (
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"did-dht/pkg/db"
 )
 
-const (
-	// TopicBufferSize is the number of incoming messages to buffer for each topic.
-	TopicBufferSize = 128
-)
-
 type Gossiper struct {
-	Messages chan *DDTMessage
-	storage  db.DHTRecordStorage
+	Messages chan *Message
+	storage  db.GossipStorage
 
 	ctx   context.Context
 	ps    *pubsub.PubSub
@@ -29,115 +23,65 @@ type Gossiper struct {
 
 	topicName string
 
-	// our id and name
+	// our peer's id and name
 	id   peer.ID
 	name string
 }
 
-type DDTMessage struct {
-	PublisherID string `json:"publisherId,omitempty"`
-	Record      Record `json:"record,omitempty"`
+func (g *Gossiper) Close() error {
+	g.sub.Cancel()
+	return g.topic.Close()
 }
 
-type Record struct {
-	DID      string `json:"did,omitempty"`
-	Endpoint string `json:"endpoint,omitempty"`
-	JWS      string `json:"jws,omitempty"`
+func (g *Gossiper) GetTopics() []string {
+	return g.ps.GetTopics()
 }
 
-func StartGossiper(ctx context.Context, storage db.DHTRecordStorage, ps *pubsub.PubSub, id peer.ID, name, topic string) (*Gossiper, error) {
-	// join the topic
-	t, err := ps.Join(topic)
-	if err != nil {
-		return nil, errors.WithMessage(err, "failed to join topic")
-	}
-
-	// subscribe to it
-	sub, err := t.Subscribe()
-	if err != nil {
-		return nil, errors.WithMessage(err, "failed to subscribe to topic")
-	}
-
-	ddt := &Gossiper{
-		Messages: make(chan *DDTMessage, TopicBufferSize),
-		storage:  storage,
-
-		ctx:   ctx,
-		ps:    ps,
-		topic: t,
-		sub:   sub,
-
-		topicName: topic,
-		name:      name,
-		id:        id,
-	}
-
-	// start reading messages from the topic in a loop
-	go ddt.pullMessages()
-
-	// start processing messages from the topic in a loop
-	go ddt.processMessages()
-
-	return ddt, nil
-}
-
-func (ddt *Gossiper) Close() error {
-	ddt.sub.Cancel()
-	return ddt.topic.Close()
-}
-
-func (ddt *Gossiper) GetTopics() []string {
-	return ddt.ps.GetTopics()
-}
-
-func (ddt *Gossiper) Publish(ctx context.Context, msg []byte) error {
-	return ddt.topic.Publish(ctx, msg)
+func (g *Gossiper) Publish(ctx context.Context, msg []byte) error {
+	return g.topic.Publish(ctx, msg)
 }
 
 // readLoop pulls messages from the pubsub topic and pushes them onto the Messages channel.
-func (ddt *Gossiper) pullMessages() {
+func (g *Gossiper) pullMessages() {
 	for {
-		msg, err := ddt.sub.Next(ddt.ctx)
+		msg, err := g.sub.Next(g.ctx)
 		if err != nil {
-			logrus.WithError(err).Warn("failed to read message from topic, closing...")
-			close(ddt.Messages)
+			logrus.WithError(err).Warn("failed to read message from topic<%s>, closing...", g.topicName)
+			close(g.Messages)
 			return
 		}
 
 		// make sure we're not the sender
 		from := msg.GetFrom()
-		if from == ddt.id {
+		if from == g.id {
 			continue
 		}
 
-		// TODO(gabe): validate message here
-		m := DDTMessage{PublisherID: from.String()}
+		m := Message{PublisherID: from.String(), Topic: msg.GetTopic(), ReceivedAt: time.Now().Format(time.RFC3339)}
 		if err = json.Unmarshal(msg.Data, &m.Record); err != nil {
 			logrus.WithError(err).Warn("failed to unmarshal message")
 			continue
 		}
 
 		// send valid messages to the channel
-		ddt.Messages <- &m
+		g.Messages <- &m
 	}
 }
 
-func (ddt *Gossiper) processMessages() {
+func (g *Gossiper) processMessages() {
 	for {
 		select {
-		case <-ddt.ctx.Done():
+		case <-g.ctx.Done():
 			logrus.Info("context cancelled, closing...")
 			return
-		case msg := <-ddt.Messages:
+		case msg := <-g.Messages:
 			logrus.Infof("Received message from %q: %q", msg.PublisherID, msg.Record)
-			if err := ddt.storage.WriteRecord(db.DHTRecord{
+			if err := g.storage.WriteMessage(db.Message{
+				ID:          msg.ID,
+				Topic:       msg.Topic,
 				PublisherID: msg.PublisherID,
-				Record: db.Record(Record{
-					DID:      msg.Record.DID,
-					Endpoint: msg.Record.Endpoint,
-					JWS:      msg.Record.JWS,
-				}),
-				CreatedAt: time.Now().Format(time.RFC3339),
+				Record:      msg.Record,
+				ReceivedAt:  time.Now().Format(time.RFC3339),
 			}); err != nil {
 				logrus.WithError(err).Warn("failed to write record")
 			}

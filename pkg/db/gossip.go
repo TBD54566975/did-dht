@@ -10,27 +10,30 @@ const (
 	gossipNamespace = "gossip"
 )
 
-type GossipMessage interface {
-	ID() string
-	Type() string
+type Message struct {
+	ID          string         `json:"id,omitempty"`
+	Topic       string         `json:"type,omitempty"`
+	PublisherID string         `json:"publisherId,omitempty"`
+	Record      map[string]any `json:"record,omitempty"`
+	ReceivedAt  string         `json:"receivedAt,omitempty"`
 }
 
 type GossipStorage interface {
-	WriteMessage(message GossipMessage, topic string) error
-	ReadMessage(topic, id string) (GossipMessage, error)
-	ListMessages(topic string) ([]GossipMessage, error)
+	WriteMessage(message Message) error
+	ReadMessage(topic, id string) (*Message, error)
+	ListMessages(topic string) ([]Message, error)
 	DeleteMessage(topic, id string) error
 }
 
-func (s *Storage) WriteMessage(message GossipMessage) error {
+func (s *Storage) WriteMessage(message Message) error {
 	messageBytes, err := json.Marshal(message)
 	if err != nil {
 		return errors.WithMessage(err, "failed to marshal message")
 	}
-	return s.Write(dhtNamespace, message.ID(), messageBytes)
+	return s.Write(namespace(message.Topic), message.ID, messageBytes)
 }
 
-func (s *Storage) ReadMessage(topic, id string) (GossipMessage, error) {
+func (s *Storage) ReadMessage(topic, id string) (*Message, error) {
 	message, err := s.Read(namespace(topic), id)
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to read message")
@@ -38,27 +41,31 @@ func (s *Storage) ReadMessage(topic, id string) (GossipMessage, error) {
 	if len(message) == 0 {
 		return nil, nil
 	}
-	var messageResult GossipMessage
-	if err = json.Unmarshal(message, &messageResult); err != nil {
+	var m Message
+	if err = json.Unmarshal(message, &m); err != nil {
 		return nil, errors.WithMessage(err, "failed to unmarshal message")
 	}
-	return messageResult, nil
+	return &m, nil
 }
 
-func (s *Storage) ListMessages(topic string) ([]GossipMessage, error) {
+func (s *Storage) ListMessages(topic string) ([]Message, error) {
 	records, err := s.ReadAll(namespace(topic))
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to list messages")
 	}
-	var messages []GossipMessage
+	var messages []Message
 	for _, record := range records {
-		var message GossipMessage
+		var message Message
 		if err = json.Unmarshal(record, &message); err != nil {
 			return nil, errors.WithMessage(err, "failed to unmarshal message")
 		}
 		messages = append(messages, message)
 	}
 	return messages, nil
+}
+
+func (s *Storage) DeleteMessage(topic, id string) error {
+	return s.Delete(namespace(topic), id)
 }
 
 func namespace(topic string) string {
