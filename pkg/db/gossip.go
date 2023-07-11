@@ -11,11 +11,16 @@ const (
 )
 
 type Message struct {
-	ID          string         `json:"id,omitempty"`
-	Topic       string         `json:"type,omitempty"`
-	PublisherID string         `json:"publisherId,omitempty"`
-	Record      map[string]any `json:"record,omitempty"`
-	ReceivedAt  string         `json:"receivedAt,omitempty"`
+	ID          string       `json:"id,omitempty"`
+	Topic       string       `json:"type,omitempty"`
+	PublisherID string       `json:"publisherId,omitempty"`
+	Record      SignedRecord `json:"record,omitempty"`
+	ReceivedAt  string       `json:"receivedAt,omitempty"`
+}
+
+type SignedRecord struct {
+	Payload map[string]any `json:"payload,omitempty"`
+	JWS     string         `json:"jws,omitempty"`
 }
 
 type GossipStorage interface {

@@ -9,12 +9,18 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/sirupsen/logrus"
 
+	"did-dht/internal/record"
 	"did-dht/pkg/db"
+)
+
+const (
+	// TopicBufferSize is the number of incoming messages to buffer for each topic.
+	TopicBufferSize = 128
 )
 
 // Gossiper is a wrapper around a pubsub topic that reads messages from the topic and pushes them onto a channel.
 type Gossiper struct {
-	Messages chan *Message
+	Messages chan *record.Message
 	storage  db.GossipStorage
 
 	ctx   context.Context
@@ -56,7 +62,7 @@ func (g *Gossiper) pullMessages() {
 			continue
 		}
 
-		m := Message{PublisherID: from.String(), Topic: msg.GetTopic(), ReceivedAt: time.Now().Format(time.RFC3339)}
+		m := record.Message{PublisherID: from.String(), Topic: msg.GetTopic(), ReceivedAt: time.Now().Format(time.RFC3339)}
 		if err = json.Unmarshal(msg.Data, &m.Record); err != nil {
 			logrus.WithError(err).Warn("failed to unmarshal message")
 			continue
@@ -80,7 +86,7 @@ func (g *Gossiper) processMessages() {
 				ID:          msg.ID,
 				Topic:       msg.Topic,
 				PublisherID: msg.PublisherID,
-				Record:      msg.Record,
+				Record:      db.SignedRecord(msg.Record),
 				ReceivedAt:  time.Now().Format(time.RFC3339),
 			}); err != nil {
 				logrus.WithError(err).Warn("failed to write record")

@@ -2,6 +2,7 @@ package gossip
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/TBD54566975/ssi-sdk/util"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -9,6 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 
 	"did-dht/config"
+	"did-dht/internal/record"
 	"did-dht/pkg/db"
 )
 
@@ -58,7 +60,7 @@ func (s *Service) StartGossiper(ctx context.Context, topic string) error {
 	}
 
 	ddt := &Gossiper{
-		Messages: make(chan *Message, TopicBufferSize),
+		Messages: make(chan *record.Message, TopicBufferSize),
 		storage:  s.storage,
 
 		ctx:   ctx,
@@ -97,12 +99,26 @@ func (s *Service) StopGossiper(topic string) error {
 }
 
 // Publish publishes the given message to the given topic
-func (s *Service) Publish(ctx context.Context, topic string, msg []byte) error {
+func (s *Service) Publish(ctx context.Context, topic string, m record.Message) error {
 	g, ok := s.gossipers[topic]
 	if !ok {
 		return util.LoggingNewErrorf("gossiper<%s> does not exist", topic)
 	}
-	return g.Publish(ctx, msg)
+	if err := s.storage.WriteMessage(db.Message{
+		ID:          m.ID,
+		Topic:       m.Topic,
+		PublisherID: m.PublisherID,
+		Record:      db.SignedRecord(m.Record),
+		ReceivedAt:  m.ReceivedAt,
+	}); err != nil {
+		return util.LoggingErrorMsgf(err, "failed to write message to storage")
+	}
+
+	recordBytes, err := json.Marshal(m.Record)
+	if err != nil {
+		return util.LoggingErrorMsgf(err, "failed to marshal record")
+	}
+	return g.Publish(ctx, recordBytes)
 }
 
 // GetGossipTopics returns the list of topics that the service is currently gossiping on
@@ -116,7 +132,7 @@ func (s *Service) GetGossipTopics() []string {
 
 // ListMessagesForTopic returns the list of messages for the given topic
 // TODO(gabe): pagination
-func (s *Service) ListMessagesForTopic(topic string) ([]Message, error) {
+func (s *Service) ListMessagesForTopic(topic string) ([]record.Message, error) {
 	g, ok := s.gossipers[topic]
 	if !ok {
 		return nil, util.LoggingNewErrorf("gossiper<%s> does not exist", topic)
@@ -126,13 +142,13 @@ func (s *Service) ListMessagesForTopic(topic string) ([]Message, error) {
 		return nil, util.LoggingErrorMsgf(err, "failed to list messages for topic: %s", topic)
 	}
 
-	msgs := make([]Message, 0, len(messages))
+	msgs := make([]record.Message, 0, len(messages))
 	for _, m := range messages {
-		msgs = append(msgs, Message{
+		msgs = append(msgs, record.Message{
 			ID:          m.ID,
 			Topic:       m.Topic,
 			PublisherID: m.PublisherID,
-			Record:      m.Record,
+			Record:      record.SignedRecord(m.Record),
 			ReceivedAt:  m.ReceivedAt,
 		})
 	}

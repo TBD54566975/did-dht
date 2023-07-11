@@ -69,8 +69,9 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	if err = DHTAPI(v1, dhtSvc); err != nil {
 		return nil, util.LoggingErrorMsg(err, "could not setup dht api")
 	}
-
-	// TODO(gabe): add more routes here
+	if err = GossipAPI(v1, gossipSvc); err != nil {
+		return nil, util.LoggingErrorMsg(err, "could not setup gossip api")
+	}
 
 	return &Server{
 		Server: &http.Server{
@@ -123,6 +124,7 @@ func setupHandler(env config.Environment) *gin.Engine {
 	return handler
 }
 
+// DHTAPI sets up the DHT API routes
 func DHTAPI(rg *gin.RouterGroup, service *dht.Service) error {
 	dhtRouter, err := NewDHTRouter(service)
 	if err != nil {
@@ -134,5 +136,10 @@ func DHTAPI(rg *gin.RouterGroup, service *dht.Service) error {
 	dhtAPI.GET("", dhtRouter.ListRecords)
 	dhtAPI.GET("/:did", dhtRouter.ReadRecord)
 	dhtAPI.DELETE("/:did", dhtRouter.RemoveRecord)
+	return nil
+}
+
+// GossipAPI sets up the gossip API routes
+func GossipAPI(rg *gin.RouterGroup, service *gossip.Service) error {
 	return nil
 }

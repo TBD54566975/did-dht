@@ -26,13 +26,11 @@ type AddRecordRequest struct {
 	JWS      string `json:"jws,omitempty"`
 }
 
-func (r AddRecordRequest) toServiceRequest() dht.Message {
-	return dht.Message{
-		Record: dht.Record{
-			DID:      r.DID,
-			Endpoint: r.Endpoint,
-			JWS:      r.JWS,
-		},
+func (r AddRecordRequest) toServiceRequest() dht.Record {
+	return dht.Record{
+		DID:      r.DID,
+		Endpoint: r.Endpoint,
+		JWS:      r.JWS,
 	}
 }
 
@@ -47,7 +45,7 @@ type AddRecordResponse struct {
 //	@Tags			DHT
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		AddRecordRequest	true	"Add Record Request"
+//	@Param			request	body		AddRecordRequest	true	"Add SignedRecord Request"
 //	@Success		202		{object}	AddRecordResponse
 //	@Failure		400		{string}	string	"Bad request"
 //	@Failure		500		{string}	string	"Internal server error"
@@ -72,7 +70,7 @@ const (
 )
 
 type GetRecordResponse struct {
-	*dht.Message
+	*dht.Record
 }
 
 // ReadRecord godoc
@@ -100,7 +98,7 @@ func (r *DHTRouter) ReadRecord(c *gin.Context) {
 		return
 	}
 
-	Respond(c, GetRecordResponse{Message: resp}, http.StatusOK)
+	Respond(c, GetRecordResponse{Record: resp}, http.StatusOK)
 }
 
 // ListRecords godoc
@@ -139,7 +137,7 @@ type RemoveRecordResponse struct {
 //	@Tags			DHT
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		RemoveRecordRequest	true	"Remove Record Request"
+//	@Param			request	body		RemoveRecordRequest	true	"Remove SignedRecord Request"
 //	@Success		200		{object}	RemoveRecordResponse
 //	@Failure		400		{string}	string	"Bad request"
 //	@Failure		500		{string}	string	"Internal server error"

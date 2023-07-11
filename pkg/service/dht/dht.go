@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
+	"did-dht/internal/record"
 	"did-dht/pkg/db"
 	"did-dht/pkg/service/gossip"
 )
@@ -29,8 +30,8 @@ func (s *Service) Info() (string, string, []string, []peer.ID) {
 }
 
 // PublishRecord publishes the given record to the DHT and gossip sub topic
-func (s *Service) PublishRecord(ctx context.Context, msg Message) error {
-	if s.cfg.DHTConfig.EnforceSignedMessages && msg.Record.JWS == "" {
+func (s *Service) PublishRecord(ctx context.Context, r Record) error {
+	if s.cfg.DHTConfig.EnforceSignedMessages && r.JWS == "" {
 		return errors.New("message must be signed")
 	}
 	if s.storage == nil {
@@ -42,45 +43,42 @@ func (s *Service) PublishRecord(ctx context.Context, msg Message) error {
 	if s.gossipSvc == nil {
 		return errors.New("gossip svc not started")
 	}
-	msg.PublisherID = s.host.ID().String()
 
 	// if the record doesn't have a JWS, sign it with the service's key
-	if msg.Record.JWS == "" {
-		signedRecord, err := SignRecordJWS(s.signer, msg.Record)
+	if r.JWS == "" {
+		signedRecord, err := record.SignRecordJWS(s.signer, r)
 		if err != nil {
 			return errors.WithMessage(err, "failed to sign message")
 		}
-		msg.Record.JWS = signedRecord.JWS
+		r.JWS = signedRecord.JWS
 	} else {
 		// verify the record's signature is correct
-		if err := VerifyRecord(ctx, s.resolver, msg.Record); err != nil {
+		if err := VerifyRecord(ctx, s.resolver, r); err != nil {
 			return errors.WithMessage(err, "failed to verify message")
 		}
 	}
 
 	// put the record in our local storage
-	if err := s.storage.WriteRecord(db.DHTRecord{
-		PublisherID: s.host.ID().String(),
-		Record: db.Record(Record{
-			DID:      msg.Record.DID,
-			Endpoint: msg.Record.Endpoint,
-			JWS:      msg.Record.JWS,
-		}),
+	if err := s.storage.WriteRecord(db.Record{
+		DID:      r.DID,
+		Endpoint: r.Endpoint,
+		JWS:      r.JWS,
 	}); err != nil {
 		return util.LoggingErrorMsg(err, "failed to write record, not publishing to network...")
 	}
 
 	// put the record in the DHT
-	recordBytes, err := json.Marshal(msg.Record)
+	recordBytes, err := json.Marshal(r)
 	if err != nil {
 		return errors.WithMessage(err, "failed to marshal record")
 	}
-	if err = s.dht.PutValue(ctx, s.dhtKey(msg.Record.DID), recordBytes); err != nil {
+	if err = s.dht.PutValue(ctx, s.dhtKey(r.DID), recordBytes); err != nil {
 		logrus.WithError(err).Error("failed to put record in DHT")
 	}
 
 	// broadcast via gossip sub
-	if err = s.gossipSvc.Publish(ctx, s.cfg.DHTConfig.Topic, recordBytes); err != nil {
+	msg.PublisherID = s.host.ID().String()
+	if err = s.gossipSvc.Publish(ctx, s.cfg.DHTConfig.Topic, record); err != nil {
 		logrus.WithError(err).Error("failed to publish record via gossip sub")
 	}
 
@@ -88,7 +86,7 @@ func (s *Service) PublishRecord(ctx context.Context, msg Message) error {
 }
 
 // QueryRecord returns the record for the given DID first from local storage, then from the DHT
-func (s *Service) QueryRecord(ctx context.Context, did string) (*Message, error) {
+func (s *Service) QueryRecord(ctx context.Context, did string) (*record.Message, error) {
 	if s.storage == nil {
 		return nil, errors.New("storage not initialized")
 	}
@@ -97,14 +95,17 @@ func (s *Service) QueryRecord(ctx context.Context, did string) (*Message, error)
 	}
 
 	// attempt to read from local storage first
-	record, err := s.storage.ReadRecord(did)
+	r, err := s.storage.ReadRecord(did)
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to read record")
 	}
-	if record != nil {
-		return &Message{
-			PublisherID: record.PublisherID,
-			Record:      Record(record.Record),
+	if r != nil {
+		return &record.Message{
+			ID:          "",
+			PublisherID: "",
+			Topic:       "",
+			Record:      record.SignedRecord{},
+			ReceivedAt:  "",
 		}, nil
 	}
 
@@ -118,11 +119,11 @@ func (s *Service) QueryRecord(ctx context.Context, did string) (*Message, error)
 		return nil, errors.WithMessage(err, "failed to unmarshal record")
 	}
 	// TODO(gabe): add publisher info here
-	return &Message{Record: r}, nil
+	return &record.Message{Record: r}, nil
 }
 
 // ListRecords returns all records stored locally
-func (s *Service) ListRecords(_ context.Context) ([]Message, error) {
+func (s *Service) ListRecords(_ context.Context) ([]Record, error) {
 	if s.storage == nil {
 		return nil, errors.New("storage not initialized")
 	}
@@ -132,11 +133,12 @@ func (s *Service) ListRecords(_ context.Context) ([]Message, error) {
 		return nil, errors.WithMessage(err, "failed to list records")
 	}
 
-	var messages []Message
-	for _, record := range records {
-		messages = append(messages, Message{
-			PublisherID: record.PublisherID,
-			Record:      Record(record.Record),
+	var messages []Record
+	for _, r := range records {
+		messages = append(messages, Record{
+			DID:      r.DID,
+			Endpoint: r.Endpoint,
+			JWS:      r.JWS,
 		})
 	}
 	return messages, nil
