@@ -99,10 +99,10 @@ func (s *Service) StopGossiper(topic string) error {
 }
 
 // Publish publishes the given message to the given topic
-func (s *Service) Publish(ctx context.Context, topic string, m record.Message) error {
-	g, ok := s.gossipers[topic]
+func (s *Service) Publish(ctx context.Context, m record.Message) error {
+	g, ok := s.gossipers[m.Topic]
 	if !ok {
-		return util.LoggingNewErrorf("gossiper<%s> does not exist", topic)
+		return util.LoggingNewErrorf("gossiper<%s> does not exist", m.Topic)
 	}
 	if err := s.storage.WriteMessage(db.Message{
 		ID:          m.ID,

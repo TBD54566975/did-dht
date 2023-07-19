@@ -9,7 +9,6 @@ import (
 	"github.com/pkg/errors"
 
 	"did-dht/internal"
-	record2 "did-dht/internal/record"
 	"did-dht/internal/resolution"
 )
 
@@ -54,7 +53,7 @@ func (v Validator) Validate(key string, value []byte) error {
 	if r.JWS == "" {
 		return fmt.Errorf("jws is empty")
 	}
-	return record2.VerifyRecord(context.Background(), v.resolver, r)
+	return VerifyRecord(context.Background(), v.resolver, r)
 }
 
 // Select conforms to the Validator interface, it always returns 0 as all records are equivalently valid.

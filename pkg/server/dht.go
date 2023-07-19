@@ -98,7 +98,13 @@ func (r *DHTRouter) ReadRecord(c *gin.Context) {
 		return
 	}
 
-	Respond(c, GetRecordResponse{Record: resp}, http.StatusOK)
+	Respond(c, GetRecordResponse{
+		Record: &dht.Record{
+			DID:      resp.Record.Payload["did"].(string),
+			Endpoint: resp.Record.Payload["endpoint"].(string),
+			JWS:      resp.Record.JWS,
+		},
+	}, http.StatusOK)
 }
 
 // ListRecords godoc

@@ -2,9 +2,10 @@ package dht
 
 import (
 	"context"
+	"encoding/json"
+	"time"
 
 	"github.com/TBD54566975/ssi-sdk/util"
-	"github.com/goccy/go-json"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -46,7 +47,7 @@ func (s *Service) PublishRecord(ctx context.Context, r Record) error {
 
 	// if the record doesn't have a JWS, sign it with the service's key
 	if r.JWS == "" {
-		signedRecord, err := record.SignRecordJWS(s.signer, r)
+		signedRecord, err := record.SignRecordJWS(s.signer, r.ToMap())
 		if err != nil {
 			return errors.WithMessage(err, "failed to sign message")
 		}
@@ -77,8 +78,8 @@ func (s *Service) PublishRecord(ctx context.Context, r Record) error {
 	}
 
 	// broadcast via gossip sub
-	msg.PublisherID = s.host.ID().String()
-	if err = s.gossipSvc.Publish(ctx, s.cfg.DHTConfig.Topic, record); err != nil {
+	msg := r.ToGossipMessage(r.DID, s.host.ID().String(), s.cfg.DHTConfig.Topic, time.Now().Format(time.RFC3339Nano))
+	if err = s.gossipSvc.Publish(ctx, msg); err != nil {
 		logrus.WithError(err).Error("failed to publish record via gossip sub")
 	}
 
@@ -95,17 +96,20 @@ func (s *Service) QueryRecord(ctx context.Context, did string) (*record.Message,
 	}
 
 	// attempt to read from local storage first
-	r, err := s.storage.ReadRecord(did)
+	msg, err := s.storage.ReadMessage(s.cfg.DHTConfig.Topic, did)
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to read record")
 	}
-	if r != nil {
+	if msg != nil {
 		return &record.Message{
-			ID:          "",
-			PublisherID: "",
-			Topic:       "",
-			Record:      record.SignedRecord{},
-			ReceivedAt:  "",
+			ID:          msg.ID,
+			PublisherID: msg.PublisherID,
+			Topic:       msg.Topic,
+			Record: record.SignedRecord{
+				Payload: msg.Record.Payload,
+				JWS:     msg.Record.JWS,
+			},
+			ReceivedAt: msg.ReceivedAt,
 		}, nil
 	}
 
@@ -118,8 +122,20 @@ func (s *Service) QueryRecord(ctx context.Context, did string) (*record.Message,
 	if err = json.Unmarshal(dhtRecord, &r); err != nil {
 		return nil, errors.WithMessage(err, "failed to unmarshal record")
 	}
-	// TODO(gabe): add publisher info here
-	return &record.Message{Record: r}, nil
+
+	return &record.Message{
+		ID:          r.DID,
+		PublisherID: "dht",
+		Topic:       s.cfg.DHTConfig.Topic,
+		Record: record.SignedRecord{
+			Payload: map[string]any{
+				"did":      r.DID,
+				"endpoint": r.Endpoint,
+			},
+			JWS: r.JWS,
+		},
+		ReceivedAt: time.Now().Format(time.RFC3339Nano),
+	}, nil
 }
 
 // ListRecords returns all records stored locally
