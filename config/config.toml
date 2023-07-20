@@ -15,3 +15,6 @@ local_discovery = false
 resolver_endpoint = "https://dev.uniresolver.io/"
 bootstrap_peers = ["/ip4/54.174.122.8/tcp/8503/p2p/12D3KooWR7KTAszwXmkfr5U18VrKvCgwDC3FHdrgMcrZBr3Z9Eig"]
 enforce_signed_messages = false
+
+[gossip]
+enforce_signed_messages = false

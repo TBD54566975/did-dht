@@ -110,6 +110,7 @@ func setupHandler(env config.Environment) *gin.Engine {
 		gin.Recovery(),
 		gin.Logger(),
 		gin.ErrorLogger(),
+		CORS(),
 	}
 	handler := gin.New()
 	handler.Use(middlewares...)
