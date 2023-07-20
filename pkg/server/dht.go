@@ -9,6 +9,10 @@ import (
 	"did-dht/pkg/service/dht"
 )
 
+const (
+	DIDParam = "did"
+)
+
 type DHTRouter struct {
 	service *dht.Service
 }
@@ -64,10 +68,6 @@ func (r *DHTRouter) AddRecord(c *gin.Context) {
 
 	Respond(c, AddRecordResponse{Message: "success"}, http.StatusAccepted)
 }
-
-const (
-	DIDParam = "did"
-)
 
 type GetRecordResponse struct {
 	*dht.Record
