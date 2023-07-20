@@ -35,8 +35,9 @@ func (e EnvironmentVariable) String() string {
 }
 
 type Config struct {
-	ServerConfig ServiceConfig    `toml:"server"`
-	DHTConfig    DHTServiceConfig `toml:"dht"`
+	ServerConfig ServiceConfig       `toml:"server"`
+	DHTConfig    DHTServiceConfig    `toml:"dht"`
+	GossipConfig GossipServiceConfig `toml:"gossip"`
 }
 
 type ServiceConfig struct {
@@ -61,6 +62,11 @@ type DHTServiceConfig struct {
 	EnforceSignedMessages bool `toml:"enforce_signed_messages"`
 }
 
+type GossipServiceConfig struct {
+	// if set, the API will only accept signed messages
+	EnforceSignedMessages bool `toml:"enforce_signed_messages"`
+}
+
 func GetDefaultConfig() Config {
 	return Config{
 		ServerConfig: ServiceConfig{
@@ -78,6 +84,9 @@ func GetDefaultConfig() Config {
 			Topic:                 "diddht",
 			LocalDiscovery:        true,
 			ResolverEndpoint:      "https://dev.uniresolver.io/",
+			EnforceSignedMessages: false,
+		},
+		GossipConfig: GossipServiceConfig{
 			EnforceSignedMessages: false,
 		},
 	}

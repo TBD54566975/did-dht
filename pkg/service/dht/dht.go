@@ -2,452 +2,173 @@ package dht
 
 import (
 	"context"
-	"crypto/ed25519"
-	"crypto/rand"
-	"fmt"
-	"strings"
-	"sync"
+	"encoding/json"
 	"time"
 
-	sdkcrypto "github.com/TBD54566975/ssi-sdk/crypto"
-	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
-	"github.com/TBD54566975/ssi-sdk/did"
-	"github.com/TBD54566975/ssi-sdk/did/key"
 	"github.com/TBD54566975/ssi-sdk/util"
-	"github.com/ipfs/boxo/ipns"
-	"github.com/libp2p/go-libp2p"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	record "github.com/libp2p/go-libp2p-record"
-	"github.com/libp2p/go-libp2p/core/crypto"
-	"github.com/libp2p/go-libp2p/core/discovery"
-	"github.com/libp2p/go-libp2p/core/host"
-	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
-	"github.com/libp2p/go-libp2p/p2p/discovery/routing"
-	discutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
-	routedhost "github.com/libp2p/go-libp2p/p2p/host/routed"
-	"github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"did-dht/config"
-	"did-dht/internal/resolution"
+	"did-dht/internal/record"
 	"did-dht/pkg/db"
+	"did-dht/pkg/service/gossip"
 )
 
-const (
-	advertisePeriod     = time.Second * 5
-	peerDiscoveryPeriod = time.Second * 10
-	peerLimit           = 10
-	protocolPrefix      = "/diddht"
-)
-
-type Service struct {
-	cfg             *config.Config
-	externalAddress string
-	signer          jwx.Signer
-	storage         *db.Storage
-	resolver        *resolution.ServiceResolver
-
-	// p2p services
-
-	host      host.Host
-	gossipSub *pubsub.PubSub
-	dht       *dht.IpfsDHT
-	discovery *routing.RoutingDiscovery
-	gossiper  *Gossiper
+func (s *Service) Start(ctx context.Context, gossipSvc *gossip.Service) error {
+	if err := gossipSvc.StartGossiper(ctx, s.cfg.DHTConfig.Topic); err != nil {
+		return util.LoggingErrorMsg(err, "failed to start DHT gossiper")
+	}
+	s.gossipSvc = gossipSvc
+	return nil
 }
 
-func NewService(cfg *config.Config) (*Service, error) {
-	var ddt Service
-	ddt.cfg = cfg
-	storage, err := db.NewStorage(cfg.ServerConfig.DBFile)
-	if err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to instantiate storage")
-	}
-	ddt.storage = storage
+func (s *Service) Info() (string, string, []string, []peer.ID) {
+	logrus.Infof("host peers: %v", s.host.Peerstore().Peers())
 
-	// create a new resolver
-	localResolutionMethods := []string{did.KeyMethod.String(), did.PKHMethod.String(), did.WebMethod.String(), did.JWKMethod.String()}
-	ddt.resolver, err = resolution.NewServiceResolver(nil, localResolutionMethods, cfg.DHTConfig.ResolverEndpoint)
-	if err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to instantiate resolver")
-	}
+	// TODO(gabe): move this out
+	return s.host.ID().String(), s.externalAddress, s.gossipSvc.GetGossipTopics(), s.host.Peerstore().Peers()
+}
 
-	apiHost := cfg.ServerConfig.APIHost
-	listenPort := cfg.ServerConfig.ListenPort
-	listenAddrStrings := []string{
-		fmt.Sprintf("/ip4/%s/tcp/%d", apiHost, listenPort),
-		fmt.Sprintf("/ip4/%s/udp/%d/quic", apiHost, listenPort),
-		fmt.Sprintf("/ip4/%s/udp/%d/quic-v1", apiHost, listenPort),
-		fmt.Sprintf("/ip4/%s/udp/%d/quic-v1/webtransport", apiHost, listenPort),
+// PublishRecord publishes the given record to the DHT and gossip sub topic
+func (s *Service) PublishRecord(ctx context.Context, r Record) error {
+	if s.cfg.DHTConfig.EnforceSignedMessages && r.JWS == "" {
+		return errors.New("message must be signed")
+	}
+	if s.storage == nil {
+		return errors.New("storage not initialized")
+	}
+	if s.dht == nil {
+		return errors.New("dht not initialized")
+	}
+	if s.gossipSvc == nil {
+		return errors.New("gossip svc not started")
 	}
 
-	// 0.0.0.0 will listen on any interface device.
-	var sourceMultiAddrs []multiaddr.Multiaddr
-	for _, addrString := range listenAddrStrings {
-		addr, err := multiaddr.NewMultiaddr(addrString)
+	// if the record doesn't have a JWS, sign it with the service's key
+	if r.JWS == "" {
+		signedRecord, err := record.SignRecordJWS(s.signer, r.ToMap())
 		if err != nil {
-			return nil, util.LoggingErrorMsgf(err, "failed to parse multiaddr: %s", addrString)
+			return errors.WithMessage(err, "failed to sign message")
 		}
-		sourceMultiAddrs = append(sourceMultiAddrs, addr)
-	}
-
-	var h host.Host
-	opts := []libp2p.Option{
-		libp2p.ListenAddrs(sourceMultiAddrs...),
-		libp2p.NATPortMap(),
-		libp2p.EnableNATService(),
-		libp2p.EnableRelay(),
-		libp2p.EnableHolePunching(),
-		libp2p.DefaultTransports,
-		libp2p.DefaultMuxers,
-		libp2p.DefaultSecurity,
-	}
-
-	var extMultiAddr multiaddr.Multiaddr
-	if cfg.ServerConfig.BroadcastIP == "" {
-		logrus.Warn("external IP not defined, Peers might not be able to resolve this node if behind NAT")
-		opts = append(opts, libp2p.ForceReachabilityPrivate())
+		r.JWS = signedRecord.JWS
 	} else {
-		// here we're creating the multiaddr that others should use to connect to me
-		extMultiAddr, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", cfg.ServerConfig.BroadcastIP, listenPort))
-		if err != nil {
-			return nil, util.LoggingErrorMsg(err, "failed to create multiaddress")
-		}
-		opts = append(opts, libp2p.ForceReachabilityPublic(), libp2p.EnableRelayService(), libp2p.EnableAutoRelayWithPeerSource(findRelayPeers(func() host.Host { return h })))
-	}
-
-	addressFactory := func(addrs []multiaddr.Multiaddr) []multiaddr.Multiaddr {
-		if extMultiAddr != nil {
-			// append the external facing multiaddr we created above to the addressFactory so it will be broadcast
-			// out when connecting to a bootstrap node.
-			addrs = append(addrs, extMultiAddr)
-		}
-		return addrs
-	}
-	opts = append(opts, libp2p.AddrsFactory(addressFactory))
-
-	// get or create a new service identity
-	privKey, err := ddt.setupServiceIdentity()
-	if err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to setup service identity")
-	}
-	opts = append(opts, libp2p.Identity(privKey))
-
-	// create a new libp2p host that listens on a random TCP port
-	h, err = libp2p.New(opts...)
-	if err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to instantiate libp2p host")
-	}
-	ddt.host = h
-	logrus.Infof("Host created with id: %s, %q", h.ID(), h.Addrs())
-	logrus.Info(h.Addrs())
-
-	ctx := context.Background()
-
-	// set variable for our external address
-	if extMultiAddr != nil {
-		ddt.externalAddress = fmt.Sprintf("%s/p2p/%s", extMultiAddr, ddt.host.ID())
-	} else {
-		ddt.externalAddress = fmt.Sprintf("%s/p2p/%s", listenAddrStrings[0], h.ID().String())
-	}
-
-	// init dht and associate it with the host
-	if err = ddt.setupDHT(ctx); err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to set up dht")
-	}
-
-	// connect to bootstrap peers
-	if len(cfg.DHTConfig.BootstrapPeers) > 0 {
-		if err = ddt.bootstrapPeers(ctx); err != nil {
-			return nil, util.LoggingErrorMsg(err, "failed to bootstrap peers")
+		// verify the record's signature is correct
+		if err := VerifyRecord(ctx, s.resolver, r); err != nil {
+			return errors.WithMessage(err, "failed to verify message")
 		}
 	}
 
-	// create a new PubSub service using the GossipSub router
-	if err = ddt.setupGossipSub(ctx); err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to set up gossipsub")
+	// put the record in our local storage
+	if err := s.storage.WriteRecord(db.Record{
+		DID:      r.DID,
+		Endpoint: r.Endpoint,
+		JWS:      r.JWS,
+	}); err != nil {
+		return util.LoggingErrorMsg(err, "failed to write record, not publishing to network...")
 	}
 
-	// if local is set, set up local discovery
-	if cfg.DHTConfig.LocalDiscovery {
-		if err = ddt.setupLocalDiscovery(ctx); err != nil {
-			return nil, util.LoggingErrorMsg(err, "failed to set up local discovery")
-		}
-	}
-
-	// set up peer discovery after refreshing the route table, try connecting to peers
-	if err = ddt.setupPeerDiscovery(ctx); err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to set up peer discovery")
-	}
-
-	return &ddt, nil
-}
-
-// findRelayPeers is a helper function that returns a function that can be used as a peer source
-func findRelayPeers(h func() host.Host) func(ctx context.Context, num int) <-chan peer.AddrInfo {
-	return func(ctx context.Context, num int) <-chan peer.AddrInfo {
-		ch := make(chan peer.AddrInfo)
-		go func() {
-			sent := 0
-		outer:
-			for {
-				for _, id := range h().Peerstore().PeersWithAddrs() {
-					if sent >= num {
-						break
-					}
-					protos, err := h().Peerstore().GetProtocols(id)
-					if err != nil {
-						continue
-					}
-					for _, proto := range protos {
-						if strings.HasPrefix(string(proto), "/libp2p/circuit/relay/") {
-							ch <- peer.AddrInfo{
-								ID:    id,
-								Addrs: h().Peerstore().Addrs(id),
-							}
-							sent++
-							break
-						}
-					}
-				}
-				select {
-				case <-time.After(time.Second):
-					continue
-				case <-ctx.Done():
-					break outer
-				}
-			}
-			close(ch)
-		}()
-		return ch
-	}
-}
-
-// gets or creates a service identity
-func (s *Service) setupServiceIdentity() (*crypto.Ed25519PrivateKey, error) {
-	did, gotPrivKey, err := s.storage.ReadIdentity()
+	// put the record in the DHT
+	recordBytes, err := json.Marshal(r)
 	if err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to read identity")
+		return errors.WithMessage(err, "failed to marshal record")
+	}
+	if err = s.dht.PutValue(ctx, s.dhtKey(r.DID), recordBytes); err != nil {
+		logrus.WithError(err).Error("failed to put record in DHT")
 	}
 
-	var privKey *crypto.Ed25519PrivateKey
-	var didKey *key.DIDKey
-	if did != "" && gotPrivKey != nil {
-		logrus.Infof("found existing identity: %s", did)
-		privKey = gotPrivKey
-		k := key.DIDKey(did)
-		didKey = &k
-	} else {
-		logrus.Info("generating new identity")
-		privKey, didKey, err = s.generateNewIdentity()
-		if err != nil {
-			return nil, util.LoggingErrorMsg(err, "failed to generate new identity")
-		}
+	// broadcast via gossip sub
+	msg := r.ToGossipMessage(r.DID, s.host.ID().String(), s.cfg.DHTConfig.Topic, time.Now().Format(time.RFC3339Nano))
+	if err = s.gossipSvc.Publish(ctx, msg); err != nil {
+		logrus.WithError(err).Error("failed to publish record via gossip sub")
 	}
 
-	// create and store a signer for the key
-	expanded, err := didKey.Expand()
-	if err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to expand did key")
-	}
-	privKeyBytes, err := privKey.Raw()
-	if err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to get raw private key bytes")
-	}
-	signer, err := jwx.NewJWXSigner(didKey.String(), expanded.VerificationMethod[0].ID, ed25519.PrivateKey(privKeyBytes))
-	if err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to create jwx signer")
-	}
-	s.signer = *signer
-
-	// return the priv key
-	return privKey, nil
-}
-
-func (s *Service) generateNewIdentity() (*crypto.Ed25519PrivateKey, *key.DIDKey, error) {
-	privKey, pubKey, err := crypto.GenerateEd25519Key(rand.Reader)
-	if err != nil {
-		return nil, nil, util.LoggingErrorMsg(err, "failed to generate key")
-	}
-	pubKeyBytes, err := pubKey.Raw()
-	if err != nil {
-		return nil, nil, util.LoggingErrorMsg(err, "failed to get raw public key bytes")
-	}
-	didKey, err := key.CreateDIDKey(sdkcrypto.Ed25519, pubKeyBytes)
-	if err != nil {
-		return nil, nil, util.LoggingErrorMsg(err, "failed to create did key")
-	}
-	logrus.Infof("generated new identity: %s", didKey.String())
-	if err = s.storage.WriteIdentity(didKey.String(), *privKey.(*crypto.Ed25519PrivateKey)); err != nil {
-		return nil, nil, util.LoggingErrorMsg(err, "failed to write identity")
-	}
-	return privKey.(*crypto.Ed25519PrivateKey), didKey, nil
-}
-
-func (s *Service) setupGossipSub(ctx context.Context) error {
-	opts := []pubsub.Option{
-		pubsub.WithMessageAuthor(s.host.ID()),
-		pubsub.WithPeerExchange(true),
-	}
-	ps, err := pubsub.NewGossipSub(ctx, s.host, opts...)
-	if err != nil {
-		return util.LoggingErrorMsgf(err, "failed to instantiate pubsub service")
-	}
-	s.gossipSub = ps
 	return nil
 }
 
-func (s *Service) setupDHT(ctx context.Context) error {
-	validator := record.NamespacedValidator{
-		"pk":                      record.PublicKeyValidator{},
-		"ipns":                    ipns.Validator{KeyBook: s.host.Peerstore()},
-		s.cfg.DHTConfig.Namespace: NewValidator(s.cfg.DHTConfig.Namespace, s.resolver),
+// QueryRecord returns the record for the given DID first from local storage, then from the DHT
+func (s *Service) QueryRecord(ctx context.Context, did string) (*record.Message, error) {
+	if s.storage == nil {
+		return nil, errors.New("storage not initialized")
 	}
-	d, err := dht.New(
-		ctx,
-		s.host,
-		dht.Mode(dht.ModeAutoServer),
-		dht.Validator(validator),
-		dht.ProtocolPrefix(protocolPrefix),
-		dht.RoutingTableRefreshPeriod(peerDiscoveryPeriod),
-	)
+	if s.dht == nil {
+		return nil, errors.New("dht not initialized")
+	}
+
+	// attempt to read from local storage first
+	msg, err := s.storage.ReadMessage(s.cfg.DHTConfig.Topic, did)
 	if err != nil {
-		return util.LoggingErrorMsg(err, "failed to instantiate dht service")
+		return nil, errors.WithMessage(err, "failed to read record")
 	}
-	if err = d.Bootstrap(ctx); err != nil {
-		return util.LoggingErrorMsg(err, "failed to bootstrap dht service")
+	if msg != nil {
+		return &record.Message{
+			ID:          msg.ID,
+			PublisherID: msg.PublisherID,
+			Topic:       msg.Topic,
+			Record: record.SignedRecord{
+				Payload: msg.Record.Payload,
+				JWS:     msg.Record.JWS,
+			},
+			ReceivedAt: msg.ReceivedAt,
+		}, nil
 	}
 
-	s.host = routedhost.Wrap(s.host, d)
-	s.dht = d
-	return nil
-}
-
-func (s *Service) bootstrapPeers(ctx context.Context) error {
-	// connect to bootstrap bootstrapPeers
-	logrus.Info("connecting to bootstrap peers")
-	var wg sync.WaitGroup
-
-	bootstrapPeers := s.cfg.DHTConfig.BootstrapPeers
-	numBootstrapPeers := len(bootstrapPeers)
-	for _, peerAddr := range bootstrapPeers {
-		peerInfo, err := peer.AddrInfoFromString(peerAddr)
-		if err != nil {
-			logrus.WithError(err).Errorf("failed to parse bootstrap peer: %s", peerAddr)
-			numBootstrapPeers--
-			continue
-		}
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			if err = s.host.Connect(ctx, *peerInfo); err != nil {
-				logrus.WithError(err).Warnf("could not connect to bootstrap peer: %s", peerInfo.String())
-				numBootstrapPeers--
-			} else {
-				logrus.Infof("connection established with bootstrap node: %s", peerInfo.String())
-			}
-		}()
-	}
-	wg.Wait()
-
-	if numBootstrapPeers == 0 {
-		return errors.New("no bootstrap peers could be connected to")
-	}
-	return nil
-}
-
-func (s *Service) setupPeerDiscovery(ctx context.Context) error {
-	// refresh the dht route table
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-s.dht.RefreshRoutingTable():
-	}
-	d := routing.NewRoutingDiscovery(s.dht)
-	s.discovery = d
-
-	// advertise ourselves
-	discutil.Advertise(ctx, d, s.cfg.DHTConfig.Namespace, discovery.TTL(advertisePeriod))
-
-	// discover and connect to peers periodically
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				pctx, cancel := context.WithTimeout(ctx, peerDiscoveryPeriod)
-				s.discover(pctx)
-				cancel()
-				time.Sleep(peerDiscoveryPeriod)
-			}
-		}
-	}()
-	return nil
-}
-
-func (s *Service) discover(ctx context.Context) {
-	peerChan, err := s.discovery.FindPeers(ctx, s.cfg.DHTConfig.Namespace, discovery.Limit(peerLimit))
+	logrus.Info("record not found locally, querying DHT")
+	dhtRecord, err := s.dht.GetValue(ctx, s.dhtKey(did))
 	if err != nil {
-		logrus.WithError(err).Error("failed to find peers")
-		return
+		return nil, errors.WithMessage(err, "failed to get record from DHT")
 	}
-	for p := range peerChan {
-		p := p
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			if p.ID == s.host.ID() {
-				continue
-			}
-			if s.host.Network().Connectedness(p.ID) == network.Connected {
-				continue
-			}
-			logrus.Infof("attempting to connect to peer %s", p.ID)
-			if err = s.host.Connect(ctx, p); err != nil {
-				logrus.WithError(err).Errorf("failed to connect to peer %s", p.ID)
-			} else {
-				logrus.Infof("connected to peer %s", p.ID)
-			}
-			s.host.ConnManager().Protect(p.ID, "discoveredPeer")
-		}
+	var r Record
+	if err = json.Unmarshal(dhtRecord, &r); err != nil {
+		return nil, errors.WithMessage(err, "failed to unmarshal record")
 	}
+
+	return &record.Message{
+		ID:          r.DID,
+		PublisherID: "dht",
+		Topic:       s.cfg.DHTConfig.Topic,
+		Record: record.SignedRecord{
+			Payload: map[string]any{
+				"did":      r.DID,
+				"endpoint": r.Endpoint,
+			},
+			JWS: r.JWS,
+		},
+		ReceivedAt: time.Now().Format(time.RFC3339Nano),
+	}, nil
 }
 
-func (s *Service) setupLocalDiscovery(ctx context.Context) error {
-	ldn := new(localDiscoveryNotifee)
-	ldn.PeerChan = make(chan peer.AddrInfo)
-	svc := mdns.NewMdnsService(s.host, s.cfg.DHTConfig.Namespace, ldn)
-	if err := svc.Start(); err != nil {
-		return util.LoggingErrorMsg(err, "failed to start mdns service")
+// ListRecords returns all records stored locally
+func (s *Service) ListRecords(_ context.Context) ([]Record, error) {
+	if s.storage == nil {
+		return nil, errors.New("storage not initialized")
 	}
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case pi := <-ldn.PeerChan:
-				logrus.Infof("found local peer %s", pi.ID)
-				if err := s.host.Connect(ctx, pi); err != nil {
-					logrus.WithError(err).Errorf("failed to connect to peer %s", pi.ID)
-				} else {
-					logrus.Infof("connected to local peer %s", pi.ID)
-				}
-			}
-		}
-	}()
-	return nil
+
+	records, err := s.storage.ListRecords()
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to list records")
+	}
+
+	var messages []Record
+	for _, r := range records {
+		messages = append(messages, Record{
+			DID:      r.DID,
+			Endpoint: r.Endpoint,
+			JWS:      r.JWS,
+		})
+	}
+	return messages, nil
 }
 
-type localDiscoveryNotifee struct {
-	PeerChan chan peer.AddrInfo
+func (s *Service) RemoveRecord(_ context.Context, did string) error {
+	if s.gossipSvc == nil {
+		return errors.New("gossip service not started")
+	}
+
+	// TODO(gabe): when we don't have the record locally, query the DHT using our custom protocol to invalidate the record
+	return s.storage.DeleteRecord(did)
 }
 
-func (ldn *localDiscoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
-	ldn.PeerChan <- pi
+func (s *Service) dhtKey(did string) string {
+	return "/" + s.cfg.DHTConfig.Namespace + "/" + did
 }

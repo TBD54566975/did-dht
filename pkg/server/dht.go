@@ -9,6 +9,10 @@ import (
 	"did-dht/pkg/service/dht"
 )
 
+const (
+	DIDParam = "did"
+)
+
 type DHTRouter struct {
 	service *dht.Service
 }
@@ -26,13 +30,11 @@ type AddRecordRequest struct {
 	JWS      string `json:"jws,omitempty"`
 }
 
-func (r AddRecordRequest) toServiceRequest() dht.DDTMessage {
-	return dht.DDTMessage{
-		Record: dht.Record{
-			DID:      r.DID,
-			Endpoint: r.Endpoint,
-			JWS:      r.JWS,
-		},
+func (r AddRecordRequest) toServiceRequest() dht.Record {
+	return dht.Record{
+		DID:      r.DID,
+		Endpoint: r.Endpoint,
+		JWS:      r.JWS,
 	}
 }
 
@@ -47,7 +49,7 @@ type AddRecordResponse struct {
 //	@Tags			DHT
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		AddRecordRequest	true	"Add Record Request"
+//	@Param			request	body		AddRecordRequest	true	"Add SignedRecord Request"
 //	@Success		202		{object}	AddRecordResponse
 //	@Failure		400		{string}	string	"Bad request"
 //	@Failure		500		{string}	string	"Internal server error"
@@ -67,12 +69,8 @@ func (r *DHTRouter) AddRecord(c *gin.Context) {
 	Respond(c, AddRecordResponse{Message: "success"}, http.StatusAccepted)
 }
 
-const (
-	DIDParam = "did"
-)
-
 type GetRecordResponse struct {
-	*dht.DDTMessage
+	*dht.Record
 }
 
 // ReadRecord godoc
@@ -100,7 +98,13 @@ func (r *DHTRouter) ReadRecord(c *gin.Context) {
 		return
 	}
 
-	Respond(c, GetRecordResponse{DDTMessage: resp}, http.StatusOK)
+	Respond(c, GetRecordResponse{
+		Record: &dht.Record{
+			DID:      resp.Record.Payload["did"].(string),
+			Endpoint: resp.Record.Payload["endpoint"].(string),
+			JWS:      resp.Record.JWS,
+		},
+	}, http.StatusOK)
 }
 
 // ListRecords godoc
@@ -139,7 +143,7 @@ type RemoveRecordResponse struct {
 //	@Tags			DHT
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		RemoveRecordRequest	true	"Remove Record Request"
+//	@Param			request	body		RemoveRecordRequest	true	"Remove SignedRecord Request"
 //	@Success		200		{object}	RemoveRecordResponse
 //	@Failure		400		{string}	string	"Bad request"
 //	@Failure		500		{string}	string	"Internal server error"

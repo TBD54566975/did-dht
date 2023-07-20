@@ -1,0 +1,109 @@
+package record
+
+import (
+	"testing"
+
+	sdkcrypto "github.com/TBD54566975/ssi-sdk/crypto"
+	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
+	"github.com/TBD54566975/ssi-sdk/did/jwk"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestSignVerifyRecordJWS(t *testing.T) {
+	privKey, jwk, err := jwk.GenerateDIDJWK(sdkcrypto.Ed25519)
+	assert.NoError(t, err)
+
+	didDoc, err := jwk.Expand()
+	assert.NoError(t, err)
+
+	id := didDoc.ID
+	kid := didDoc.VerificationMethod[0].ID
+
+	signer, err := jwx.NewJWXSigner(id, kid, privKey)
+	assert.NoError(t, err)
+
+	t.Run("sign and verify record", func(tt *testing.T) {
+		record := map[string]any{
+			"did":      id,
+			"endpoint": "http://tbd.dev",
+		}
+		signedRecord, err := SignRecordJWS(*signer, record)
+		assert.NoError(tt, err)
+		assert.NotEmpty(tt, signedRecord.JWS)
+
+		pubKeyJWK := didDoc.VerificationMethod[0].PublicKeyJWK
+		verifier, err := jwx.NewJWXVerifierFromJWK(id, *pubKeyJWK)
+		assert.NoError(tt, err)
+
+		err = VerifyRecordJWS(*verifier, *signedRecord)
+		assert.NoError(tt, err)
+	})
+
+	t.Run("sign and verify record with modified properties", func(tt *testing.T) {
+		record := map[string]any{
+			"did":      id,
+			"endpoint": "http://tbd.dev",
+		}
+		signedRecord, err := SignRecordJWS(*signer, record)
+		assert.NoError(tt, err)
+		assert.NotEmpty(tt, signedRecord.JWS)
+
+		// modify endpoint
+		signedRecord.Payload = map[string]any{
+			"did":      id,
+			"endpoint": "bad",
+		}
+
+		pubKeyJWK := didDoc.VerificationMethod[0].PublicKeyJWK
+		verifier, err := jwx.NewJWXVerifierFromJWK(id, *pubKeyJWK)
+		assert.NoError(tt, err)
+
+		err = VerifyRecordJWS(*verifier, *signedRecord)
+		assert.Error(tt, err)
+		assert.Contains(tt, err.Error(), "record property value does not match for key: endpoint")
+	})
+
+	t.Run("sign and verify record with missing properties", func(tt *testing.T) {
+		record := map[string]any{
+			"did":      id,
+			"endpoint": "http://tbd.dev",
+		}
+		signedRecord, err := SignRecordJWS(*signer, record)
+		assert.NoError(tt, err)
+		assert.NotEmpty(tt, signedRecord.JWS)
+
+		// remove endpoint
+		signedRecord.Payload = map[string]any{
+			"did": id,
+		}
+
+		pubKeyJWK := didDoc.VerificationMethod[0].PublicKeyJWK
+		verifier, err := jwx.NewJWXVerifierFromJWK(id, *pubKeyJWK)
+		assert.NoError(tt, err)
+
+		err = VerifyRecordJWS(*verifier, *signedRecord)
+		assert.Error(tt, err)
+		assert.Contains(tt, err.Error(), "record and token have a mismatched number of properties")
+	})
+
+	t.Run("sign and verify modified record JWS", func(tt *testing.T) {
+		record := map[string]any{
+			"did":      id,
+			"endpoint": "http://tbd.dev",
+		}
+		signedRecord, err := SignRecordJWS(*signer, record)
+		assert.NoError(tt, err)
+		assert.NotEmpty(tt, signedRecord.JWS)
+
+		// tamper with JWS
+		signedRecord.JWS = "bad"
+
+		pubKeyJWK := didDoc.VerificationMethod[0].PublicKeyJWK
+		verifier, err := jwx.NewJWXVerifierFromJWK(id, *pubKeyJWK)
+		assert.NoError(tt, err)
+
+		err = VerifyRecordJWS(*verifier, *signedRecord)
+		assert.Error(tt, err)
+		assert.Contains(tt, err.Error(), "failed to verify record: parsing and verifying JWT")
+	})
+}

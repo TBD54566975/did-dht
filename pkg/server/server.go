@@ -15,7 +15,9 @@ import (
 
 	"did-dht/config"
 	"did-dht/docs"
+	"did-dht/pkg/db"
 	"did-dht/pkg/service/dht"
+	"did-dht/pkg/service/gossip"
 )
 
 type Server struct {
@@ -33,16 +35,29 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	// set up server prerequisites
 	setupLogger(cfg.ServerConfig.LogLevel)
 	handler := setupHandler(cfg.ServerConfig.Environment)
-	ddtSvc, err := dht.NewService(cfg)
+
+	storage, err := db.NewStorage(cfg.ServerConfig.DBFile)
+	if err != nil {
+		return nil, util.LoggingErrorMsg(err, "failed to instantiate storage")
+	}
+
+	ctx := context.Background()
+	dhtSvc, err := dht.NewService(ctx, cfg, storage)
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "could not instantiate did dht service")
 	}
-	if err = ddtSvc.Start(context.Background()); err != nil {
+	gossipSvc, err := gossip.NewGossipService(ctx, cfg, storage, dhtSvc.GetHost())
+	if err != nil {
+		return nil, util.LoggingErrorMsg(err, "could not instantiate gossip service")
+	}
+
+	// start the service(s)
+	if err = dhtSvc.Start(ctx, gossipSvc); err != nil {
 		return nil, util.LoggingErrorMsg(err, "could not start did dht service")
 	}
 
 	handler.GET("/health", Health)
-	handler.GET("/info", Info(ddtSvc))
+	handler.GET("/info", Info(dhtSvc))
 
 	// set up swagger
 	docs.SwaggerInfo.Host = fmt.Sprintf("%s:%d", cfg.ServerConfig.APIHost, cfg.ServerConfig.APIPort)
@@ -51,11 +66,12 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	handler.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler, ginswagger.URL("/swagger.yaml")))
 
 	v1 := handler.Group("/v1")
-	if err = DHTAPI(v1, ddtSvc); err != nil {
+	if err = DHTAPI(v1, dhtSvc); err != nil {
 		return nil, util.LoggingErrorMsg(err, "could not setup dht api")
 	}
-
-	// TODO(gabe): add more routes here
+	if err = GossipAPI(v1, gossipSvc); err != nil {
+		return nil, util.LoggingErrorMsg(err, "could not setup gossip api")
+	}
 
 	return &Server{
 		Server: &http.Server{
@@ -66,7 +82,7 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 			WriteTimeout:      time.Second * 5,
 		},
 		cfg:      cfg,
-		svc:      ddtSvc,
+		svc:      dhtSvc,
 		handler:  handler,
 		shutdown: shutdown,
 	}, nil
@@ -94,6 +110,7 @@ func setupHandler(env config.Environment) *gin.Engine {
 		gin.Recovery(),
 		gin.Logger(),
 		gin.ErrorLogger(),
+		CORS(),
 	}
 	handler := gin.New()
 	handler.Use(middlewares...)
@@ -108,6 +125,7 @@ func setupHandler(env config.Environment) *gin.Engine {
 	return handler
 }
 
+// DHTAPI sets up the DHT API routes
 func DHTAPI(rg *gin.RouterGroup, service *dht.Service) error {
 	dhtRouter, err := NewDHTRouter(service)
 	if err != nil {
@@ -119,5 +137,20 @@ func DHTAPI(rg *gin.RouterGroup, service *dht.Service) error {
 	dhtAPI.GET("", dhtRouter.ListRecords)
 	dhtAPI.GET("/:did", dhtRouter.ReadRecord)
 	dhtAPI.DELETE("/:did", dhtRouter.RemoveRecord)
+	return nil
+}
+
+// GossipAPI sets up the gossip API routes
+func GossipAPI(rg *gin.RouterGroup, service *gossip.Service) error {
+	gossipRouter, err := NewGossipRouter(service)
+	if err != nil {
+		return util.LoggingErrorMsg(err, "could not instantiate gossip router")
+	}
+
+	gossipAPI := rg.Group("/gossip")
+	gossipAPI.PUT("", gossipRouter.CreateTopic)
+	gossipAPI.GET("", gossipRouter.ListTopics)
+	gossipAPI.PUT("/:topic", gossipRouter.PublishMessageToTopic)
+	gossipAPI.GET("/:topic", gossipRouter.ListMessagesForTopic)
 	return nil
 }
