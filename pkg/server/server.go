@@ -141,5 +141,15 @@ func DHTAPI(rg *gin.RouterGroup, service *dht.Service) error {
 
 // GossipAPI sets up the gossip API routes
 func GossipAPI(rg *gin.RouterGroup, service *gossip.Service) error {
+	gossipRouter, err := NewGossipRouter(service)
+	if err != nil {
+		return util.LoggingErrorMsg(err, "could not instantiate gossip router")
+	}
+
+	gossipAPI := rg.Group("/gossip")
+	gossipAPI.PUT("", gossipRouter.CreateTopic)
+	gossipAPI.GET("", gossipRouter.ListTopics)
+	gossipAPI.PUT("/:topic", gossipRouter.PublishMessageToTopic)
+	gossipAPI.GET("/:topic", gossipRouter.ListMessagesForTopic)
 	return nil
 }
