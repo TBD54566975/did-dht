@@ -1,5 +1,5 @@
 # Start with a base image containing Golang build environment
-FROM golang:1.20.5-alpine AS build-stage
+FROM golang:1.20.6-alpine AS build-stage
 
 # Set the current working directory
 WORKDIR /app
