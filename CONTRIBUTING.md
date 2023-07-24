@@ -4,7 +4,7 @@
 
 | Requirement    | Tested Version | Installation Instructions                                                                         |
 |----------------|----------------|---------------------------------------------------------------------------------------------------|
-| Go             | 1.20.5         | [go.dev](https://go.dev/doc/tutorial/compile-install)                                             |
+| Go             | 1.20.6         | [go.dev](https://go.dev/doc/tutorial/compile-install)                                             |
 | Mage           | 1.13.0-6       | [magefile.org](https://magefile.org/)                                                             |
 | golangci-lint  | 1.52.2         | [golangci-lint.run](https://golangci-lint.run/usage/install/#local-installation)                  |
 
@@ -16,7 +16,7 @@ You may verify your `go` installation via the terminal:
 
 ```
 $> go version
-go version go1.20.5 darwin/amd64
+go version go1.20.6 darwin/amd64
 ```
 
 If you do not have go, we recommend installing it by:
