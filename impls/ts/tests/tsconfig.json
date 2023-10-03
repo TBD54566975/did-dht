@@ -1,0 +1,16 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "compiled",
+    "declarationDir": "compiled/types",
+    "sourceMap": true,
+  },
+  "include": [
+    "../src",
+    "../typings",
+    ".",
+  ],
+  "exclude": [
+    "./compiled"
+  ]
+}
