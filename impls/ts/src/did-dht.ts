@@ -10,7 +10,7 @@ import type {
 } from '@web5/dids';
 import z32 from 'z32';
 
-const SupportedCryptoAlgorithms = [
+const SupportedCryptoKeyTypes = [
     'Ed25519',
     'secp256k1'
 ] as const;
@@ -38,14 +38,6 @@ export class DidDhtMethod implements DidMethod {
 
         // Get the identifier and set it
         const id = await this.getDidIdentifier({key: keySet.identityKey.publicKeyJwk});
-
-        // add identity key to the verificationMethod and relationship arrays
-        const identityKey: Partial<VerificationMethod> = {
-            id: `${id}#0`,
-            type: 'JsonWebKey2020',
-            controller: id,
-            publicKeyJwk: keySet.identityKey.publicKeyJwk
-        };
 
         // add all other keys to the verificationMethod and relationship arrays
         const relationshipsMap: { [key: string]: string[] } = {
@@ -102,7 +94,7 @@ export class DidDhtMethod implements DidMethod {
     }
 
     public static async generateJwkKeyPair(options: {
-        keyAlgorithm: typeof SupportedCryptoAlgorithms[number],
+        keyAlgorithm: typeof SupportedCryptoKeyTypes[number],
         keyId?: string
     }): Promise<JwkKeyPair> {
         const {keyAlgorithm, keyId} = options;
@@ -160,20 +152,22 @@ export class DidDhtMethod implements DidMethod {
                 keyAlgorithm: 'Ed25519',
                 keyId: '0'
             });
+
+
         } else if (keySet.identityKey.publicKeyJwk.kid !== '0') {
             throw new Error('The identity key must have a kid of 0');
         }
 
+        // add verificationMethodKeys for the identity key
         const identityKeySetVerificationMethod: DidKeySetVerificationMethodKey = {
             ...keySet.identityKey,
             relationships: ['authentication', 'assertionMethod', 'capabilityInvocation', 'capabilityDelegation']
         }
 
-        // add verificationMethodKeys for the identity key
-        if (keySet.verificationMethodKeys) {
-            keySet.verificationMethodKeys.push(identityKeySetVerificationMethod);
-        } else {
+        if (!keySet.verificationMethodKeys) {
             keySet.verificationMethodKeys = [identityKeySetVerificationMethod];
+        } else if (keySet.verificationMethodKeys.filter(key => key.publicKeyJwk.kid === '0').length === 0) {
+            keySet.verificationMethodKeys.push(identityKeySetVerificationMethod);
         }
 
         // Generate RFC 7638 JWK thumbprints if `kid` is missing from any key.
