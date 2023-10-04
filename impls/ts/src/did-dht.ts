@@ -45,7 +45,7 @@ export class DidDhtMethod implements DidMethod {
 
     // add identity key to the verificationMethod and relationship arrays
     const identityKey: Partial<VerificationMethod> = {
-      id           : `${id}#${keySet.identityKey.publicKeyJwk.kid}`,
+      id           : `${id}#0`,
       type         : 'JsonWebKey2020',
       controller   : id,
       publicKeyJwk : keySet.identityKey.publicKeyJwk
@@ -54,10 +54,10 @@ export class DidDhtMethod implements DidMethod {
 
     // add all other keys to the verificationMethod and relationship arrays
     const relationshipsMap: { [key: string]: string[] } = {
-      authentication       : [keySet.identityKey.publicKeyJwk.kid],
-      assertionMethod      : [keySet.identityKey.publicKeyJwk.kid],
-      capabilityInvocation : [keySet.identityKey.publicKeyJwk.kid],
-      capabilityDelegation : [keySet.identityKey.publicKeyJwk.kid],
+      authentication       : ['#0'],
+      assertionMethod      : ['#0'],
+      capabilityInvocation : ['#0'],
+      capabilityDelegation : ['#0'],
       keyAgreement         : []
     };
 
