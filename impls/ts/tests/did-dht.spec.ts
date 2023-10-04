@@ -84,12 +84,31 @@ describe('did-dht', async () => {
     });
 
     describe('dids', async () => {
-        it('should generate a did identifier', async () => {
-
+        it('should generate a did identifier given a public key jwk', async () => {
+            const ed25519KeyPair = await DidDhtMethod.generateJwkKeyPair({keyAlgorithm: 'Ed25519'});
+            const did = await DidDhtMethod.getDidIdentifier({key: ed25519KeyPair.publicKeyJwk});
+            expect(did).to.exist;
+            expect(did).to.contain('did:dht:');
         });
 
-        it('should create a did document', async () => {
+        it('should create a did document without options', async () => {
+            const {did, keySet} = await DidDhtMethod.create();
 
+            console.log(did);
+
+            expect(did).to.exist;
+            expect(did.id).to.contain('did:dht:');
+            expect(did.verificationMethod).to.exist;
+            expect(did.verificationMethod).to.have.lengthOf(1);
+            expect(did.verificationMethod[0].id).to.equal(`${did.id}#0`);
+            expect(did.verificationMethod[0].publicKeyJwk).to.exist;
+            expect(did.verificationMethod[0].publicKeyJwk.kid).to.equal('0');
+
+            expect(keySet).to.exist;
+            expect(keySet.identityKey).to.exist;
+            expect(keySet.identityKey.publicKeyJwk).to.exist;
+            expect(keySet.identityKey.privateKeyJwk).to.exist;
+            expect(keySet.identityKey.publicKeyJwk.kid).to.equal('0');
         });
     });
 });
