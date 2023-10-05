@@ -1,8 +1,6 @@
 import DHT from 'bittorrent-dht'
-import crypto from 'crypto'
-import {Ed25519, Web5Crypto} from "@web5/crypto";
+import {Web5Crypto} from "@web5/crypto";
 import {Codec} from "./codec.js";
-import z32 from 'z32';
 import ed from 'bittorrent-dht-sodium'
 import {DidDocument} from "@web5/dids";
 
@@ -32,14 +30,14 @@ export class DidDht {
     private dht: DHT;
 
     constructor() {
-        this.dht = new DHT({bootstrap: DEFAULT_BOOTSTRAP});
+        this.dht = new DHT({bootstrap: DEFAULT_BOOTSTRAP, verify: ed.verify});
 
         this.dht.listen(20000, () => {
             console.log('DHT is listening on port 20000');
         });
     }
 
-    public async createPutRequest(keypair: Web5Crypto.CryptoKeyPair, did: DidDocument): Promise<PutRequest> {
+    public async createPutDidRequest(keypair: Web5Crypto.CryptoKeyPair, did: DidDocument): Promise<PutRequest> {
         const seq = Math.ceil(Date.now() / 1000);
         const records: string[][] = [['did', JSON.stringify(did)]]
         const v = await new Codec().compress(records);
@@ -56,7 +54,7 @@ export class DidDht {
             k: request.k,
             v: request.v,
             seq: request.seq,
-            sign: function (buf) {
+            sign: function (buf: Buffer) {
                 return ed.sign(buf, request.sk)
             }
         }
@@ -71,27 +69,28 @@ export class DidDht {
         });
     }
 
-    public get(keyHash: string): Promise<Buffer> {
+    public async parseGetDidResponse(response: Buffer): Promise<DidDocument> {
+        const records = await new Codec().decompress(response);
+        const didRecord = records.find(record => record[0] === 'did');
+        if (!didRecord) {
+            throw new Error('No DID record found');
+        }
+        return JSON.parse(didRecord[1]);
+    }
+
+    public async get(keyHash: string): Promise<Buffer> {
         return new Promise((resolve, reject) => {
             this.dht.get(keyHash, (err, res) => {
                 if (err) {
                     reject(err);
                 } else {
-                    console.log(res);
                     resolve(res.v);
                 }
             });
         });
     }
 
-    destroy(): void {
+    public destroy(): void {
         this.dht.destroy();
     }
-}
-
-/**
- * @param {Uint8Array} input
- */
-function hash(input: Uint8Array): Uint8Array {
-    return crypto.createHash('sha1').update(input).digest()
 }

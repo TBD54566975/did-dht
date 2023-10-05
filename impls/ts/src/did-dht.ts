@@ -6,7 +6,7 @@ import type {
     DidMethod,
     DidResolutionResult,
     DidService,
-    VerificationMethod, VerificationRelationship
+    VerificationRelationship
 } from '@web5/dids';
 import z32 from 'z32';
 
