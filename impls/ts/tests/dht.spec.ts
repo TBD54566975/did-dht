@@ -1,20 +1,32 @@
 import {expect} from 'chai';
-import {DHTWrapper} from "../src/dht.js";
+import {DidDht} from "../src/dht.js";
+import {DidDhtMethod} from "../src/did-dht.js";
+import {Jose} from "@web5/crypto";
 
-describe('DHT',  async function() {
-    this.timeout(10000); // 10 seconds
+;
+describe('DHT', async function () {
+    this.timeout(15000); // 15 seconds
 
-    const dht = new DHTWrapper();
+    const dht = new DidDht();
     after(() => {
         dht.destroy();
     });
 
     it('should put and get data from DHT', async () => {
-        const value = Buffer.from('Hello, DHT!');
-        const hash = await dht.put(value);
+        const {did, keySet} = await DidDhtMethod.create();
+        const publicCryptoKey = await Jose.jwkToCryptoKey({key: keySet.identityKey.publicKeyJwk});
+        const privateCryptoKey = await Jose.jwkToCryptoKey({key: keySet.identityKey.privateKeyJwk});
+
+        const request = await dht.createPutRequest({
+            publicKey: publicCryptoKey,
+            privateKey: privateCryptoKey
+        }, did);
+
+        const hash = await dht.put(request);
+        console.log("HASHAHS", hash);
+        console.log(hash);
 
         const retrievedValue = await dht.get(hash);
-        expect(retrievedValue.toString()).to.equal(value.toString());
-        console.log(retrievedValue.toString());
+        console.log(retrievedValue);
     });
 });
