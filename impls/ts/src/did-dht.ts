@@ -6,7 +6,7 @@ import type {
     DidMethod,
     DidResolutionResult,
     DidService,
-    VerificationMethod
+    VerificationMethod, VerificationRelationship
 } from '@web5/dids';
 import z32 from 'z32';
 
@@ -26,11 +26,16 @@ export type DidDhtKeySet = {
     verificationMethodKeys?: DidKeySetVerificationMethodKey[];
 }
 
+export type DidDhtContainer = {
+    did: DidDocument;
+    keySet: DidDhtKeySet;
+}
+
 export class DidDhtMethod implements DidMethod {
 
     public static methodName = 'dht';
 
-    public static async create(options?: DidDhtCreateOptions): Promise<{ did: DidDocument, keySet: DidDhtKeySet }> {
+    public static async create(options?: DidDhtCreateOptions): Promise<DidDhtContainer> {
         const {publish, keySet: initialKeySet, services} = options ?? {};
 
         // Generate missing keys if not provided in the options
@@ -40,39 +45,31 @@ export class DidDhtMethod implements DidMethod {
         const id = await this.getDidIdentifier({key: keySet.identityKey.publicKeyJwk});
 
         // add all other keys to the verificationMethod and relationship arrays
-        const relationshipsMap: { [key: string]: string[] } = {
-            authentication: [],
-            assertionMethod: [],
-            capabilityInvocation: [],
-            capabilityDelegation: [],
-            keyAgreement: []
-        };
-
+        const relationshipsMap: Partial<Record<VerificationRelationship, string[]>> = {};
         const verificationMethods = keySet.verificationMethodKeys.map(key => {
-            const vm: Partial<VerificationMethod> = {
+            for (const relationship of key.relationships) {
+                if (relationshipsMap[relationship]) {
+                    relationshipsMap[relationship].push(`#${key.publicKeyJwk.kid}`);
+                } else {
+                    relationshipsMap[relationship] = [`#${key.publicKeyJwk.kid}`]
+                }
+            }
+
+            return {
                 id: `${id}#${key.publicKeyJwk.kid}`,
                 type: 'JsonWebKey2020',
                 controller: id,
                 publicKeyJwk: key.publicKeyJwk
             };
-
-            key.relationships.forEach(relationship => {
-                if (relationshipsMap[relationship]) {
-                    relationshipsMap[relationship].push(`#${key.publicKeyJwk.kid}`);
-                }
-            });
-
-            return vm as VerificationMethod;
         });
 
         const did: DidDocument = {
             id,
             verificationMethod: [...verificationMethods],
-            ...Object.fromEntries(Object.entries(relationshipsMap).filter(([, values]) => values.length > 0)),
-            ...(services ? {service: services} : {})
+            ...relationshipsMap,
+            ...services && {service: services}
         };
-
-        return {did: did, keySet: keySet};
+        return {did, keySet};
     }
 
     public static async publish(key: DidDhtKeySet, didDocument: DidDocument): Promise<DidResolutionResult | undefined> {

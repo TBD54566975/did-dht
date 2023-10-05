@@ -32,8 +32,7 @@ export class DidDht {
     private dht: DHT;
 
     constructor() {
-        // this.dht = new DHT({bootstrap: DEFAULT_BOOTSTRAP});
-        this.dht = new DHT();
+        this.dht = new DHT({bootstrap: DEFAULT_BOOTSTRAP});
 
         this.dht.listen(20000, () => {
             console.log('DHT is listening on port 20000');
@@ -52,7 +51,7 @@ export class DidDht {
         };
     }
 
-    public put(request: PutRequest): Promise<string> {
+    public async put(request: PutRequest): Promise<string> {
         const opts = {
             k: request.k,
             v: request.v,
@@ -73,13 +72,13 @@ export class DidDht {
     }
 
     public get(keyHash: string): Promise<Buffer> {
-        const key = Uint8Array.from(Buffer.from(keyHash, 'hex'));
         return new Promise((resolve, reject) => {
-            this.dht.get(key, (err, res) => {
+            this.dht.get(keyHash, (err, res) => {
                 if (err) {
                     reject(err);
                 } else {
-                    resolve(res);
+                    console.log(res);
+                    resolve(res.v);
                 }
             });
         });

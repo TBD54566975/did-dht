@@ -5,7 +5,7 @@ import {Jose} from "@web5/crypto";
 
 ;
 describe('DHT', async function () {
-    this.timeout(15000); // 15 seconds
+    this.timeout(100000); // 15 seconds
 
     const dht = new DidDht();
     after(() => {
@@ -23,10 +23,15 @@ describe('DHT', async function () {
         }, did);
 
         const hash = await dht.put(request);
-        console.log("HASHAHS", hash);
-        console.log(hash);
+        console.log("DID: ", did.id)
+        console.log("HASH: ", hash);
 
         const retrievedValue = await dht.get(hash);
         console.log(retrievedValue);
     });
+
+    it('should get' , async () => {
+        const got = await dht.get('f8c55b5e0c4ff220a6f2be7f4feb01ecf3cdf358');
+        console.log(got);
+    })
 });

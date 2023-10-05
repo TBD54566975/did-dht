@@ -6,8 +6,8 @@ import {DidKeySetVerificationMethodKey, DidService} from "@web5/dids";
 
 chai.use(chaiAsPromised);
 
-describe('did-dht', async () => {
-    describe('keypairs', async () => {
+describe('did-dht', () => {
+    describe('keypairs', () => {
         it('should generate a keypair', async () => {
             const ed25519KeyPair = await DidDhtMethod.generateJwkKeyPair({keyAlgorithm: 'Ed25519'});
 
@@ -26,10 +26,11 @@ describe('did-dht', async () => {
             expect(secp256k1KeyPair.publicKeyJwk.kid).to.exist;
             expect(secp256k1KeyPair.publicKeyJwk.alg).to.equal('ES256K');
             expect(secp256k1KeyPair.publicKeyJwk.kty).to.equal('EC');
+
         });
     });
 
-    describe('keysets', async () => {
+    describe('keysets', () => {
         it('should generate a keyset with no keyset passed in', async () => {
             const keySet = await DidDhtMethod.generateKeySet();
 
@@ -89,7 +90,7 @@ describe('did-dht', async () => {
         });
     });
 
-    describe('dids', async () => {
+    describe('dids', () => {
         it('should generate a did identifier given a public key jwk', async () => {
             const ed25519KeyPair = await DidDhtMethod.generateJwkKeyPair({keyAlgorithm: 'Ed25519'});
             const did = await DidDhtMethod.getDidIdentifier({key: ed25519KeyPair.publicKeyJwk});
@@ -189,7 +190,6 @@ describe('did-dht', async () => {
             expect(did.capabilityDelegation[0]).to.equal(`#0`);
             expect(did.capabilityInvocation.length).to.equal(1);
             expect(did.capabilityInvocation[0]).to.equal(`#0`);
-
         });
     });
 });
