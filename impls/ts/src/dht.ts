@@ -1,13 +1,23 @@
 import DHT from 'bittorrent-dht'
-import ed from 'bittorrent-dht-sodium'
-
 import crypto from 'crypto'
+
+const DEFAULT_BOOTSTRAP = [
+    'router.magnets.im:6881',
+    'router.bittorrent.com:6881',
+    'router.utorrent.com:6881',
+    'dht.transmissionbt.com:6881',
+    'router.nuh.dev:6881'
+].map(addr => {
+    const [host, port] = addr.split(':')
+    return { host, port: Number(port) }
+})
 
 export class DHTWrapper {
     private dht: DHT;
 
-    constructor() {
-        this.dht = new DHT();
+    constructor(options?: { bootstrap?: { host: string, port: number }[] }) {
+        options.bootstrap = options?.bootstrap ?? DEFAULT_BOOTSTRAP;
+        this.dht = new DHT(options);
         this.dht.listen(20000, () => {
             console.log('DHT is listening on port 20000');
         });
