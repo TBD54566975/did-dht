@@ -1,14 +1,5 @@
 {
-  "require": "ts-node/register",
   "enable-source-maps": true,
   "exit": true,
-  "spec": [
-    "tests/compiled/**/*.spec.js"
-  ],
-  "extension": ["ts"],
-  "color": true,
-  "node-option": [
-    "experimental-specifier-resolution=node",
-    "loader=ts-node/esm"
-  ]
+  "spec": ["tests/compiled/**/*.spec.js"]
 }
