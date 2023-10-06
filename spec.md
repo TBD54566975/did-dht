@@ -46,25 +46,25 @@ To create a `did:dht`, the process is as follows:
         "jwk": {...}
       }
       ```
-    - `services`: an array of DID Document-compliant endpoint objects
+    - **services**: an array of DID Document-compliant endpoint objects
+    - **retention**: optional Retention Proof string, which is a comma separated list of values composed as follows:
+
+      - 32 byte SHA-256 Bitcoin block hash
+      - <= 32 byte nonce
+
+      Computing the retention hash: perform Proof of Work over the DID’s identifier + the selected bitcoin block hash + a nonce to compute a value that secures greater retention time in the Retained DID Set maintained by the Bitcoin-anchored gateways.
+
+      See the section Retained DID Set for more information.
 
 > NOTE: The document **MUST** include a `signing` key used for [verification method](https://www.w3.org/TR/did-core/#verification-methods) with the _identifier key_ encoded as a `publicKeyJwk` with an `id` of `0`. All keys will be assumed to be the type [`JsonWebKey2020`](https://www.w3.org/community/reports/credentials/CG-FINAL-lds-jws2020-20220721/#json-web-key-2020).
 
 
 3. Construct a [BEP44 PUT message](https://www.bittorrent.org/beps/bep_0044.html) with the `v` value set to a [bencoded](https://en.wikipedia.org/wiki/Bencode) dict representation of the JSON object from Step 1.
 
-(TODO) **brotli encode before bencode**
+(TODO) **brotli encode before bencode** - to get max compression
 (TODO) Seq number as a timestamp
 
-4. Optionally add a Retention Proof as the `salt` value, which is a comma separated list of values composed as follows:
-    1. 32 byte SHA-256 Bitcoin block hash
-    2. <= 32 byte nonce
-
-    **Computing the retention hash:** perform Proof of Work over the DID's identifier + the selected bitcoin block hash + a nonce to compute a value that secures greater retention time in the _Retained DID Set_ maintained by the Bitcoin-anchored gateways. 
-    
-    See the section _Retained DID Set_ for more information.
-    
-5. Submit the result to one of the Bitcoin-anchored gateways or another Mainline gateway.
+4. Submit the result to one of the Bitcoin-anchored gateways or another Mainline gateway.
 
 ## Read
 
@@ -94,7 +94,7 @@ The amount of value locked must be no less than the mean value of the upper half
 
 ### Generating a Retention Proof
 
-Perform Proof of Work over the DID's identifier + the `salt` value of a given DID operation (composed of the selected bitcoin block hash and nonce). The resulting Retention Proof Hash determines the duration of retention based on the number of leading zeros of the hash, which must be no less than 26.
+Perform Proof of Work over the DID's identifier + the `retention` value of a given DID operation (composed of the selected bitcoin block hash and nonce). The resulting Retention Proof Hash determines the duration of retention based on the number of leading zeros of the hash, which must be no less than 26.
 
 ### Managing the Retained DID Set
 
