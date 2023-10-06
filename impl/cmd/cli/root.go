@@ -16,7 +16,7 @@ var (
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.pkarr/pkarr.json)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.diddht/diddht.json)")
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -29,9 +29,9 @@ func Execute() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "pkarr",
-	Short: "pkarr is a command line tool for interacting with resolvable sovereign keys.",
-	Long:  `pkarr is a command line tool for interacting with resolvable sovereign keys on the main line DHT.`,
+	Use:   "diddht",
+	Short: "diddht is a command line tool for interacting with resolvable sovereign keys.",
+	Long:  `diddht is a command line tool for interacting with resolvable sovereign keys on the mainline DHT.`,
 }
 
 func initConfig() {
@@ -46,9 +46,9 @@ func initConfig() {
 			os.Exit(1)
 		}
 
-		// Search config in home directory with name ".pkarr" (without extension).
+		// Search config in home directory with name ".diddht" (without extension).
 		viper.AddConfigPath(home)
-		viper.SetConfigName(".pkarr")
+		viper.SetConfigName(".diddht")
 	}
 
 	// read in environment variables that match

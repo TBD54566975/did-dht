@@ -1,6 +1,6 @@
 package internal
 
-// Identities is the pkarr id mapped to its identity data
+// Identities is the mainline id mapped to its identity data
 type Identities map[string]Identity
 
 type Identity struct {

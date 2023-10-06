@@ -10,7 +10,9 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/TBD54566975/did-dht-method/internal"
-	"github.com/TBD54566975/did-dht-method/pkg"
+	"github.com/TBD54566975/did-dht-method/internal/cli"
+	"github.com/TBD54566975/did-dht-method/internal/util"
+	"github.com/TBD54566975/did-dht-method/pkg/dht"
 )
 
 func init() {
@@ -23,7 +25,7 @@ var identityCmd = &cobra.Command{
 	Use:   "id",
 	Short: "Manage identities",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		identities, err := internal.Read()
+		identities, err := cli.Read()
 		if err != nil {
 			return err
 		}
@@ -51,7 +53,7 @@ var identityAddCmd = &cobra.Command{
 	Long:  `Add an identity, accepting a json string of records such as [["foo", "bar"]].`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		pubKey, privKey, err := internal.GenerateKeypair()
+		pubKey, privKey, err := util.GenerateKeypair()
 		if err != nil {
 			logrus.WithError(err).Error("failed to generate keypair")
 			return err
@@ -63,14 +65,14 @@ var identityAddCmd = &cobra.Command{
 		}
 
 		// start dht
-		d, err := pkg.NewDHT()
+		d, err := dht.NewDHT()
 		if err != nil {
 			logrus.WithError(err).Error("failed to create dht")
 			return err
 		}
 
 		// generate put request
-		putReq, err := pkg.CreatePutRequest(pubKey, privKey, records)
+		putReq, err := dht.CreatePutRequest(pubKey, privKey, records)
 		if err != nil {
 			logrus.WithError(err).Error("failed to create put request")
 			return err
@@ -83,14 +85,14 @@ var identityAddCmd = &cobra.Command{
 			return err
 		}
 
-		// write the identity to the pkarr file
+		// write the identity to the diddht file
 		identity := internal.Identity{
 			Base58PublicKey:  base58.Encode(pubKey),
 			Base58PrivateKey: base58.Encode(privKey),
 			Records:          records,
 		}
-		if err := internal.Write(id, identity); err != nil {
-			logrus.WithError(err).Error("failed to write identity to pkarr file")
+		if err := cli.Write(id, identity); err != nil {
+			logrus.WithError(err).Error("failed to write identity to diddht file")
 			return err
 		}
 
@@ -107,10 +109,10 @@ var identityGetCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id := args[0]
 
-		// first read the pkarr file
-		identities, err := internal.Read()
+		// first read the diddht file
+		identities, err := cli.Read()
 		if err == nil {
-			// if the pkarr file exists, look for the identity
+			// if the diddht file exists, look for the identity
 			if identity, ok := identities[id]; ok {
 				recordsBytes, err := json.Marshal(identity.Records)
 				if err != nil {
@@ -121,10 +123,10 @@ var identityGetCmd = &cobra.Command{
 				return nil
 			}
 		}
-		// fall back to dht if not found in pkarr file
+		// fall back to dht if not found in diddht file
 
 		// start dht
-		d, err := pkg.NewDHT()
+		d, err := dht.NewDHT()
 		if err != nil {
 			logrus.WithError(err).Error("failed to create dht")
 			return err

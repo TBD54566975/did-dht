@@ -1,4 +1,4 @@
-package pkg
+package dht
 
 import (
 	"context"
@@ -6,16 +6,18 @@ import (
 
 	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
 	"github.com/stretchr/testify/require"
+
+	"github.com/TBD54566975/did-dht-method/internal/util"
 )
 
 func TestGetPutDHT(t *testing.T) {
 	d, err := NewDHT()
 	require.NoError(t, err)
 
-	records := [][]string{
+	records := [][]any{
 		{"foo", "bar"},
 	}
-	pubKey, privKey, err := internal.GenerateKeypair()
+	pubKey, privKey, err := util.GenerateKeypair()
 	require.NoError(t, err)
 
 	putReq, err := CreatePutRequest(pubKey, privKey, records)
@@ -25,22 +27,19 @@ func TestGetPutDHT(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, id)
 
-	println(id)
-
 	got, err := d.Get(context.Background(), id)
 	require.NoError(t, err)
 	require.NotEmpty(t, got)
-	println(got)
 }
 
 func TestDID(t *testing.T) {
-	pubKey, privKey, err := internal.GenerateKeypair()
+	pubKey, privKey, err := util.GenerateKeypair()
 	require.NoError(t, err)
 
 	pubKeyJWK, err := jwx.PublicKeyToPublicKeyJWK("#0", pubKey)
 	require.NoError(t, err)
 
-	id := internal.Z32Encode(pubKey)
+	id := util.Z32Encode(pubKey)
 
 	records := [][]any{
 		{"_did", map[string]any{
@@ -70,22 +69,7 @@ func TestDID(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, id)
 
-	println(id)
-
 	got, err := d.Get(context.Background(), id)
 	require.NoError(t, err)
 	require.NotEmpty(t, got)
-
-	println(got)
-}
-
-func TestGet(t *testing.T) {
-	d, err := NewDHT()
-	require.NoError(t, err)
-
-	got, err := d.Get(context.Background(), "z47x9by366nqzwjjd83g3t8ccoomj8mamkp3fobpmwxpcifem9ay")
-	require.NoError(t, err)
-	require.NotEmpty(t, got)
-
-	println(got)
 }

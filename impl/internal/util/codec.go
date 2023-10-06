@@ -1,15 +1,10 @@
-package internal
+package util
 
 import (
 	"bytes"
 
 	"github.com/andybalholm/brotli"
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	// Version is the version of the encoding
-	Version = 0
 )
 
 // Encode compresses the input data using Brotli compression
@@ -34,20 +29,13 @@ func Encode(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	// Append the version to the beginning of the compressed data
-	compressedBytes := compressedBuffer.Bytes()
-	return append([]byte{Version}, compressedBytes...), nil
+	return compressedBuffer.Bytes(), nil
 }
 
 // Decode decompresses the input data using Brotli decompression
-// the input data is expected to be a byte array prepended with the version
+// the input data is expected to be a byte array
 // the result is expected to be a byte array of JSON data after decompression
 func Decode(encoded []byte) ([]byte, error) {
-	// Ensure the version is correct
-	// if encoded[0] != Version {
-	// 	return nil, fmt.Errorf("invalid version: got[%d], expected [%d]", encoded[0], Version)
-	// }
-
 	// Create a buffer to store the decompressed data
 	var decompressedBuffer bytes.Buffer
 

@@ -1,5 +1,0 @@
-package internal
-
-func GenerateDIDPkarr() {
-
-}

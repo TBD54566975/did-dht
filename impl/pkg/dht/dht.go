@@ -1,4 +1,4 @@
-package pkg
+package dht
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"github.com/anacrolix/torrent/types/infohash"
 	"github.com/sirupsen/logrus"
 
-	"github.com/TBD54566975/did-dht-method/internal"
+	"github.com/TBD54566975/did-dht-method/internal/util"
 )
 
 type DHT struct {
@@ -34,7 +34,7 @@ func NewDHT() (*DHT, error) {
 // Get returns the value for the given key from the DHT.
 // The key is a z32-encoded string, such as "yj47pezutnpw9pyudeeai8cx8z8d6wg35genrkoqf9k3rmfzy58o".
 func (d *DHT) Get(ctx context.Context, key string) (string, error) {
-	z32Decoded, err := internal.Z32Decode(key)
+	z32Decoded, err := util.Z32Decode(key)
 	if err != nil {
 		logrus.WithError(err).Error("failed to decode key")
 		return "", err
@@ -49,7 +49,7 @@ func (d *DHT) Get(ctx context.Context, key string) (string, error) {
 		logrus.WithError(err).Error("failed to unmarshal payload value")
 		return "", err
 	}
-	decoded, err := internal.Decode([]byte(payload))
+	decoded, err := util.Decode([]byte(payload))
 	if err != nil {
 		logrus.WithError(err).Error("failed to decode value from dht")
 		return "", err
@@ -66,22 +66,22 @@ func (d *DHT) Put(ctx context.Context, key ed25519.PublicKey, request bep44.Put)
 		logrus.WithError(err).Errorf("failed to put key into dht, tried %d nodes, got %d responses", t.NumAddrsTried, t.NumResponses)
 		return "", err
 	}
-	return internal.Z32Encode(key), nil
+	return util.Z32Encode(key), nil
 }
 
 // CreatePutRequest creates a put request for the given records. Requires a public/private keypair and the records to put.
-// The records are expected to be a slice of slices of strings, such as:
+// The records are expected to be a slice of slices of values, such as:
 //
-//	[][]string{
+//	[][]any{
 //		{"foo", "bar"},
 //	}
-func CreatePutRequest(publicKey ed25519.PublicKey, privateKey ed25519.PrivateKey, records any) (*bep44.Put, error) {
+func CreatePutRequest(publicKey ed25519.PublicKey, privateKey ed25519.PrivateKey, records [][]any) (*bep44.Put, error) {
 	recordsBytes, err := json.Marshal(records)
 	if err != nil {
 		logrus.WithError(err).Error("failed to marshal records")
 		return nil, err
 	}
-	encodedV, err := internal.Encode(recordsBytes)
+	encodedV, err := util.Encode(recordsBytes)
 	if err != nil {
 		logrus.WithError(err).Error("failed to encode records")
 		return nil, err
