@@ -37,7 +37,7 @@ func (DHT) Method() did.Method {
 	return DHTMethod
 }
 
-func GenerateDIDDHT() () {
+func GenerateDIDDHT() {
 
 }
 

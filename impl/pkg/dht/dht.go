@@ -3,8 +3,6 @@ package dht
 import (
 	"context"
 	"crypto/ed25519"
-	"encoding/json"
-	"time"
 
 	"github.com/anacrolix/dht/v2"
 	"github.com/anacrolix/dht/v2/bep44"
@@ -31,33 +29,28 @@ func NewDHT() (*DHT, error) {
 	return &DHT{Server: s}, nil
 }
 
-// Get returns the value for the given key from the DHT.
+// Get returns the BEP-44 value for the given key from the DHT.
 // The key is a z32-encoded string, such as "yj47pezutnpw9pyudeeai8cx8z8d6wg35genrkoqf9k3rmfzy58o".
-func (d *DHT) Get(ctx context.Context, key string) (string, error) {
+func (d *DHT) Get(ctx context.Context, key string) ([]byte, error) {
 	z32Decoded, err := util.Z32Decode(key)
 	if err != nil {
 		logrus.WithError(err).Error("failed to decode key")
-		return "", err
+		return nil, err
 	}
 	res, t, err := getput.Get(ctx, infohash.HashBytes(z32Decoded), d.Server, nil, nil)
 	if err != nil {
 		logrus.WithError(err).Errorf("failed to get key<%s> from dht; tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
-		return "", err
+		return nil, err
 	}
 	var payload string
 	if err = bencode.Unmarshal(res.V, &payload); err != nil {
 		logrus.WithError(err).Error("failed to unmarshal payload value")
-		return "", err
+		return nil, err
 	}
-	decoded, err := util.Decode([]byte(payload))
-	if err != nil {
-		logrus.WithError(err).Error("failed to decode value from dht")
-		return "", err
-	}
-	return string(decoded), nil
+	return []byte(payload), nil
 }
 
-// Put puts the given value into the DHT. It's recommended to use CreatePutRequest to create the request.
+// Put puts the given BEP-44 value into the DHT and returns its z32-encoded key.
 func (d *DHT) Put(ctx context.Context, key ed25519.PublicKey, request bep44.Put) (string, error) {
 	t, err := getput.Put(ctx, request.Target(), d.Server, nil, func(int64) bep44.Put {
 		return request
@@ -67,32 +60,6 @@ func (d *DHT) Put(ctx context.Context, key ed25519.PublicKey, request bep44.Put)
 		return "", err
 	}
 	return util.Z32Encode(key), nil
-}
-
-// CreatePutRequest creates a put request for the given records. Requires a public/private keypair and the records to put.
-// The records are expected to be a slice of slices of values, such as:
-//
-//	[][]any{
-//		{"foo", "bar"},
-//	}
-func CreatePutRequest(publicKey ed25519.PublicKey, privateKey ed25519.PrivateKey, records [][]any) (*bep44.Put, error) {
-	recordsBytes, err := json.Marshal(records)
-	if err != nil {
-		logrus.WithError(err).Error("failed to marshal records")
-		return nil, err
-	}
-	encodedV, err := util.Encode(recordsBytes)
-	if err != nil {
-		logrus.WithError(err).Error("failed to encode records")
-		return nil, err
-	}
-	put := &bep44.Put{
-		V:   encodedV,
-		K:   (*[32]byte)(publicKey),
-		Seq: time.Now().UnixMilli() / 1000,
-	}
-	put.Sign(privateKey)
-	return put, nil
 }
 
 func getDefaultBootstrapPeers() []string {
