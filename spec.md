@@ -239,7 +239,6 @@ To deactivate a document there are two options:
  | _did.TLD  | deactivated  |
 
 
-
 # Bitcoin-anchored Gateways
 
 **(TODO): service endpoints / api**
