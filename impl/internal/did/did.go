@@ -152,7 +152,6 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 		PublicKeyJWK: key0JWK,
 	}
 	return &did.Document{
-		Context:              []string{did.KnownDIDContext},
 		ID:                   id,
 		VerificationMethod:   append([]did.VerificationMethod{vm0}, vms...),
 		Services:             opts.Services,
@@ -169,7 +168,7 @@ func GetDIDDHTIdentifier(pubKey []byte) string {
 	return strings.Join([]string{Prefix, zbase32.EncodeToString(pubKey)}, ":")
 }
 
-// ToDNSPacket converts a did document to a DNS packet
+// ToDNSPacket converts a DID DHT Document to a DNS packet
 func (d DHT) ToDNSPacket(doc did.Document) (*dns.Msg, error) {
 	var records []dns.RR
 	var rootRecord []string
@@ -306,6 +305,127 @@ func (d DHT) ToDNSPacket(doc did.Document) (*dns.Msg, error) {
 	}, nil
 }
 
-func (d DHT) FromDNSPacket() (*did.Document, error) {
-	return nil, nil
+// FromDNSPacket converts a DNS packet to a DID DHT Document
+func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, error) {
+	doc := did.Document{
+		ID: d.String(),
+	}
+
+	keyLookup := make(map[string]string)
+	for _, rr := range msg.Answer {
+		switch record := rr.(type) {
+		case *dns.TXT:
+			if strings.HasPrefix(record.Hdr.Name, "_k") {
+				data := parseTxtData(strings.Join(record.Txt, ","))
+				vmID := data["id"]
+				keyType := keyTypeLookUp(data["t"])
+				keyBase64URL := data["k"]
+
+				// Convert keyBase64URL back to PublicKeyJWK
+				pubKeyBytes, err := base64.RawURLEncoding.DecodeString(keyBase64URL)
+				if err != nil {
+					return nil, err
+				}
+				pubKey, err := crypto.BytesToPubKey(pubKeyBytes, keyType)
+				if err != nil {
+					return nil, err
+				}
+				pubKeyJWK, err := jwx.PublicKeyToPublicKeyJWK(vmID, pubKey)
+				if err != nil {
+					return nil, err
+				}
+
+				vm := did.VerificationMethod{
+					ID:           d.String() + "#" + vmID,
+					Type:         cryptosuite.JSONWebKey2020Type,
+					Controller:   d.String(),
+					PublicKeyJWK: pubKeyJWK,
+				}
+				doc.VerificationMethod = append(doc.VerificationMethod, vm)
+
+				// add to key lookup (e.g.  "k1" -> "#key1")
+				keyLookup[strings.Split(record.Hdr.Name, ".")[0][1:]] = "#" + vmID
+			} else if strings.HasPrefix(record.Hdr.Name, "_s") {
+				data := parseTxtData(strings.Join(record.Txt, ","))
+				sID := data["id"]
+				serviceType := data["t"]
+				serviceEndpoint := data["uri"]
+
+				service := did.Service{
+					ID:              d.String() + "#" + sID,
+					Type:            serviceType,
+					ServiceEndpoint: serviceEndpoint,
+				}
+				doc.Services = append(doc.Services, service)
+
+			} else if record.Hdr.Name == "_did" {
+				rootData := strings.Join(record.Txt, ";")
+				rootItems := strings.Split(rootData, ";")
+
+				for _, item := range rootItems {
+					kv := strings.Split(item, "=")
+					if len(kv) != 2 {
+						continue
+					}
+
+					key, values := kv[0], kv[1]
+					valueItems := strings.Split(values, ",")
+
+					switch key {
+					case "vm":
+						// These are already processed in the "_k" prefix case
+						continue
+					case "srv":
+						// These are already processed in the "_s" prefix case
+						continue
+					case "auth":
+						for _, valueItem := range valueItems {
+							doc.Authentication = append(doc.Authentication, keyLookup[valueItem])
+						}
+					case "asm":
+						for _, valueItem := range valueItems {
+							doc.AssertionMethod = append(doc.AssertionMethod, keyLookup[valueItem])
+						}
+					case "agm":
+						for _, valueItem := range valueItems {
+							doc.KeyAgreement = append(doc.KeyAgreement, keyLookup[valueItem])
+						}
+					case "inv":
+						for _, valueItem := range valueItems {
+							doc.CapabilityInvocation = append(doc.CapabilityInvocation, keyLookup[valueItem])
+						}
+					case "del":
+						for _, valueItem := range valueItems {
+							doc.CapabilityDelegation = append(doc.CapabilityDelegation, keyLookup[valueItem])
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return &doc, nil
+}
+
+func parseTxtData(data string) map[string]string {
+	pairs := strings.Split(data, ",")
+	result := make(map[string]string)
+	for _, pair := range pairs {
+		kv := strings.Split(pair, "=")
+		if len(kv) == 2 {
+			result[kv[0]] = kv[1]
+		}
+	}
+	return result
+}
+
+func keyTypeLookUp(keyType string) crypto.KeyType {
+	switch keyType {
+	case "0":
+		return crypto.Ed25519
+	case "1":
+		return crypto.SECP256k1
+	default:
+		return ""
+	}
 }
