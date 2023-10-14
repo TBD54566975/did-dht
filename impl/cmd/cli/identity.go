@@ -92,8 +92,16 @@ var identityAddCmd = &cobra.Command{
 
 			rrds = append(rrds, &rr)
 		}
+		msg := dns.Msg{
+			MsgHdr: dns.MsgHdr{
+				Id:            0,
+				Response:      true,
+				Authoritative: true,
+			},
+			Answer: rrds,
+		}
 		// generate put request
-		putReq, err := dht.CreatePKARRPutRequest(pubKey, privKey, rrds)
+		putReq, err := dht.CreatePKARRPutRequest(pubKey, privKey, msg)
 		if err != nil {
 			logrus.WithError(err).Error("failed to create put request")
 			return err

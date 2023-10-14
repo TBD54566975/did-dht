@@ -2,6 +2,7 @@ package did
 
 import (
 	"crypto/ed25519"
+	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -76,11 +77,11 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 
 	// validate opts and build verification methods, key purposes, and services
 	var vms []did.VerificationMethod
-	var authentication []did.VerificationMethodSet
-	var assertionMethod []did.VerificationMethodSet
-	var keyAgreement []did.VerificationMethodSet
-	var capabilityInvocation []did.VerificationMethodSet
-	var capabilityDelegation []did.VerificationMethodSet
+	authentication := []did.VerificationMethodSet{"#0"}
+	assertionMethod := []did.VerificationMethodSet{"#0"}
+	keyAgreement := []did.VerificationMethodSet{"#0"}
+	capabilityInvocation := []did.VerificationMethodSet{"#0"}
+	capabilityDelegation := []did.VerificationMethodSet{"#0"}
 	if len(opts.VerificationMethods) > 0 {
 		seenIDs := make(map[string]bool)
 		for _, vm := range opts.VerificationMethods {
@@ -168,11 +169,141 @@ func GetDIDDHTIdentifier(pubKey []byte) string {
 	return strings.Join([]string{Prefix, zbase32.EncodeToString(pubKey)}, ":")
 }
 
-func (d DHT) ToDNSPacket(did did.Document) ([]dns.RR, error) {
-	if d.String() != did.ID {
-		return nil, fmt.Errorf("did and dht id mismatch")
+// ToDNSPacket converts a did document to a DNS packet
+func (d DHT) ToDNSPacket(doc did.Document) (*dns.Msg, error) {
+	var records []dns.RR
+	var rootRecord []string
+	keyLookup := make(map[string]string)
+
+	// build all key records
+	var vmIDs []string
+	for i, vm := range doc.VerificationMethod {
+		recordIdentifier := fmt.Sprintf("k%d", i)
+		vmID := strings.Split(vm.ID, "#")[1]
+		keyLookup[vm.ID] = recordIdentifier
+
+		var keyType int
+		switch vm.PublicKeyJWK.ALG {
+		case "EdDSA":
+			keyType = 0
+		case "ES256K":
+			keyType = 1
+		default:
+			return nil, fmt.Errorf("unsupported key type: %s", vm.PublicKeyJWK.ALG)
+		}
+
+		// convert the public key to a base64url encoded string
+		pubKey, err := vm.PublicKeyJWK.ToPublicKey()
+		if err != nil {
+			return nil, err
+		}
+		pubKeyBytes, err := crypto.PubKeyToBytes(pubKey)
+		if err != nil {
+			return nil, err
+		}
+		keyBase64Url := base64.RawURLEncoding.EncodeToString(pubKeyBytes)
+
+		keyRecord := dns.TXT{
+			Hdr: dns.RR_Header{
+				Name:   fmt.Sprintf("_%s._did", recordIdentifier),
+				Rrtype: dns.TypeTXT,
+				Class:  dns.ClassINET,
+				Ttl:    7200,
+			},
+			Txt: []string{fmt.Sprintf("id=%s,t=%d,k=%s", vmID, keyType, keyBase64Url)},
+		}
+
+		records = append(records, &keyRecord)
+		vmIDs = append(vmIDs, recordIdentifier)
 	}
-	return nil, nil
+	// add verification methods to the root record
+	rootRecord = append(rootRecord, fmt.Sprintf("vm=%s", strings.Join(vmIDs, ",")))
+
+	var svcIDs []string
+	for i, service := range doc.Services {
+		recordIdentifier := fmt.Sprintf("s%d", i)
+		sID := strings.Split("#", service.ID)[1]
+
+		serviceRecord := dns.TXT{
+			Hdr: dns.RR_Header{
+				Name:   fmt.Sprintf("_%s._did", recordIdentifier),
+				Rrtype: dns.TypeTXT,
+				Class:  dns.ClassINET,
+				Ttl:    7200,
+			},
+			Txt: []string{fmt.Sprintf("id=%s,t=%s,uri=%s", sID, service.Type, service.ServiceEndpoint)},
+		}
+
+		records = append(records, &serviceRecord)
+		svcIDs = append(svcIDs, recordIdentifier)
+	}
+	// add services to the root record
+	if len(svcIDs) != 0 {
+		rootRecord = append(rootRecord, fmt.Sprintf("svc=%s", strings.Join(svcIDs, ",")))
+	}
+
+	// add verification relationships to the root record
+	var authIDs []string
+	for _, auth := range doc.Authentication {
+		authIDs = append(authIDs, keyLookup[doc.ID+auth.(string)])
+	}
+	if len(authIDs) != 0 {
+		rootRecord = append(rootRecord, fmt.Sprintf("auth=%s", strings.Join(authIDs, ",")))
+	}
+
+	var assertionIDs []string
+	for _, assertion := range doc.AssertionMethod {
+		assertionIDs = append(assertionIDs, keyLookup[doc.ID+assertion.(string)])
+	}
+	if len(assertionIDs) != 0 {
+		rootRecord = append(rootRecord, fmt.Sprintf("asm=%s", strings.Join(assertionIDs, ",")))
+	}
+
+	var keyAgreementIDs []string
+	for _, keyAgreement := range doc.KeyAgreement {
+		keyAgreementIDs = append(keyAgreementIDs, keyLookup[doc.ID+keyAgreement.(string)])
+	}
+	if len(keyAgreementIDs) != 0 {
+		rootRecord = append(rootRecord, fmt.Sprintf("agm=%s", strings.Join(keyAgreementIDs, ",")))
+	}
+
+	var capabilityInvocationIDs []string
+	for _, capabilityInvocation := range doc.CapabilityInvocation {
+		capabilityInvocationIDs = append(capabilityInvocationIDs, keyLookup[doc.ID+capabilityInvocation.(string)])
+	}
+	if len(capabilityInvocationIDs) != 0 {
+		rootRecord = append(rootRecord, fmt.Sprintf("inv=%s", strings.Join(capabilityInvocationIDs, ",")))
+	}
+
+	var capabilityDelegationIDs []string
+	for _, capabilityDelegation := range doc.CapabilityDelegation {
+		capabilityDelegationIDs = append(capabilityDelegationIDs, keyLookup[doc.ID+capabilityDelegation.(string)])
+	}
+	if len(capabilityDelegationIDs) != 0 {
+		rootRecord = append(rootRecord, fmt.Sprintf("del=%s", strings.Join(capabilityDelegationIDs, ",")))
+	}
+
+	// add the root record
+	rootAnswer := dns.TXT{
+		Hdr: dns.RR_Header{
+			Name:   "_did",
+			Rrtype: dns.TypeTXT,
+			Class:  dns.ClassINET,
+			Ttl:    7200,
+		},
+		Txt: []string{strings.Join(rootRecord, ";")},
+	}
+	records = append(records, &rootAnswer)
+
+	// build the dns packet
+	return &dns.Msg{
+		MsgHdr: dns.MsgHdr{
+			Id:            0,
+			Response:      true,
+			Authoritative: true,
+		},
+		Answer: records,
+	}, nil
 }
 
 func (d DHT) FromDNSPacket() (*did.Document, error) {

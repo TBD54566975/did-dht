@@ -18,7 +18,7 @@ func TestGetPutPKARRDHT(t *testing.T) {
 	pubKey, privKey, err := util.GenerateKeypair()
 	require.NoError(t, err)
 
-	txtPacket := dns.TXT{
+	txtRecord := dns.TXT{
 		Hdr: dns.RR_Header{
 			Name:   "_did.",
 			Rrtype: dns.TypeTXT,
@@ -29,7 +29,15 @@ func TestGetPutPKARRDHT(t *testing.T) {
 			"hello pkarr",
 		},
 	}
-	put, err := CreatePKARRPutRequest(pubKey, privKey, []dns.RR{&txtPacket})
+	msg := dns.Msg{
+		MsgHdr: dns.MsgHdr{
+			Id:            0,
+			Response:      true,
+			Authoritative: true,
+		},
+		Answer: []dns.RR{&txtRecord},
+	}
+	put, err := CreatePKARRPutRequest(pubKey, privKey, msg)
 	require.NoError(t, err)
 
 	id, err := d.Put(context.Background(), pubKey, *put)
@@ -44,5 +52,5 @@ func TestGetPutPKARRDHT(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, gotRRs)
 
-	assert.Equal(t, txtPacket.Txt, gotRRs[0].(*dns.TXT).Txt)
+	assert.Equal(t, txtRecord.Txt, gotRRs[0].(*dns.TXT).Txt)
 }
