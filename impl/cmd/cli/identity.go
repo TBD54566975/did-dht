@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/miekg/dns"
 	"github.com/mr-tron/base58"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -49,8 +50,8 @@ var identityCmd = &cobra.Command{
 
 var identityAddCmd = &cobra.Command{
 	Use:   "add",
-	Short: "Add an identity, accepting a json string of records",
-	Long:  `Add an identity, accepting a json string of records such as [["foo", "bar"]].`,
+	Short: "Add an identity, accepting a json string of DNS TXT records",
+	Long:  `Add an identity, accepting a json string of DNS TXT records such as [["_did", 7200, "did:example:1234"]].`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		pubKey, privKey, err := util.GenerateKeypair()
@@ -71,8 +72,28 @@ var identityAddCmd = &cobra.Command{
 			return err
 		}
 
+		var rrds []dns.RR
+		for _, record := range records {
+			if len(record) != 3 {
+				logrus.WithError(err).Error("invalid record")
+				return err
+			}
+			rr := dns.TXT{
+				Hdr: dns.RR_Header{
+					Name:   record[0].(string),
+					Rrtype: dns.TypeTXT,
+					Class:  dns.ClassINET,
+					Ttl:    uint32(record[1].(float64)),
+				},
+				Txt: []string{
+					record[2].(string),
+				},
+			}
+
+			rrds = append(rrds, &rr)
+		}
 		// generate put request
-		putReq, err := dht.CreatePKARRPutRequest(pubKey, privKey, records)
+		putReq, err := dht.CreatePKARRPutRequest(pubKey, privKey, rrds)
 		if err != nil {
 			logrus.WithError(err).Error("failed to create put request")
 			return err
@@ -133,13 +154,22 @@ var identityGetCmd = &cobra.Command{
 		}
 
 		// get the identity from the dht
-		gotJSON, err := d.Get(context.Background(), id)
+		gotRR, err := d.Get(context.Background(), id)
 		if err != nil {
 			logrus.WithError(err).Error("failed to get identity from dht")
 			return err
 		}
 
-		fmt.Printf("Records: %s\n", gotJSON)
+		rrds, err := dht.ParsePKARRGetResponse(gotRR)
+		if err != nil {
+			logrus.WithError(err).Error("failed to parse get response")
+			return err
+		}
+
+		for _, rr := range rrds {
+			fmt.Printf("%s\n", rr.String())
+		}
+
 		return nil
 	},
 }

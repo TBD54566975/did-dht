@@ -2,15 +2,9 @@ package util
 
 import (
 	"crypto/ed25519"
-	"encoding/hex"
 
 	"github.com/tv42/zbase32"
 )
-
-// Hex returns the hex representation of the input data.
-func Hex(data []byte) string {
-	return hex.EncodeToString(data)
-}
 
 // Z32Encode returns the zbase32 representation of the input data.
 func Z32Encode(data []byte) string {

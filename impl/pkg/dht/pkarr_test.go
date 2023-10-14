@@ -29,7 +29,7 @@ func TestGetPutPKARRDHT(t *testing.T) {
 			"hello pkarr",
 		},
 	}
-	put, err := CreatePKARRPutRequest(pubKey, privKey, [][]dns.RR{{&txtPacket}})
+	put, err := CreatePKARRPutRequest(pubKey, privKey, []dns.RR{&txtPacket})
 	require.NoError(t, err)
 
 	id, err := d.Put(context.Background(), pubKey, *put)

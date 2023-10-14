@@ -25,10 +25,10 @@ import (
 //			},
 //	    }
 //	}
-func CreatePKARRPutRequest(publicKey ed25519.PublicKey, privateKey ed25519.PrivateKey, records [][]dns.RR) (*bep44.Put, error) {
+func CreatePKARRPutRequest(publicKey ed25519.PublicKey, privateKey ed25519.PrivateKey, records []dns.RR) (*bep44.Put, error) {
 	msg := new(dns.Msg)
 	for _, record := range records {
-		msg.Answer = append(msg.Answer, record...)
+		msg.Answer = append(msg.Answer, record)
 	}
 	packed, err := msg.Pack()
 	if err != nil {
