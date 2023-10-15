@@ -48,12 +48,12 @@ func (DHT) Method() did.Method {
 type CreateDIDDHTOpts struct {
 	// VerificationMethods is a list of verification methods to include in the DID Document
 	// Cannot contain id #0 which is reserved for the identity key
-	VerificationMethods []VerificationMethods
+	VerificationMethods []VerificationMethod
 	// Services is a list of services to include in the DID Document
 	Services []did.Service
 }
 
-type VerificationMethods struct {
+type VerificationMethod struct {
 	VerificationMethod did.VerificationMethod `json:"verificationMethod"`
 	Purposes           []ion.PublicKeyPurpose `json:"purposes"`
 }

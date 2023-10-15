@@ -3,6 +3,10 @@ package did
 import (
 	"testing"
 
+	"github.com/TBD54566975/ssi-sdk/crypto"
+	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
+	"github.com/TBD54566975/ssi-sdk/did"
+	"github.com/TBD54566975/ssi-sdk/did/ion"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -38,7 +42,41 @@ func TestGenerateDIDDHT(t *testing.T) {
 	})
 
 	t.Run("test generate did:dht with opts", func(t *testing.T) {
+		pubKey, _, err := crypto.GenerateSECP256k1Key()
+		require.NoError(t, err)
+		pubKeyJWK, err := jwx.PublicKeyToPublicKeyJWK("key1", pubKey)
+		require.NoError(t, err)
 
+		opts := CreateDIDDHTOpts{
+			VerificationMethods: []VerificationMethod{
+				{
+					VerificationMethod: did.VerificationMethod{
+						ID:           "did:dht:123456789abcdefghi#key1",
+						Type:         "JsonWebKey2020",
+						Controller:   "did:dht:123456789abcdefghi",
+						PublicKeyJWK: pubKeyJWK,
+					},
+					Purposes: []ion.PublicKeyPurpose{ion.AssertionMethod, ion.CapabilityInvocation},
+				},
+			},
+			Services: []did.Service{
+				{
+					ID:              "did:dht:123456789abcdefghi#vcs",
+					Type:            "VerifiableCredentialService",
+					ServiceEndpoint: "https://example.com/vc/",
+				},
+				{
+					ID:              "did:dht:123456789abcdefghi#hub",
+					Type:            "MessagingService",
+					ServiceEndpoint: "https://example.com/hub/",
+				},
+			},
+		}
+
+		privKey, doc, err := GenerateDIDDHT(opts)
+		require.NoError(t, err)
+		require.NotEmpty(t, privKey)
+		require.NotEmpty(t, doc)
 	})
 }
 
