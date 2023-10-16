@@ -23,9 +23,11 @@ jobs:
           go-version: 1.21.3
 
       - name: Install Mage
+        working-directory: ./impl
         run: go install github.com/magefile/mage
 
       - name: Check Vulnerabilities
+        working-directory: ./impl
         run: mage -v vuln
   build:
     runs-on: ubuntu-latest
@@ -38,10 +40,13 @@ jobs:
           go-version: 1.21.3
 
       - name: Install Mage
+        working-directory: ./impl
         run: go install github.com/magefile/mage
 
       - name: Build
+        working-directory: ./impl
         run: mage build
 
       - name: Test
+        working-directory: ./impl
         run: mage citest
