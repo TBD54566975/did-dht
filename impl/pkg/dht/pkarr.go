@@ -48,11 +48,11 @@ func CreatePKARRPutRequest(publicKey ed25519.PublicKey, privateKey ed25519.Priva
 
 // ParsePKARRGetResponse parses the response from a get request.
 // The response is expected to be a slice of DNS resource records.
-func ParsePKARRGetResponse(response []byte) ([]dns.RR, error) {
+func ParsePKARRGetResponse(response []byte) (*dns.Msg, error) {
 	msg := new(dns.Msg)
 	if err := msg.Unpack(response); err != nil {
 		logrus.WithError(err).Error("failed to unpack records")
 		return nil, err
 	}
-	return msg.Answer, nil
+	return msg, nil
 }

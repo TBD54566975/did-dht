@@ -26,7 +26,12 @@ const (
 )
 
 func (d DHT) IsValid() bool {
-	return true
+	prefix, err := d.Suffix()
+	if err != nil {
+		return false
+	}
+	pk, err := zbase32.DecodeString(string(d)[len(prefix)+1:])
+	return err == nil && len(pk) == ed25519.PublicKeySize
 }
 
 func (d DHT) String() string {
@@ -102,8 +107,13 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 			seenIDs[vm.VerificationMethod.ID] = true
 
 			// update ID and controller in place
+			if vm.VerificationMethod.ID == "" || strings.Contains(vm.VerificationMethod.ID, "#") {
+				return nil, fmt.Errorf("verification method id %s is invalid", vm.VerificationMethod.ID)
+			}
 			vm.VerificationMethod.ID = id + "#" + vm.VerificationMethod.ID
-			vm.VerificationMethod.Controller = id
+			if vm.VerificationMethod.Controller != "" {
+				vm.VerificationMethod.Controller = id
+			}
 			vms = append(vms, vm.VerificationMethod)
 
 			// add purposes
@@ -208,7 +218,7 @@ func (d DHT) ToDNSPacket(doc did.Document) (*dns.Msg, error) {
 
 		keyRecord := dns.TXT{
 			Hdr: dns.RR_Header{
-				Name:   fmt.Sprintf("_%s._did", recordIdentifier),
+				Name:   fmt.Sprintf("_%s._did.", recordIdentifier),
 				Rrtype: dns.TypeTXT,
 				Class:  dns.ClassINET,
 				Ttl:    7200,
@@ -232,7 +242,7 @@ func (d DHT) ToDNSPacket(doc did.Document) (*dns.Msg, error) {
 
 		serviceRecord := dns.TXT{
 			Hdr: dns.RR_Header{
-				Name:   fmt.Sprintf("_%s._did", recordIdentifier),
+				Name:   fmt.Sprintf("_%s._did.", recordIdentifier),
 				Rrtype: dns.TypeTXT,
 				Class:  dns.ClassINET,
 				Ttl:    7200,
@@ -292,7 +302,7 @@ func (d DHT) ToDNSPacket(doc did.Document) (*dns.Msg, error) {
 	// add the root record
 	rootAnswer := dns.TXT{
 		Hdr: dns.RR_Header{
-			Name:   "_did",
+			Name:   "_did.",
 			Rrtype: dns.TypeTXT,
 			Class:  dns.ClassINET,
 			Ttl:    7200,

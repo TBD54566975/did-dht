@@ -168,13 +168,13 @@ var identityGetCmd = &cobra.Command{
 			return err
 		}
 
-		rrds, err := dht.ParsePKARRGetResponse(gotRR)
+		msg, err := dht.ParsePKARRGetResponse(gotRR)
 		if err != nil {
 			logrus.WithError(err).Error("failed to parse get response")
 			return err
 		}
 
-		for _, rr := range rrds {
+		for _, rr := range msg.Answer {
 			fmt.Printf("%s\n", rr.String())
 		}
 
