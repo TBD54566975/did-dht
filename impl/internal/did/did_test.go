@@ -51,7 +51,7 @@ func TestGenerateDIDDHT(t *testing.T) {
 			VerificationMethods: []VerificationMethod{
 				{
 					VerificationMethod: did.VerificationMethod{
-						ID:           "did:dht:123456789abcdefghi#key1",
+						ID:           "key1",
 						Type:         "JsonWebKey2020",
 						Controller:   "did:dht:123456789abcdefghi",
 						PublicKeyJWK: pubKeyJWK,
@@ -61,12 +61,12 @@ func TestGenerateDIDDHT(t *testing.T) {
 			},
 			Services: []did.Service{
 				{
-					ID:              "did:dht:123456789abcdefghi#vcs",
+					ID:              "vcs",
 					Type:            "VerifiableCredentialService",
 					ServiceEndpoint: "https://example.com/vc/",
 				},
 				{
-					ID:              "did:dht:123456789abcdefghi#hub",
+					ID:              "hub",
 					Type:            "MessagingService",
 					ServiceEndpoint: "https://example.com/hub/",
 				},
@@ -103,11 +103,11 @@ func TestGenerateDIDDHT(t *testing.T) {
 		assert.NotEmpty(t, doc.VerificationMethod[0].Type)
 		assert.NotEmpty(t, doc.VerificationMethod[0].PublicKeyJWK)
 
-		assert.Equal(t, doc.Services[0].ID, "did:dht:123456789abcdefghi#vcs")
+		assert.Equal(t, doc.Services[0].ID, doc.ID+"#vcs")
 		assert.Equal(t, doc.Services[0].Type, "VerifiableCredentialService")
 		assert.Equal(t, doc.Services[0].ServiceEndpoint, "https://example.com/vc/")
 
-		assert.Equal(t, doc.Services[1].ID, "did:dht:123456789abcdefghi#hub")
+		assert.Equal(t, doc.Services[1].ID, doc.ID+"#hub")
 		assert.Equal(t, doc.Services[1].Type, "MessagingService")
 		assert.Equal(t, doc.Services[1].ServiceEndpoint, "https://example.com/hub/")
 	})
