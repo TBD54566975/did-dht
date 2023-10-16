@@ -14,7 +14,7 @@ As Pkarr states, mainline is chosen for the following reasons (paraphased):
 
 # Format
 
-The format for `did:dht` conforms to the [DID Core](https://www.w3.org/TR/did-core/) specification. It consists of the `did:pk` prefix followed by the Pkarr identifier. The Pkarr identifier is a [z-base-32](https://en.wikipedia.org/wiki/Base32#z-base-32) encoded [Ed25519](https://ed25519.cr.yp.to/) public key.
+The format for `did:dht` conforms to the [DID Core](https://www.w3.org/TR/did-core/) specification. It consists of the `did:dht` prefix followed by the Pkarr identifier. The Pkarr identifier is a [z-base-32](https://en.wikipedia.org/wiki/Base32#z-base-32) encoded [Ed25519](https://ed25519.cr.yp.to/) public key.
 
 ```
 did-dht-format := did:dht:<z-base-32-value>
@@ -38,14 +38,14 @@ To create a `did:dht`, the process is as follows:
 1. Create an [Ed25519](https://ed25519.cr.yp.to/) keypair and encode the public key using the format provided in the [prior section](#Format).
 
 2. Construct a compliant JSON representation of a DID Document
- a. The document **MUST** include a [verification method](https://www.w3.org/TR/did-core/#verification-methods) with the _identifier key_ encoded as a `publicKeyJwk` with an `id` of ``#0`` and `type` of [`JsonWebKey2020`](https://www.w3.org/community/reports/credentials/CG-FINAL-lds-jws2020-20220721/#json-web-key-2020).
- b. The document can include any number of other [core properties](https://www.w3.org/TR/did-core/#core-properties); always representing key material as a [JWK](https://datatracker.ietf.org/doc/html/rfc7517).
- 
+
+    a. The document **MUST** include a [verification method](https://www.w3.org/TR/did-core/#verification-methods) with the _identifier key_ encoded as a `publicKeyJwk` with an `id` of ``#0`` and `type` of [`JsonWebKey2020`](https://www.w3.org/community/reports/credentials/CG-FINAL-lds-jws2020-20220721/#json-web-key-2020).
+   
+    b. The document can include any number of other [core properties](https://www.w3.org/TR/did-core/#core-properties); always representing key material as a [JWK](https://datatracker.ietf.org/doc/html/rfc7517).
  
 3. Map the output DID Document to a DNS packet as outlined in the [section below](#DNS-Packet-DID-document). 
 
 4. Construct a [BEP44 put message](https://www.bittorrent.org/beps/bep_0044.html) with the `v` value as a DNS packet from the previous step.
-
 
 5. Submit the result of (3) to the DHT, a Pkarr, or DID DHT service.
 
@@ -72,7 +72,7 @@ It might look like repeating `_did` is an overhead, but these can be compressed 
 
 The DNS packet must set the `Authoritative Answer` flag, since this is always an `Authoritative` packet.
 
-The DID identifier z-base32 key should be appended as the Origin of all records, which won't cost much thanks to the name compression in DNS packets, so `_did` should be saved as `_did.o4dksfbqk85ogzdb5osziw6befigbuxmuxkuxq8434q89uj56uyy`, this should make caching and responding with to DNS requests faster as they are already in the shape of a DNS packet, albeit for all types and subdomains.
+The DID identifier z-base32 key should be appended as the Origin of all records, which won't cost much thanks to the name compression in DNS packets, so `_did` should be saved as `_did.o4dksfbqk85ogzdb5osziw6befigbuxmuxkuxq8434q89uj56uyy`, this should make caching and responding to DNS requests faster as they are already in the shape of a DNS packet, albeit for all types and subdomains.
 
 #### Property Mapping
 
@@ -116,10 +116,10 @@ The following table maps Verification Relationship types to their record name.
 | Verification Relationship | Record Name |
 | ------------------------- | ----------- |
 | Authentication            | `auth`      |
-| Assertion                 | `asm`       |
+| Assertion                 | `asr`       |
 | Key Agreement             | `agm`      |
-| Capability Invocation     | `inv`      |
-| Capability Delegation     | `del`      |
+| Capability Invocation     | `cin`      |
+| Capability Delegation     | `cdel`      |
 
 The record data is uniform across verification relationships, a comma separated list of key references:
 
@@ -215,7 +215,7 @@ All records are of type `TXT` with an expiry of `7200` to align with the DHT's s
  
 ## Read
 
-To read a `did:pk`, the process is as follows:
+To read a `did:dht`, the process is as follows:
 
 1. Take the suffix of the DID, that is, the _encoded identifier key_, and pass it to a Pkarr resolver.
 2. Decode the resulting [BEP44 response](https://www.bittorrent.org/beps/bep_0044.html)'s `v` value using [bencode](https://en.wikipedia.org/wiki/Bencode).
@@ -224,7 +224,7 @@ To read a `did:pk`, the process is as follows:
 
 ## Update
 
-Each write to the DHT is considered an update. As long as control of the _identity key_ is retained any update is possible with a unique sequence number with [mutable items](https://www.bittorrent.org/beps/bep_0044.html) using BEP44. 
+Each write to the DHT is considered an update. As long as control of the _identity key_ is retained, any update is possible with a unique sequence number with [mutable items](https://www.bittorrent.org/beps/bep_0044.html) using BEP44. 
 
 ## Deactivate
 
