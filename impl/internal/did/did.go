@@ -77,9 +77,9 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 
 	// validate opts and build verification methods, key purposes, and services
 	var vms []did.VerificationMethod
+	var keyAgreement []did.VerificationMethodSet
 	authentication := []did.VerificationMethodSet{"#0"}
 	assertionMethod := []did.VerificationMethodSet{"#0"}
-	keyAgreement := []did.VerificationMethodSet{"#0"}
 	capabilityInvocation := []did.VerificationMethodSet{"#0"}
 	capabilityDelegation := []did.VerificationMethodSet{"#0"}
 	if len(opts.VerificationMethods) > 0 {
@@ -107,27 +107,28 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 			vms = append(vms, vm.VerificationMethod)
 
 			// add purposes
+			vmID := vm.VerificationMethod.ID[strings.LastIndex(vm.VerificationMethod.ID, "#"):]
 			for _, purpose := range vm.Purposes {
 				switch purpose {
 				case ion.Authentication:
-					authentication = append(authentication, vm.VerificationMethod.ID)
+					authentication = append(authentication, vmID)
 				case ion.AssertionMethod:
-					assertionMethod = append(assertionMethod, vm.VerificationMethod.ID)
+					assertionMethod = append(assertionMethod, vmID)
 				case ion.KeyAgreement:
-					keyAgreement = append(keyAgreement, vm.VerificationMethod.ID)
+					keyAgreement = append(keyAgreement, vmID)
 				case ion.CapabilityInvocation:
-					capabilityInvocation = append(capabilityInvocation, vm.VerificationMethod.ID)
+					capabilityInvocation = append(capabilityInvocation, vmID)
 				case ion.CapabilityDelegation:
-					capabilityDelegation = append(capabilityDelegation, vm.VerificationMethod.ID)
+					capabilityDelegation = append(capabilityDelegation, vmID)
 				default:
-					return nil, fmt.Errorf("unknown key purpose: %s:%s", vm.VerificationMethod.ID, purpose)
+					return nil, fmt.Errorf("unknown key purpose: %s:%s", vmID, purpose)
 				}
 			}
 		}
 	}
 	if len(opts.Services) > 0 {
 		seenIDs := make(map[string]bool)
-		for _, s := range opts.Services {
+		for i, s := range opts.Services {
 			if seenIDs[s.ID] {
 				return nil, fmt.Errorf("service id %s is not unique", s.ID)
 			}
@@ -136,7 +137,7 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 			seenIDs[s.ID] = true
 
 			// update ID in place
-			s.ID = id + "#" + s.ID
+			opts.Services[i].ID = id + "#" + s.ID
 		}
 	}
 
@@ -178,7 +179,10 @@ func (d DHT) ToDNSPacket(doc did.Document) (*dns.Msg, error) {
 	var vmIDs []string
 	for i, vm := range doc.VerificationMethod {
 		recordIdentifier := fmt.Sprintf("k%d", i)
-		vmID := strings.Split(vm.ID, "#")[1]
+		vmID := vm.ID
+		if strings.Contains(vmID, "#") {
+			vmID = vmID[strings.LastIndex(vm.ID, "#")+1:]
+		}
 		keyLookup[vm.ID] = recordIdentifier
 
 		var keyType int
@@ -221,7 +225,10 @@ func (d DHT) ToDNSPacket(doc did.Document) (*dns.Msg, error) {
 	var svcIDs []string
 	for i, service := range doc.Services {
 		recordIdentifier := fmt.Sprintf("s%d", i)
-		sID := strings.Split("#", service.ID)[1]
+		sID := service.ID
+		if strings.Contains(sID, "#") {
+			sID = sID[strings.LastIndex(service.ID, "#")+1:]
+		}
 
 		serviceRecord := dns.TXT{
 			Hdr: dns.RR_Header{
