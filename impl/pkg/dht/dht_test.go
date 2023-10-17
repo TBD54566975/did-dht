@@ -9,11 +9,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/TBD54566975/did-dht-method/config"
 	"github.com/TBD54566975/did-dht-method/internal/util"
 )
 
 func TestGetPutDHT(t *testing.T) {
-	d, err := NewDHT()
+	d, err := NewDHT(config.GetDefaultBootstrapPeers())
 	require.NoError(t, err)
 
 	pubKey, privKey, err := util.GenerateKeypair()

@@ -18,9 +18,10 @@ type DHT struct {
 	*dht.Server
 }
 
-func NewDHT() (*DHT, error) {
+// NewDHT returns a new instance of DHT with the given bootstrap peers.
+func NewDHT(bootstrapPeers []string) (*DHT, error) {
 	c := dht.NewDefaultServerConfig()
-	c.StartingNodes = func() ([]dht.Addr, error) { return dht.ResolveHostPorts(getDefaultBootstrapPeers()) }
+	c.StartingNodes = func() ([]dht.Addr, error) { return dht.ResolveHostPorts(bootstrapPeers) }
 	s, err := dht.NewServer(c)
 	if err != nil {
 		logrus.WithError(err).Error("failed to create dht server")
@@ -60,14 +61,4 @@ func (d *DHT) Put(ctx context.Context, key ed25519.PublicKey, request bep44.Put)
 		return "", err
 	}
 	return util.Z32Encode(key), nil
-}
-
-func getDefaultBootstrapPeers() []string {
-	return []string{
-		"router.magnets.im:6881",
-		"router.bittorrent.com:6881",
-		"dht.transmissionbt.com:6881",
-		"router.utorrent.com:6881",
-		"router.nuh.dev:6881",
-	}
 }

@@ -1,0 +1,11 @@
+[server]
+env = "dev"
+api_host = "0.0.0.0"
+api_port = 8305
+listen_port = 8503
+log_location = "log"
+log_level = "debug"
+db_file = "diddht.db"
+
+[dht]
+bootstrap_peers = [""]

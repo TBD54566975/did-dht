@@ -1,4 +1,4 @@
-package cli
+package main
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	"github.com/TBD54566975/did-dht-method/config"
 	"github.com/TBD54566975/did-dht-method/internal"
 	"github.com/TBD54566975/did-dht-method/internal/cli"
 	"github.com/TBD54566975/did-dht-method/internal/util"
@@ -66,7 +67,7 @@ var identityAddCmd = &cobra.Command{
 		}
 
 		// start dht
-		d, err := dht.NewDHT()
+		d, err := dht.NewDHT(config.GetDefaultBootstrapPeers())
 		if err != nil {
 			logrus.WithError(err).Error("failed to create dht")
 			return err
@@ -155,7 +156,7 @@ var identityGetCmd = &cobra.Command{
 		// fall back to dht if not found in diddht file
 
 		// start dht
-		d, err := dht.NewDHT()
+		d, err := dht.NewDHT(config.GetDefaultBootstrapPeers())
 		if err != nil {
 			logrus.WithError(err).Error("failed to create dht")
 			return err

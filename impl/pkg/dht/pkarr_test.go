@@ -13,12 +13,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/TBD54566975/did-dht-method/config"
 	"github.com/TBD54566975/did-dht-method/internal/did"
 	"github.com/TBD54566975/did-dht-method/internal/util"
 )
 
 func TestGetPutPKARRDHT(t *testing.T) {
-	d, err := NewDHT()
+	d, err := NewDHT(config.GetDefaultBootstrapPeers())
 	require.NoError(t, err)
 
 	pubKey, privKey, err := util.GenerateKeypair()
@@ -62,7 +63,7 @@ func TestGetPutPKARRDHT(t *testing.T) {
 }
 
 func TestGetPutDIDDHT(t *testing.T) {
-	dht, err := NewDHT()
+	dht, err := NewDHT(config.GetDefaultBootstrapPeers())
 	require.NoError(t, err)
 
 	pubKey, _, err := crypto.GenerateSECP256k1Key()
