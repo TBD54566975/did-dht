@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	"github.com/TBD54566975/ssi-sdk/util"
 
 	"github.com/TBD54566975/did-dht-method/config"
@@ -31,4 +33,24 @@ func NewPKARRService(cfg *config.Config, db *storage.Storage) (*PKARRService, er
 		db:  db,
 		dht: dht,
 	}, nil
+}
+
+type PutPKARRRequest struct {
+	V   []byte   `json:"v" validate:"required"`
+	Sig [64]byte `json:"sig" validate:"required"`
+	Seq int64    `json:"seq" validate:"required"`
+}
+
+func (s *PKARRService) PublishPKARR(ctx context.Context, request PutPKARRRequest) (string, error) {
+	return "", nil
+}
+
+type GetPKARRResponse struct {
+	V   []byte   `json:"v" validate:"required"`
+	Sig [64]byte `json:"sig" validate:"required"`
+	Seq int64    `json:"seq" validate:"required"`
+}
+
+func (s *PKARRService) GetPKARR(ctx context.Context, id string) (*GetPKARRResponse, error) {
+	return nil, nil
 }

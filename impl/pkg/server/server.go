@@ -116,6 +116,7 @@ func setupHandler(env config.Environment) *gin.Engine {
 	return handler
 }
 
+// PKARRAPI sets up the PKARR API routes
 func PKARRAPI(rg *gin.RouterGroup, service *service.PKARRService) error {
 	pkarrRouter, err := NewPKARRRouter(service)
 	if err != nil {
@@ -124,6 +125,7 @@ func PKARRAPI(rg *gin.RouterGroup, service *service.PKARRService) error {
 
 	rg.PUT("/:id", pkarrRouter.PublishPKARR)
 	rg.GET("/:id", pkarrRouter.GetPKARR)
+	return nil
 }
 
 // DIDDHTAPI sets up the DIDDHT API routes
