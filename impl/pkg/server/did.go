@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 
-	"github.com/TBD54566975/did-dht-method/pkg/dht"
+	"github.com/TBD54566975/did-dht-method/pkg/service"
 )
 
 const (
@@ -15,10 +15,10 @@ const (
 )
 
 type DIDDHTRouter struct {
-	service *dht.Service
+	service *service.DIDService
 }
 
-func NewDIDDHTRouter(service *dht.Service) (*DIDDHTRouter, error) {
+func NewDIDDHTRouter(service *service.DIDService) (*DIDDHTRouter, error) {
 	if service == nil {
 		return nil, errors.New("service cannot be nil")
 	}
@@ -28,8 +28,8 @@ func NewDIDDHTRouter(service *dht.Service) (*DIDDHTRouter, error) {
 type PublishDIDRequest struct {
 }
 
-func (PublishDIDRequest) toServiceRequest() dht.PublishDIDRequest {
-	return dht.PublishDIDRequest{}
+func (PublishDIDRequest) toServiceRequest() service.PublishDIDRequest {
+	return service.PublishDIDRequest{}
 }
 
 // PublishDID godoc
