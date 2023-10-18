@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/anacrolix/dht/v2/bep44"
+	"github.com/anacrolix/torrent/bencode"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -35,5 +36,9 @@ func TestGetPutDHT(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, got)
 
-	assert.Equal(t, put.V, got)
+	var payload string
+	err = bencode.Unmarshal(got.V, &payload)
+	require.NoError(t, err)
+
+	assert.Equal(t, string(put.V.([]byte)), payload)
 }

@@ -163,13 +163,13 @@ var identityGetCmd = &cobra.Command{
 		}
 
 		// get the identity from the dht
-		gotRR, err := d.Get(context.Background(), id)
+		gotResp, err := d.Get(context.Background(), id)
 		if err != nil {
 			logrus.WithError(err).Error("failed to get identity from dht")
 			return err
 		}
 
-		msg, err := dht.ParsePKARRGetResponse(*gotRR)
+		msg, err := dht.ParsePKARRGetResponse(*gotResp)
 		if err != nil {
 			logrus.WithError(err).Error("failed to parse get response")
 			return err

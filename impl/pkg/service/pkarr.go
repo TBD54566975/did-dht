@@ -61,8 +61,12 @@ func (s *PKARRService) GetPKARR(ctx context.Context, id string) (*GetPKARRRespon
 	if err != nil {
 		return nil, err
 	}
+	bBytes, err := got.V.MarshalBencode()
+	if err != nil {
+		return nil, err
+	}
 	return &GetPKARRResponse{
-		V:   got.V.([]byte),
+		V:   bBytes,
 		Seq: got.Seq,
 	}, nil
 }

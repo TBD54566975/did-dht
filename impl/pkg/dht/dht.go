@@ -40,9 +40,9 @@ func (d *DHT) Put(ctx context.Context, request bep44.Put) (string, error) {
 	return util.Z32Encode(request.K[:]), nil
 }
 
-// Get returns the BEP-44 value for the given key from the DHT.
+// Get returns the BEP-44 result for the given key from the DHT.
 // The key is a z32-encoded string, such as "yj47pezutnpw9pyudeeai8cx8z8d6wg35genrkoqf9k3rmfzy58o".
-func (d *DHT) Get(ctx context.Context, key string) (*bep44.Put, error) {
+func (d *DHT) Get(ctx context.Context, key string) (*getput.GetResult, error) {
 	z32Decoded, err := util.Z32Decode(key)
 	if err != nil {
 		logrus.WithError(err).Error("failed to decode key")
@@ -52,8 +52,5 @@ func (d *DHT) Get(ctx context.Context, key string) (*bep44.Put, error) {
 	if err != nil {
 		return nil, errutil.LoggingNewErrorf("failed to get key<%s> from dht; tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
 	}
-	return &bep44.Put{
-		V:   res.V,
-		Seq: res.Seq,
-	}, nil
+	return &res, nil
 }

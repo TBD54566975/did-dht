@@ -6,6 +6,7 @@ import (
 
 	"github.com/TBD54566975/ssi-sdk/util"
 	"github.com/anacrolix/dht/v2/bep44"
+	"github.com/anacrolix/dht/v2/exts/getput"
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/miekg/dns"
 	"github.com/sirupsen/logrus"
@@ -50,9 +51,9 @@ func CreatePKARRPutRequest(publicKey ed25519.PublicKey, privateKey ed25519.Priva
 
 // ParsePKARRGetResponse parses the response from a get request.
 // The response is expected to be a slice of DNS resource records.
-func ParsePKARRGetResponse(response bep44.Put) (*dns.Msg, error) {
+func ParsePKARRGetResponse(response getput.GetResult) (*dns.Msg, error) {
 	var payload string
-	if err := bencode.Unmarshal(response.V.([]byte), &payload); err != nil {
+	if err := bencode.Unmarshal(response.V, &payload); err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to unmarshal payload value")
 	}
 	msg := new(dns.Msg)
