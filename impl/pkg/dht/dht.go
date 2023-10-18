@@ -2,12 +2,11 @@ package dht
 
 import (
 	"context"
-	"crypto/ed25519"
 
+	errutil "github.com/TBD54566975/ssi-sdk/util"
 	"github.com/anacrolix/dht/v2"
 	"github.com/anacrolix/dht/v2/bep44"
 	"github.com/anacrolix/dht/v2/exts/getput"
-	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/types/infohash"
 	"github.com/sirupsen/logrus"
 
@@ -30,9 +29,20 @@ func NewDHT(bootstrapPeers []string) (*DHT, error) {
 	return &DHT{Server: s}, nil
 }
 
+// Put puts the given BEP-44 value into the DHT and returns its z32-encoded key.
+func (d *DHT) Put(ctx context.Context, request bep44.Put) (string, error) {
+	t, err := getput.Put(ctx, request.Target(), d.Server, nil, func(int64) bep44.Put {
+		return request
+	})
+	if err != nil {
+		return "", errutil.LoggingNewErrorf("failed to put key into dht, tried %d nodes, got %d responses", t.NumAddrsTried, t.NumResponses)
+	}
+	return util.Z32Encode(request.K[:]), nil
+}
+
 // Get returns the BEP-44 value for the given key from the DHT.
 // The key is a z32-encoded string, such as "yj47pezutnpw9pyudeeai8cx8z8d6wg35genrkoqf9k3rmfzy58o".
-func (d *DHT) Get(ctx context.Context, key string) ([]byte, error) {
+func (d *DHT) Get(ctx context.Context, key string) (*bep44.Put, error) {
 	z32Decoded, err := util.Z32Decode(key)
 	if err != nil {
 		logrus.WithError(err).Error("failed to decode key")
@@ -40,25 +50,10 @@ func (d *DHT) Get(ctx context.Context, key string) ([]byte, error) {
 	}
 	res, t, err := getput.Get(ctx, infohash.HashBytes(z32Decoded), d.Server, nil, nil)
 	if err != nil {
-		logrus.WithError(err).Errorf("failed to get key<%s> from dht; tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
-		return nil, err
+		return nil, errutil.LoggingNewErrorf("failed to get key<%s> from dht; tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
 	}
-	var payload string
-	if err = bencode.Unmarshal(res.V, &payload); err != nil {
-		logrus.WithError(err).Error("failed to unmarshal payload value")
-		return nil, err
-	}
-	return []byte(payload), nil
-}
-
-// Put puts the given BEP-44 value into the DHT and returns its z32-encoded key.
-func (d *DHT) Put(ctx context.Context, key ed25519.PublicKey, request bep44.Put) (string, error) {
-	t, err := getput.Put(ctx, request.Target(), d.Server, nil, func(int64) bep44.Put {
-		return request
-	})
-	if err != nil {
-		logrus.WithError(err).Errorf("failed to put key into dht, tried %d nodes, got %d responses", t.NumAddrsTried, t.NumResponses)
-		return "", err
-	}
-	return util.Z32Encode(key), nil
+	return &bep44.Put{
+		V:   res.V,
+		Seq: res.Seq,
+	}, nil
 }

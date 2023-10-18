@@ -149,6 +149,23 @@ definitions:
         description: Status is always equal to `OK`.
         type: string
     type: object
+  pkg_server.GetPKARRResponse:
+    properties:
+      seq:
+        type: integer
+      sig:
+        items:
+          type: integer
+        type: array
+      v:
+        items:
+          type: integer
+        type: array
+    required:
+    - seq
+    - sig
+    - v
+    type: object
   pkg_server.ListDIDsResponse:
     properties:
       dids:
@@ -157,6 +174,23 @@ definitions:
         type: array
     type: object
   pkg_server.PublishDIDRequest:
+    type: object
+  pkg_server.PublishPKARRRequest:
+    properties:
+      seq:
+        type: integer
+      sig:
+        items:
+          type: integer
+        type: array
+      v:
+        items:
+          type: integer
+        type: array
+    required:
+    - seq
+    - sig
+    - v
     type: object
 host: '{{.Server.APIHost}}'
 info:
@@ -171,6 +205,66 @@ info:
   title: DID DHT Service API
   version: '{{.SVN}}'
 paths:
+  /{id}:
+    get:
+      consumes:
+      - application/json
+      description: Read a PKARR record from the DHT
+      parameters:
+      - description: ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg_server.GetPKARRResponse'
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "404":
+          description: Not found
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Read a PKARR record from the DHT
+      tags:
+      - PKARR
+    put:
+      consumes:
+      - application/json
+      description: Publishes a PKARR to the DHT
+      parameters:
+      - description: Publish PKARR Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/pkg_server.PublishPKARRRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Publish a PKARR to the DHT
+      tags:
+      - PKARR
   /health:
     get:
       consumes:

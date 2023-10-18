@@ -47,7 +47,7 @@ func TestGetPutPKARRDHT(t *testing.T) {
 	put, err := CreatePKARRPutRequest(pubKey, privKey, msg)
 	require.NoError(t, err)
 
-	id, err := d.Put(context.Background(), pubKey, *put)
+	id, err := d.Put(context.Background(), *put)
 	require.NoError(t, err)
 	require.NotEmpty(t, id)
 
@@ -55,7 +55,7 @@ func TestGetPutPKARRDHT(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, got)
 
-	gotMsg, err := ParsePKARRGetResponse(got)
+	gotMsg, err := ParsePKARRGetResponse(*got)
 	require.NoError(t, err)
 	require.NotEmpty(t, gotMsg.Answer)
 
@@ -109,7 +109,7 @@ func TestGetPutDIDDHT(t *testing.T) {
 	putReq, err := CreatePKARRPutRequest(key, privKey, *didDocPacket)
 	require.NoError(t, err)
 
-	gotID, err := dht.Put(context.Background(), key, *putReq)
+	gotID, err := dht.Put(context.Background(), *putReq)
 	require.NoError(t, err)
 	require.NotEmpty(t, gotID)
 
@@ -117,7 +117,7 @@ func TestGetPutDIDDHT(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, got)
 
-	gotMsg, err := ParsePKARRGetResponse(got)
+	gotMsg, err := ParsePKARRGetResponse(*got)
 	require.NoError(t, err)
 	require.NotEmpty(t, gotMsg.Answer)
 

@@ -27,7 +27,7 @@ func TestGetPutDHT(t *testing.T) {
 	}
 	put.Sign(privKey)
 
-	id, err := d.Put(context.Background(), pubKey, *put)
+	id, err := d.Put(context.Background(), *put)
 	require.NoError(t, err)
 	require.NotEmpty(t, id)
 

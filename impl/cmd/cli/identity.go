@@ -109,7 +109,7 @@ var identityAddCmd = &cobra.Command{
 		}
 
 		// put the identity into the dht
-		id, err := d.Put(context.Background(), pubKey, *putReq)
+		id, err := d.Put(context.Background(), *putReq)
 		if err != nil {
 			logrus.WithError(err).Error("failed to put identity into dht")
 			return err
@@ -169,7 +169,7 @@ var identityGetCmd = &cobra.Command{
 			return err
 		}
 
-		msg, err := dht.ParsePKARRGetResponse(gotRR)
+		msg, err := dht.ParsePKARRGetResponse(*gotRR)
 		if err != nil {
 			logrus.WithError(err).Error("failed to parse get response")
 			return err
