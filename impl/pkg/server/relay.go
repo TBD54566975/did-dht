@@ -1,11 +1,14 @@
 package server
 
 import (
+	"crypto/ed25519"
 	"encoding/binary"
+	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/TBD54566975/did-dht-method/internal/util"
 	"github.com/TBD54566975/did-dht-method/pkg/service"
 )
 
@@ -65,4 +68,41 @@ func (r *RelayRouter) Put(c *gin.Context) {
 		LoggingRespondErrMsg(c, "missing id param", http.StatusBadRequest)
 		return
 	}
+	key, err := util.Z32Decode(*id)
+	if err != nil {
+		LoggingRespondErrWithMsg(c, err, "failed to read id", http.StatusInternalServerError)
+		return
+	}
+	if len(key) != ed25519.PublicKeySize {
+		LoggingRespondErrMsg(c, "invalid z32 encoded ed25519 public key", http.StatusBadRequest)
+		return
+	}
+
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		LoggingRespondErrWithMsg(c, err, "failed to read body", http.StatusInternalServerError)
+		return
+	}
+	defer c.Request.Body.Close()
+
+	// 64 byte signature and 8 byte sequence number
+	if len(body) <= 72 {
+		LoggingRespondErrMsg(c, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// transform the request into a service request by extracting the fields
+	// according to https://github.com/Nuhvi/pkarr/blob/main/design/relays.md#put
+	request := service.PutPKARRRequest{
+		V:   body[72:],
+		K:   [32]byte(key[:]),
+		Sig: [64]byte(body[:63]),
+		Seq: int64(binary.BigEndian.Uint64(body[64:72])),
+	}
+	if _, err = r.service.PublishPKARR(c, request); err != nil {
+		LoggingRespondErrWithMsg(c, err, "failed to publish pkarr request", http.StatusInternalServerError)
+		return
+	}
+
+	Respond(c, nil, http.StatusOK)
 }
