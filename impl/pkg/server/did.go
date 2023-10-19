@@ -36,14 +36,14 @@ func (PublishDIDRequest) toServiceRequest() service.PublishDIDRequest {
 //
 //	@Summary		Publish a DID to the DHT
 //	@Description	Publishes a DID to the DHT
-//	@Tags			DIDDHT
+//	@Tags			DID
 //	@Accept			json
 //	@Produce		json
 //	@Param			request	body	PublishDIDRequest	true	"Publish DID Request"
 //	@Success		202
 //	@Failure		400	{string}	string	"Bad request"
 //	@Failure		500	{string}	string	"Internal server error"
-//	@Router			/v1/dht [put]
+//	@Router			/v1/did [put]
 func (r *DIDDHTRouter) PublishDID(c *gin.Context) {
 	var request PublishDIDRequest
 	if err := Decode(c.Request, &request); err != nil {
@@ -67,7 +67,7 @@ type GetDIDResponse struct {
 //
 //	@Summary		Read a DID record from the DHT
 //	@Description	Read a DID record from the DHT
-//	@Tags			DIDDHT
+//	@Tags			DID
 //	@Accept			json
 //	@Produce		json
 //	@Param			id	path		string	true	"did to request"
@@ -104,7 +104,7 @@ type ListDIDsResponse struct {
 //
 //	@Summary		List all DIDs from the service
 //	@Description	List all DIDs from the service
-//	@Tags			DIDDHT
+//	@Tags			DID
 //	@Accept			json
 //	@Produce		json
 //	@Success		200	{array}		ListDIDsResponse
@@ -127,14 +127,14 @@ type DeleteDIDRequest struct {
 //
 //	@Summary		Remove a DID from the service
 //	@Description	Remove a DID from the service, which stops republishing it to the DHT
-//	@Tags			DIDDHT
+//	@Tags			DID
 //	@Accept			json
 //	@Produce		json
 //	@Param			request	body	DeleteDIDRequest	true	"Delete DID Request"
 //	@Success		200
 //	@Failure		400	{string}	string	"Bad request"
 //	@Failure		500	{string}	string	"Internal server error"
-//	@Router			/v1/dht [delete]
+//	@Router			/v1/did [delete]
 func (r *DIDDHTRouter) DeleteDID(c *gin.Context) {
 	// TODO(gabe): validate before removing record
 	var request DeleteDIDRequest

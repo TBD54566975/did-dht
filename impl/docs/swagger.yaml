@@ -152,18 +152,14 @@ definitions:
   pkg_server.GetPKARRResponse:
     properties:
       seq:
+        description: Seq is the sequence number for the record
         type: integer
-      sig:
-        items:
-          type: integer
-        type: array
       v:
-        items:
-          type: integer
-        type: array
+        description: V is a base64URL encoded byte array representing the V value
+          for a BEP44 request, up to 1000 bytes
+        type: string
     required:
     - seq
-    - sig
     - v
     type: object
   pkg_server.ListDIDsResponse:
@@ -177,17 +173,23 @@ definitions:
     type: object
   pkg_server.PublishPKARRRequest:
     properties:
+      k:
+        description: K is a base64URL encoded byte array representing an ed25519 public
+          key, 32 bytes
+        type: string
       seq:
+        description: Seq is the sequence number for the record
         type: integer
       sig:
-        items:
-          type: integer
-        type: array
+        description: Sig is a base64URL encoded byte array representing an ed25519
+          signature over the payload, 64 bytes
+        type: string
       v:
-        items:
-          type: integer
-        type: array
+        description: V is a base64URL encoded byte array representing the V value
+          for a BEP44 request, up to 1000 bytes
+        type: string
     required:
+    - k
     - seq
     - sig
     - v
@@ -206,6 +208,221 @@ info:
   version: '{{.SVN}}'
 paths:
   /{id}:
+    get:
+      consumes:
+      - application/octet-stream
+      description: Get a PKARR from the DHT
+      parameters:
+      - description: ID to get
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: 64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v.
+          schema:
+            items:
+              type: integer
+            type: array
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "404":
+          description: Not found
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get a PKARR from the DHT
+      tags:
+      - Relay
+    put:
+      consumes:
+      - application/octet-stream
+      description: Put a PKARR record into the DHT
+      parameters:
+      - description: ID to put
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v.
+        in: body
+        name: request
+        required: true
+        schema:
+          items:
+            type: integer
+          type: array
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Put a PKARR record into the DHT
+      tags:
+      - Relay
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Health is a simple handler that always responds with a 200 OK
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg_server.GetHealthCheckResponse'
+      summary: Health Check
+      tags:
+      - Health
+  /v1/did:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a DID from the service, which stops republishing it to the
+        DHT
+      parameters:
+      - description: Delete DID Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/pkg_server.DeleteDIDRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Remove a DID from the service
+      tags:
+      - DID
+    get:
+      consumes:
+      - application/json
+      description: List all DIDs from the service
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/pkg_server.ListDIDsResponse'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: List all DIDs from the service
+      tags:
+      - DID
+    put:
+      consumes:
+      - application/json
+      description: Publishes a DID to the DHT
+      parameters:
+      - description: Publish DID Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/pkg_server.PublishDIDRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Publish a DID to the DHT
+      tags:
+      - DID
+  /v1/did/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Read a DID record from the DHT
+      parameters:
+      - description: did to request
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg_server.GetDIDResponse'
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Read a DID record from the DHT
+      tags:
+      - DID
+  /v1/pkarr:
+    put:
+      consumes:
+      - application/json
+      description: Publishes a PKARR to the DHT
+      parameters:
+      - description: Publish PKARR Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/pkg_server.PublishPKARRRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Publish a PKARR to the DHT
+      tags:
+      - PKARR
+  /v1/pkarr/{id}:
     get:
       consumes:
       - application/json
@@ -238,152 +455,4 @@ paths:
       summary: Read a PKARR record from the DHT
       tags:
       - PKARR
-    put:
-      consumes:
-      - application/json
-      description: Publishes a PKARR to the DHT
-      parameters:
-      - description: Publish PKARR Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/pkg_server.PublishPKARRRequest'
-      produces:
-      - application/json
-      responses:
-        "202":
-          description: Accepted
-        "400":
-          description: Bad request
-          schema:
-            type: string
-        "500":
-          description: Internal server error
-          schema:
-            type: string
-      summary: Publish a PKARR to the DHT
-      tags:
-      - PKARR
-  /health:
-    get:
-      consumes:
-      - application/json
-      description: Health is a simple handler that always responds with a 200 OK
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg_server.GetHealthCheckResponse'
-      summary: Health Check
-      tags:
-      - HealthCheck
-  /v1/dht:
-    delete:
-      consumes:
-      - application/json
-      description: Remove a DID from the service, which stops republishing it to the
-        DHT
-      parameters:
-      - description: Delete DID Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/pkg_server.DeleteDIDRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-        "400":
-          description: Bad request
-          schema:
-            type: string
-        "500":
-          description: Internal server error
-          schema:
-            type: string
-      summary: Remove a DID from the service
-      tags:
-      - DIDDHT
-    put:
-      consumes:
-      - application/json
-      description: Publishes a DID to the DHT
-      parameters:
-      - description: Publish DID Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/pkg_server.PublishDIDRequest'
-      produces:
-      - application/json
-      responses:
-        "202":
-          description: Accepted
-        "400":
-          description: Bad request
-          schema:
-            type: string
-        "500":
-          description: Internal server error
-          schema:
-            type: string
-      summary: Publish a DID to the DHT
-      tags:
-      - DIDDHT
-  /v1/did:
-    get:
-      consumes:
-      - application/json
-      description: List all DIDs from the service
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/pkg_server.ListDIDsResponse'
-            type: array
-        "500":
-          description: Internal server error
-          schema:
-            type: string
-      summary: List all DIDs from the service
-      tags:
-      - DIDDHT
-  /v1/did/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Read a DID record from the DHT
-      parameters:
-      - description: did to request
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg_server.GetDIDResponse'
-        "400":
-          description: Bad request
-          schema:
-            type: string
-        "500":
-          description: Internal server error
-          schema:
-            type: string
-      summary: Read a DID record from the DHT
-      tags:
-      - DIDDHT
 swagger: "2.0"

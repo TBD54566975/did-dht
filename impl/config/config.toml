@@ -8,4 +8,5 @@ log_level = "debug"
 db_file = "diddht.db"
 
 [dht]
-bootstrap_peers = [""]
+bootstrap_peers = ["router.magnets.im:6881", "router.bittorrent.com:6881", "dht.transmissionbt.com:6881",
+    "router.utorrent.com:6881", "router.nuh.dev:6881"]

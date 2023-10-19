@@ -29,11 +29,11 @@ func NewRelayRouter(service *service.PKARRService) (*RelayRouter, error) {
 //	@Tags			Relay
 //	@Accept			octet-stream
 //	@Produce		octet-stream
-//	@Param			id		path		string	true	"ID to get"
-//	@Success		200		{array}	byte	"64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v."
-//	@Failure		400		{string}	string	"Bad request"
-//	@Failure		404		{string}	string	"Not found"
-//	@Failure		500		{string}	string	"Internal server error"
+//	@Param			id	path		string	true	"ID to get"
+//	@Success		200	{array}		byte	"64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v."
+//	@Failure		400	{string}	string	"Bad request"
+//	@Failure		404	{string}	string	"Not found"
+//	@Failure		500	{string}	string	"Internal server error"
 //	@Router			/{id} [get]
 func (r *RelayRouter) Get(c *gin.Context) {
 	id := GetParam(c, IDParam)
@@ -62,6 +62,18 @@ func (r *RelayRouter) Get(c *gin.Context) {
 	RespondBytes(c, res, http.StatusOK)
 }
 
+// Put godoc
+//
+//	@Summary		Put a PKARR record into the DHT
+//	@Description	Put a PKARR record into the DHT
+//	@Tags			Relay
+//	@Accept			octet-stream
+//	@Param			id		path	string	true	"ID to put"
+//	@Param			request	body	[]byte	true	"64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v."
+//	@Success		200
+//	@Failure		400	{string}	string	"Bad request"
+//	@Failure		500	{string}	string	"Internal server error"
+//	@Router			/{id} [put]
 func (r *RelayRouter) Put(c *gin.Context) {
 	id := GetParam(c, IDParam)
 	if id == nil || *id == "" {
@@ -93,11 +105,16 @@ func (r *RelayRouter) Put(c *gin.Context) {
 
 	// transform the request into a service request by extracting the fields
 	// according to https://github.com/Nuhvi/pkarr/blob/main/design/relays.md#put
+	vBytes := body[72:]
+	keyBytes := [32]byte(key[:])
+	bytes := body[:64]
+	sigBytes := [64]byte(bytes)
+	seq := int64(binary.BigEndian.Uint64(body[64:72]))
 	request := service.PutPKARRRequest{
-		V:   body[72:],
-		K:   [32]byte(key[:]),
-		Sig: [64]byte(body[:63]),
-		Seq: int64(binary.BigEndian.Uint64(body[64:72])),
+		V:   vBytes,
+		K:   keyBytes,
+		Sig: sigBytes,
+		Seq: seq,
 	}
 	if _, err = r.service.PublishPKARR(c, request); err != nil {
 		LoggingRespondErrWithMsg(c, err, "failed to publish pkarr request", http.StatusInternalServerError)
