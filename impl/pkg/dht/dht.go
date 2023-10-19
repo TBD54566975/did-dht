@@ -10,6 +10,7 @@ import (
 	"github.com/anacrolix/torrent/types/infohash"
 	"github.com/sirupsen/logrus"
 
+	dhtint "github.com/TBD54566975/did-dht-method/internal/dht"
 	"github.com/TBD54566975/did-dht-method/internal/util"
 )
 
@@ -49,6 +50,22 @@ func (d *DHT) Get(ctx context.Context, key string) (*getput.GetResult, error) {
 		return nil, err
 	}
 	res, t, err := getput.Get(ctx, infohash.HashBytes(z32Decoded), d.Server, nil, nil)
+	if err != nil {
+		return nil, errutil.LoggingNewErrorf("failed to get key<%s> from dht; tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
+	}
+	return &res, nil
+}
+
+// GetFull returns the full BEP-44 result for the given key from the DHT, using our modified
+// implementation of getput.Get. IT should only be used when it's needed to get the signature
+// data for a record.
+func (d *DHT) GetFull(ctx context.Context, key string) (*dhtint.FullGetResult, error) {
+	z32Decoded, err := util.Z32Decode(key)
+	if err != nil {
+		logrus.WithError(err).Error("failed to decode key")
+		return nil, err
+	}
+	res, t, err := dhtint.Get(ctx, infohash.HashBytes(z32Decoded), d.Server, nil, nil)
 	if err != nil {
 		return nil, errutil.LoggingNewErrorf("failed to get key<%s> from dht; tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
 	}

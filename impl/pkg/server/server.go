@@ -43,7 +43,7 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "could not instantiate pkarr service")
 	}
-	didDHTService, err := service.NewDIDService(cfg, db)
+	didDHTService, err := service.NewDIDService(cfg, db, *pkarrService)
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "could not instantiate did dht service")
 	}
@@ -56,11 +56,17 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	handler.StaticFile("swagger.yaml", "./docs/swagger.yaml")
 	handler.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler, ginswagger.URL("/swagger.yaml")))
 
+	// root relay API
+	if err = RelayAPI(&handler.RouterGroup, pkarrService); err != nil {
+		return nil, util.LoggingErrorMsg(err, "could not setup relay API")
+	}
+
 	// set up API routes
-	if err = PKARRAPI(&handler.RouterGroup, pkarrService); err != nil {
+	v1 := handler.Group("/v1")
+	if err = PKARRAPI(v1, pkarrService); err != nil {
 		return nil, util.LoggingErrorMsg(err, "could not setup pkarr API")
 	}
-	if err = DIDDHTAPI(&handler.RouterGroup, didDHTService); err != nil {
+	if err = DIDDHTAPI(v1, didDHTService); err != nil {
 		return nil, util.LoggingErrorMsg(err, "could not setup did:dht API")
 	}
 
@@ -116,6 +122,18 @@ func setupHandler(env config.Environment) *gin.Engine {
 	return handler
 }
 
+// RelayAPI sets up the relay API routes according to https://github.com/Nuhvi/pkarr/blob/main/design/relays.md
+func RelayAPI(rg *gin.RouterGroup, service *service.PKARRService) error {
+	relayRouter, err := NewRelayRouter(service)
+	if err != nil {
+		return util.LoggingErrorMsg(err, "could not instantiate relay router")
+	}
+
+	rg.PUT("/:id", relayRouter.Put)
+	rg.GET("/:id", relayRouter.Get)
+	return nil
+}
+
 // PKARRAPI sets up the PKARR API routes
 func PKARRAPI(rg *gin.RouterGroup, service *service.PKARRService) error {
 	pkarrRouter, err := NewPKARRRouter(service)
@@ -123,8 +141,9 @@ func PKARRAPI(rg *gin.RouterGroup, service *service.PKARRService) error {
 		return util.LoggingErrorMsg(err, "could not instantiate pkarr router")
 	}
 
-	rg.PUT("/:id", pkarrRouter.PublishPKARR)
-	rg.GET("/:id", pkarrRouter.GetPKARR)
+	pkarrAPI := rg.Group("/pkarr")
+	pkarrAPI.PUT("", pkarrRouter.PublishPKARR)
+	pkarrAPI.GET("/:id", pkarrRouter.GetPKARR)
 	return nil
 }
 

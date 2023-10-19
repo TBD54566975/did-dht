@@ -65,6 +65,18 @@ func Respond(c *gin.Context, data any, statusCode int) {
 	c.PureJSON(statusCode, data)
 }
 
+// RespondBytes sends a byte array to the client.
+func RespondBytes(c *gin.Context, data []byte, statusCode int) {
+	// if there's no payload to marshal, set the status code of the response and return
+	if statusCode == http.StatusNoContent {
+		c.Status(statusCode)
+		return
+	}
+
+	// respond with an octet stream
+	c.Data(statusCode, "application/octet-stream", data)
+}
+
 // LoggingRespondError sends an error response back to the client as a safe error
 func LoggingRespondError(c *gin.Context, err error, statusCode int) {
 	logrus.WithError(err).Error()

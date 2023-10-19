@@ -11,12 +11,14 @@ import (
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
 )
 
+// PKARRService is the PKARR service responsible for managing the PKARR DHT and reading/writing records
 type PKARRService struct {
 	cfg *config.Config
 	db  *storage.Storage
 	dht *dht.DHT
 }
 
+// NewPKARRService returns a new instance of the PKARR service
 func NewPKARRService(cfg *config.Config, db *storage.Storage) (*PKARRService, error) {
 	if cfg == nil {
 		return nil, util.LoggingNewError("config is required")
@@ -35,6 +37,7 @@ func NewPKARRService(cfg *config.Config, db *storage.Storage) (*PKARRService, er
 	}, nil
 }
 
+// PutPKARRRequest is the request to publish a PKARR record
 type PutPKARRRequest struct {
 	V   []byte   `json:"v" validate:"required"`
 	K   [32]byte `json:"k" validate:"required"`
@@ -42,6 +45,7 @@ type PutPKARRRequest struct {
 	Seq int64    `json:"seq" validate:"required"`
 }
 
+// PublishPKARR publishes the given PKARR to the DHT
 func (s *PKARRService) PublishPKARR(ctx context.Context, request PutPKARRRequest) (string, error) {
 	return s.dht.Put(ctx, bep44.Put{
 		V:   request.V,
@@ -51,11 +55,14 @@ func (s *PKARRService) PublishPKARR(ctx context.Context, request PutPKARRRequest
 	})
 }
 
+// GetPKARRResponse is the response to a get PKARR request
 type GetPKARRResponse struct {
-	V   []byte `json:"v" validate:"required"`
-	Seq int64  `json:"seq" validate:"required"`
+	V   []byte   `json:"v" validate:"required"`
+	Seq int64    `json:"seq" validate:"required"`
+	Sig [64]byte `json:"sig,omitempty"`
 }
 
+// GetPKARR returns the PKARR for the given z-base-32 encoded ID
 func (s *PKARRService) GetPKARR(ctx context.Context, id string) (*GetPKARRResponse, error) {
 	got, err := s.dht.Get(ctx, id)
 	if err != nil {
@@ -68,5 +75,22 @@ func (s *PKARRService) GetPKARR(ctx context.Context, id string) (*GetPKARRRespon
 	return &GetPKARRResponse{
 		V:   bBytes,
 		Seq: got.Seq,
+	}, nil
+}
+
+// GetFullPKARR returns the full PKARR (including sig data) for the given z-base-32 encoded ID
+func (s *PKARRService) GetFullPKARR(ctx context.Context, id string) (*GetPKARRResponse, error) {
+	got, err := s.dht.GetFull(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	bBytes, err := got.V.MarshalBencode()
+	if err != nil {
+		return nil, err
+	}
+	return &GetPKARRResponse{
+		V:   bBytes,
+		Seq: got.Seq,
+		Sig: got.Sig,
 	}, nil
 }

@@ -85,7 +85,7 @@ type PublishPKARRResponse struct {
 //	@Success		202
 //	@Failure		400	{string}	string	"Bad request"
 //	@Failure		500	{string}	string	"Internal server error"
-//	@Router			/{id} [put]
+//	@Router			/v1/pkarr [put]
 func (r *PKARRRouter) PublishPKARR(c *gin.Context) {
 	var request PublishPKARRRequest
 	if err := Decode(c.Request, &request); err != nil {
@@ -136,7 +136,7 @@ func fromServiceResponse(resp service.GetPKARRResponse) GetPKARRResponse {
 //	@Failure		400	{string}	string	"Bad request"
 //	@Failure		404	{string}	string	"Not found"
 //	@Failure		500	{string}	string	"Internal server error"
-//	@Router			/{id} [get]
+//	@Router			/v1/pkarr/{id} [get]
 func (r *PKARRRouter) GetPKARR(c *gin.Context) {
 	id := GetParam(c, IDParam)
 	if id == nil || *id == "" {
