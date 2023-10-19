@@ -9,7 +9,6 @@ import (
 	"github.com/anacrolix/dht/v2/exts/getput"
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/miekg/dns"
-	"github.com/sirupsen/logrus"
 )
 
 // CreatePKARRPutRequest creates a put request for the given records. Requires a public/private keypair and the records to put.
@@ -37,8 +36,7 @@ import (
 func CreatePKARRPutRequest(publicKey ed25519.PublicKey, privateKey ed25519.PrivateKey, msg dns.Msg) (*bep44.Put, error) {
 	packed, err := msg.Pack()
 	if err != nil {
-		logrus.WithError(err).Error("failed to pack records")
-		return nil, err
+		return nil, util.LoggingErrorMsg(err, "failed to pack records")
 	}
 	put := &bep44.Put{
 		V:   packed,
@@ -58,8 +56,7 @@ func ParsePKARRGetResponse(response getput.GetResult) (*dns.Msg, error) {
 	}
 	msg := new(dns.Msg)
 	if err := msg.Unpack([]byte(payload)); err != nil {
-		logrus.WithError(err).Error("failed to unpack records")
-		return nil, err
+		return nil, util.LoggingErrorMsg(err, "failed to unpack records")
 	}
 	return msg, nil
 }

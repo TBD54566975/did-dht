@@ -2,11 +2,14 @@ package server
 
 import (
 	"crypto/ed25519"
+	"encoding/base64"
 	"encoding/binary"
 	"io"
 	"net/http"
 
+	"github.com/anacrolix/torrent/bencode"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 
 	"github.com/TBD54566975/did-dht-method/internal/util"
 	"github.com/TBD54566975/did-dht-method/pkg/service"
@@ -47,9 +50,13 @@ func (r *RelayRouter) Get(c *gin.Context) {
 		LoggingRespondErrWithMsg(c, err, "failed to get pkarr", http.StatusInternalServerError)
 		return
 	}
-
 	if resp == nil {
 		LoggingRespondErrMsg(c, "pkarr not found", http.StatusNotFound)
+		return
+	}
+	var payload string
+	if err = bencode.Unmarshal(resp.V, &payload); err != nil {
+		LoggingRespondErrMsg(c, "failed to unmarshal pkarr result", http.StatusNotFound)
 		return
 	}
 
@@ -57,8 +64,8 @@ func (r *RelayRouter) Get(c *gin.Context) {
 	// according to https://github.com/Nuhvi/pkarr/blob/main/design/relays.md#get
 	var seqBuf [8]byte
 	binary.BigEndian.PutUint64(seqBuf[:], uint64(resp.Seq))
-	partialRes := append(seqBuf[:], resp.V...)
-	res := append(resp.Sig[:], partialRes...)
+	// sig:seq:v
+	res := append(resp.Sig[:], append(seqBuf[:], []byte(payload)...)...)
 	RespondBytes(c, res, http.StatusOK)
 }
 
@@ -103,6 +110,8 @@ func (r *RelayRouter) Put(c *gin.Context) {
 		return
 	}
 
+	logrus.Info("REQ: ", base64.RawURLEncoding.EncodeToString(body))
+
 	// transform the request into a service request by extracting the fields
 	// according to https://github.com/Nuhvi/pkarr/blob/main/design/relays.md#put
 	vBytes := body[72:]
@@ -110,6 +119,7 @@ func (r *RelayRouter) Put(c *gin.Context) {
 	bytes := body[:64]
 	sigBytes := [64]byte(bytes)
 	seq := int64(binary.BigEndian.Uint64(body[64:72]))
+	logrus.Info("v put: ", base64.RawURLEncoding.EncodeToString(vBytes[:]))
 	request := service.PutPKARRRequest{
 		V:   vBytes,
 		K:   keyBytes,
