@@ -116,10 +116,10 @@ The following table maps Verification Relationship types to their record name.
 | Verification Relationship | Record Name |
 | ------------------------- | ----------- |
 | Authentication            | `auth`      |
-| Assertion                 | `asr`       |
+| Assertion                 | `asm`       |
 | Key Agreement             | `agm`      |
-| Capability Invocation     | `cin`      |
-| Capability Delegation     | `cdel`      |
+| Capability Invocation     | `inv`      |
+| Capability Delegation     | `del`      |
 
 The record data is uniform across verification relationships, a comma separated list of key references:
 
