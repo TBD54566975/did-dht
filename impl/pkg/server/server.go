@@ -18,6 +18,10 @@ import (
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
 )
 
+const (
+	IDParam string = "id"
+)
+
 type Server struct {
 	*http.Server
 	handler *gin.Engine
@@ -57,19 +61,9 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	handler.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler, ginswagger.URL("/swagger.yaml")))
 
 	// root relay API
-	if err = RelayAPI(&handler.RouterGroup, pkarrService); err != nil {
-		return nil, util.LoggingErrorMsg(err, "could not setup relay API")
-	}
-
-	// set up API routes
-	v1 := handler.Group("/v1")
-	if err = PKARRAPI(v1, pkarrService); err != nil {
+	if err = PKARRAPI(&handler.RouterGroup, pkarrService); err != nil {
 		return nil, util.LoggingErrorMsg(err, "could not setup pkarr API")
 	}
-	if err = DIDDHTAPI(v1, didDHTService); err != nil {
-		return nil, util.LoggingErrorMsg(err, "could not setup did:dht API")
-	}
-
 	return &Server{
 		Server: &http.Server{
 			Addr:              fmt.Sprintf("%s:%d", cfg.ServerConfig.APIHost, cfg.ServerConfig.APIPort),
@@ -122,8 +116,8 @@ func setupHandler(env config.Environment) *gin.Engine {
 	return handler
 }
 
-// RelayAPI sets up the relay API routes according to https://github.com/Nuhvi/pkarr/blob/main/design/relays.md
-func RelayAPI(rg *gin.RouterGroup, service *service.PKARRService) error {
+// PKARRAPI sets up the relay API routes according to https://github.com/Nuhvi/pkarr/blob/main/design/relays.md
+func PKARRAPI(rg *gin.RouterGroup, service *service.PKARRService) error {
 	relayRouter, err := NewRelayRouter(service)
 	if err != nil {
 		return util.LoggingErrorMsg(err, "could not instantiate relay router")
@@ -134,30 +128,17 @@ func RelayAPI(rg *gin.RouterGroup, service *service.PKARRService) error {
 	return nil
 }
 
-// PKARRAPI sets up the PKARR API routes
-func PKARRAPI(rg *gin.RouterGroup, service *service.PKARRService) error {
-	pkarrRouter, err := NewPKARRRouter(service)
-	if err != nil {
-		return util.LoggingErrorMsg(err, "could not instantiate pkarr router")
-	}
-
-	pkarrAPI := rg.Group("/pkarr")
-	pkarrAPI.PUT("", pkarrRouter.PublishPKARR)
-	pkarrAPI.GET("/:id", pkarrRouter.GetPKARR)
-	return nil
-}
-
 // DIDDHTAPI sets up the DIDDHT API routes
-func DIDDHTAPI(rg *gin.RouterGroup, service *service.DIDService) error {
-	didDHTRouter, err := NewDIDDHTRouter(service)
-	if err != nil {
-		return util.LoggingErrorMsg(err, "could not instantiate did:dht router")
-	}
-
-	didDHTAPI := rg.Group("/did")
-	didDHTAPI.PUT("", didDHTRouter.PublishDID)
-	didDHTAPI.GET("", didDHTRouter.ListDIDs)
-	didDHTAPI.GET("/:id", didDHTRouter.GetDID)
-	didDHTAPI.DELETE("/:id", didDHTRouter.DeleteDID)
-	return nil
-}
+// func DIDDHTAPI(rg *gin.RouterGroup, service *service.DIDService) error {
+// 	didDHTRouter, err := NewDIDDHTRouter(service)
+// 	if err != nil {
+// 		return util.LoggingErrorMsg(err, "could not instantiate did:dht router")
+// 	}
+//
+// 	didDHTAPI := rg.Group("/did")
+// 	didDHTAPI.PUT("", didDHTRouter.PublishDID)
+// 	didDHTAPI.GET("", didDHTRouter.ListDIDs)
+// 	didDHTAPI.GET("/:id", didDHTRouter.GetDID)
+// 	didDHTAPI.DELETE("/:id", didDHTRouter.DeleteDID)
+// 	return nil
+// }

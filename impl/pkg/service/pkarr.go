@@ -5,7 +5,6 @@ import (
 
 	"github.com/TBD54566975/ssi-sdk/util"
 	"github.com/anacrolix/dht/v2/bep44"
-	"github.com/sirupsen/logrus"
 
 	"github.com/TBD54566975/did-dht-method/config"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
@@ -48,8 +47,6 @@ type PutPKARRRequest struct {
 
 // PublishPKARR publishes the given PKARR to the DHT
 func (s *PKARRService) PublishPKARR(ctx context.Context, request PutPKARRRequest) (string, error) {
-	logrus.Info("PUT STR: ", string(request.V))
-
 	return s.dht.Put(ctx, bep44.Put{
 		V:   request.V,
 		K:   &request.K,

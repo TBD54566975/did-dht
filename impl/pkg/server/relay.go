@@ -2,14 +2,12 @@ package server
 
 import (
 	"crypto/ed25519"
-	"encoding/base64"
 	"encoding/binary"
 	"io"
 	"net/http"
 
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 
 	"github.com/TBD54566975/did-dht-method/internal/util"
 	"github.com/TBD54566975/did-dht-method/pkg/service"
@@ -110,8 +108,6 @@ func (r *RelayRouter) Put(c *gin.Context) {
 		return
 	}
 
-	logrus.Info("REQ: ", base64.RawURLEncoding.EncodeToString(body))
-
 	// transform the request into a service request by extracting the fields
 	// according to https://github.com/Nuhvi/pkarr/blob/main/design/relays.md#put
 	vBytes := body[72:]
@@ -119,7 +115,6 @@ func (r *RelayRouter) Put(c *gin.Context) {
 	bytes := body[:64]
 	sigBytes := [64]byte(bytes)
 	seq := int64(binary.BigEndian.Uint64(body[64:72]))
-	logrus.Info("v put: ", base64.RawURLEncoding.EncodeToString(vBytes[:]))
 	request := service.PutPKARRRequest{
 		V:   vBytes,
 		K:   keyBytes,
