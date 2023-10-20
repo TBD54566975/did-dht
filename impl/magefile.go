@@ -99,6 +99,29 @@ func Lint() error {
 	return sh.Run("golangci-lint", "run")
 }
 
+// Spec generates an OpenAPI spec yaml based on code annotations.
+func Spec() error {
+	swagCommand := "swag"
+	if err := installIfNotPresent(swagCommand, "github.com/swaggo/swag/v2/cmd/swag@v2.0.0-rc3"); err != nil {
+		logrus.WithError(err).Error("failed to install swag")
+		return err
+	}
+
+	// We need to download deps first as a workaround to https://github.com/TBD54566975/did-dht/issues/515
+	if err := sh.Run(Go, "mod", "download"); err != nil {
+		logrus.WithError(err).Error("failed to download dependencies")
+		return err
+	}
+
+	if err := sh.Run(swagCommand, "fmt", "-d", "pkg/server"); err != nil {
+		logrus.WithError(err).Error("failed to format swagger docs")
+		return err
+	}
+
+	// We need to enable dependencies because many of our external API objects have ssi-sdk objects.
+	return sh.Run(swagCommand, "init", "-g", "cmd/main.go", "--pd", "--parseInternal", "-ot", "go,yaml")
+}
+
 func ColorizeTestOutput(w io.Writer) io.Writer {
 	writer := NewRegexpWriter(w, `PASS.*`, "\033[32m$0\033[0m")
 	return NewRegexpWriter(writer, `FAIL.*`, "\033[31m$0\033[0m")

@@ -13,12 +13,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/TBD54566975/did-dht-method/config"
 	"github.com/TBD54566975/did-dht-method/internal/did"
 	"github.com/TBD54566975/did-dht-method/internal/util"
 )
 
 func TestGetPutPKARRDHT(t *testing.T) {
-	d, err := NewDHT()
+	d, err := NewDHT(config.GetDefaultBootstrapPeers())
 	require.NoError(t, err)
 
 	pubKey, privKey, err := util.GenerateKeypair()
@@ -43,10 +44,10 @@ func TestGetPutPKARRDHT(t *testing.T) {
 		},
 		Answer: []dns.RR{&txtRecord},
 	}
-	put, err := CreatePKARRPutRequest(pubKey, privKey, msg)
+	put, err := CreatePKARRPublishRequest(pubKey, privKey, msg)
 	require.NoError(t, err)
 
-	id, err := d.Put(context.Background(), pubKey, *put)
+	id, err := d.Put(context.Background(), *put)
 	require.NoError(t, err)
 	require.NotEmpty(t, id)
 
@@ -54,7 +55,7 @@ func TestGetPutPKARRDHT(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, got)
 
-	gotMsg, err := ParsePKARRGetResponse(got)
+	gotMsg, err := ParsePKARRGetResponse(*got)
 	require.NoError(t, err)
 	require.NotEmpty(t, gotMsg.Answer)
 
@@ -62,7 +63,7 @@ func TestGetPutPKARRDHT(t *testing.T) {
 }
 
 func TestGetPutDIDDHT(t *testing.T) {
-	dht, err := NewDHT()
+	dht, err := NewDHT(config.GetDefaultBootstrapPeers())
 	require.NoError(t, err)
 
 	pubKey, _, err := crypto.GenerateSECP256k1Key()
@@ -105,10 +106,10 @@ func TestGetPutDIDDHT(t *testing.T) {
 	require.NoError(t, err)
 
 	key := privKey.Public().(ed25519.PublicKey)
-	putReq, err := CreatePKARRPutRequest(key, privKey, *didDocPacket)
+	putReq, err := CreatePKARRPublishRequest(key, privKey, *didDocPacket)
 	require.NoError(t, err)
 
-	gotID, err := dht.Put(context.Background(), key, *putReq)
+	gotID, err := dht.Put(context.Background(), *putReq)
 	require.NoError(t, err)
 	require.NotEmpty(t, gotID)
 
@@ -116,7 +117,7 @@ func TestGetPutDIDDHT(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, got)
 
-	gotMsg, err := ParsePKARRGetResponse(got)
+	gotMsg, err := ParsePKARRGetResponse(*got)
 	require.NoError(t, err)
 	require.NotEmpty(t, gotMsg.Answer)
 

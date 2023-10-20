@@ -375,7 +375,7 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, error) {
 				}
 				doc.Services = append(doc.Services, service)
 
-			} else if record.Hdr.Name == "_did" {
+			} else if record.Hdr.Name == "_did." {
 				rootData := strings.Join(record.Txt, ";")
 				rootItems := strings.Split(rootData, ";")
 

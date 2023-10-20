@@ -120,13 +120,12 @@ func TestToDNSPacket(t *testing.T) {
 		require.NotEmpty(t, privKey)
 		require.NotEmpty(t, doc)
 
-		did := DHT(doc.ID)
-
-		packet, err := did.ToDNSPacket(*doc)
+		didID := DHT(doc.ID)
+		packet, err := didID.ToDNSPacket(*doc)
 		require.NoError(t, err)
 		require.NotEmpty(t, packet)
 
-		decodedDoc, err := did.FromDNSPacket(packet)
+		decodedDoc, err := didID.FromDNSPacket(packet)
 		require.NoError(t, err)
 		require.NotEmpty(t, decodedDoc)
 
@@ -169,13 +168,12 @@ func TestToDNSPacket(t *testing.T) {
 		require.NotEmpty(t, privKey)
 		require.NotEmpty(t, doc)
 
-		did := DHT(doc.ID)
-
-		packet, err := did.ToDNSPacket(*doc)
+		didID := DHT(doc.ID)
+		packet, err := didID.ToDNSPacket(*doc)
 		require.NoError(t, err)
 		require.NotEmpty(t, packet)
 
-		decodedDoc, err := did.FromDNSPacket(packet)
+		decodedDoc, err := didID.FromDNSPacket(packet)
 		require.NoError(t, err)
 		require.NotEmpty(t, decodedDoc)
 
