@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/anacrolix/torrent/bencode"
 	"github.com/gin-gonic/gin"
 
 	"github.com/TBD54566975/did-dht-method/internal/util"
@@ -43,7 +42,7 @@ func (r *RelayRouter) Get(c *gin.Context) {
 		return
 	}
 
-	resp, err := r.service.GetFullPKARR(c, *id)
+	resp, err := r.service.GetPKARR(c, *id)
 	if err != nil {
 		LoggingRespondErrWithMsg(c, err, "failed to get pkarr", http.StatusInternalServerError)
 		return
@@ -52,18 +51,13 @@ func (r *RelayRouter) Get(c *gin.Context) {
 		LoggingRespondErrMsg(c, "pkarr not found", http.StatusNotFound)
 		return
 	}
-	var payload string
-	if err = bencode.Unmarshal(resp.V, &payload); err != nil {
-		LoggingRespondErrMsg(c, "failed to unmarshal pkarr result", http.StatusNotFound)
-		return
-	}
 
 	// Convert int64 to uint64 since binary.PutUint64 expects a uint64 value
 	// according to https://github.com/Nuhvi/pkarr/blob/main/design/relays.md#get
 	var seqBuf [8]byte
 	binary.BigEndian.PutUint64(seqBuf[:], uint64(resp.Seq))
 	// sig:seq:v
-	res := append(resp.Sig[:], append(seqBuf[:], []byte(payload)...)...)
+	res := append(resp.Sig[:], append(seqBuf[:], resp.V...)...)
 	RespondBytes(c, res, http.StatusOK)
 }
 
@@ -115,7 +109,7 @@ func (r *RelayRouter) Put(c *gin.Context) {
 	bytes := body[:64]
 	sigBytes := [64]byte(bytes)
 	seq := int64(binary.BigEndian.Uint64(body[64:72]))
-	request := service.PutPKARRRequest{
+	request := service.PublishPKARRRequest{
 		V:   vBytes,
 		K:   keyBytes,
 		Sig: sigBytes,

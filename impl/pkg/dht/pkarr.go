@@ -11,7 +11,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-// CreatePKARRPutRequest creates a put request for the given records. Requires a public/private keypair and the records to put.
+// CreatePKARRPublishRequest creates a put request for the given records. Requires a public/private keypair and the records to put.
 // The records are expected to be a DNS message packet, such as:
 //
 //	dns.Msg{
@@ -33,7 +33,7 @@ import (
 //				},
 //		    }
 //		}
-func CreatePKARRPutRequest(publicKey ed25519.PublicKey, privateKey ed25519.PrivateKey, msg dns.Msg) (*bep44.Put, error) {
+func CreatePKARRPublishRequest(publicKey ed25519.PublicKey, privateKey ed25519.PrivateKey, msg dns.Msg) (*bep44.Put, error) {
 	packed, err := msg.Pack()
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to pack records")

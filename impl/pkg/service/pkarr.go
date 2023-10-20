@@ -5,6 +5,7 @@ import (
 
 	"github.com/TBD54566975/ssi-sdk/util"
 	"github.com/anacrolix/dht/v2/bep44"
+	"github.com/anacrolix/torrent/bencode"
 
 	"github.com/TBD54566975/did-dht-method/config"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
@@ -37,8 +38,8 @@ func NewPKARRService(cfg *config.Config, db *storage.Storage) (*PKARRService, er
 	}, nil
 }
 
-// PutPKARRRequest is the request to publish a PKARR record
-type PutPKARRRequest struct {
+// PublishPKARRRequest is the request to publish a PKARR record
+type PublishPKARRRequest struct {
 	V   []byte   `json:"v" validate:"required"`
 	K   [32]byte `json:"k" validate:"required"`
 	Sig [64]byte `json:"sig" validate:"required"`
@@ -46,7 +47,7 @@ type PutPKARRRequest struct {
 }
 
 // PublishPKARR publishes the given PKARR to the DHT
-func (s *PKARRService) PublishPKARR(ctx context.Context, request PutPKARRRequest) (string, error) {
+func (s *PKARRService) PublishPKARR(ctx context.Context, request PublishPKARRRequest) (string, error) {
 	return s.dht.Put(ctx, bep44.Put{
 		V:   request.V,
 		K:   &request.K,
@@ -57,29 +58,13 @@ func (s *PKARRService) PublishPKARR(ctx context.Context, request PutPKARRRequest
 
 // GetPKARRResponse is the response to a get PKARR request
 type GetPKARRResponse struct {
-	V   []byte   `json:"v" validate:"required"`
-	Seq int64    `json:"seq" validate:"required"`
-	Sig [64]byte `json:"sig,omitempty"`
+	V   []byte   `validate:"required"`
+	Seq int64    `validate:"required"`
+	Sig [64]byte `validate:"required"`
 }
 
-// GetPKARR returns the PKARR for the given z-base-32 encoded ID
+// GetPKARR returns the full PKARR (including sig data) for the given z-base-32 encoded ID
 func (s *PKARRService) GetPKARR(ctx context.Context, id string) (*GetPKARRResponse, error) {
-	got, err := s.dht.Get(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	bBytes, err := got.V.MarshalBencode()
-	if err != nil {
-		return nil, err
-	}
-	return &GetPKARRResponse{
-		V:   bBytes,
-		Seq: got.Seq,
-	}, nil
-}
-
-// GetFullPKARR returns the full PKARR (including sig data) for the given z-base-32 encoded ID
-func (s *PKARRService) GetFullPKARR(ctx context.Context, id string) (*GetPKARRResponse, error) {
 	got, err := s.dht.GetFull(ctx, id)
 	if err != nil {
 		return nil, err
@@ -88,8 +73,12 @@ func (s *PKARRService) GetFullPKARR(ctx context.Context, id string) (*GetPKARRRe
 	if err != nil {
 		return nil, err
 	}
+	var payload string
+	if err = bencode.Unmarshal(bBytes, &payload); err != nil {
+		return nil, err
+	}
 	return &GetPKARRResponse{
-		V:   bBytes,
+		V:   []byte(payload),
 		Seq: got.Seq,
 		Sig: got.Sig,
 	}, nil

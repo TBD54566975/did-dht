@@ -14,6 +14,7 @@ import (
 	"github.com/TBD54566975/did-dht-method/internal/util"
 )
 
+// DHT is a wrapper around anacrolix/dht that implements the BEP-44 DHT protocol.
 type DHT struct {
 	*dht.Server
 }

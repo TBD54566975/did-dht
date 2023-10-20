@@ -44,7 +44,7 @@ func TestGetPutPKARRDHT(t *testing.T) {
 		},
 		Answer: []dns.RR{&txtRecord},
 	}
-	put, err := CreatePKARRPutRequest(pubKey, privKey, msg)
+	put, err := CreatePKARRPublishRequest(pubKey, privKey, msg)
 	require.NoError(t, err)
 
 	id, err := d.Put(context.Background(), *put)
@@ -106,7 +106,7 @@ func TestGetPutDIDDHT(t *testing.T) {
 	require.NoError(t, err)
 
 	key := privKey.Public().(ed25519.PublicKey)
-	putReq, err := CreatePKARRPutRequest(key, privKey, *didDocPacket)
+	putReq, err := CreatePKARRPublishRequest(key, privKey, *didDocPacket)
 	require.NoError(t, err)
 
 	gotID, err := dht.Put(context.Background(), *putReq)

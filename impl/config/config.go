@@ -44,7 +44,6 @@ type ServiceConfig struct {
 	Environment Environment `toml:"env"`
 	APIHost     string      `toml:"api_host"`
 	APIPort     int         `toml:"api_port"`
-	ListenPort  int         `toml:"listen_port"`
 	LogLocation string      `toml:"log_location"`
 	LogLevel    string      `toml:"log_level"`
 	DBFile      string      `toml:"db_file"`
@@ -65,7 +64,6 @@ func GetDefaultConfig() Config {
 			Environment: EnvironmentDev,
 			APIHost:     "0.0.0.0",
 			APIPort:     8305,
-			ListenPort:  8503,
 			LogLocation: "log",
 			LogLevel:    "debug",
 			DBFile:      "diddht.db",
