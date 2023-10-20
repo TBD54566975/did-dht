@@ -1,0 +1,103 @@
+definitions:
+  pkg_server.GetHealthCheckResponse:
+    properties:
+      status:
+        description: Status is always equal to `OK`.
+        type: string
+    type: object
+host: '{{.Server.APIHost}}'
+info:
+  contact:
+    email: tbd-developer@squareup.com
+    name: TBD
+    url: https://github.com/TBD54566975/did-dht-method/issues
+  description: The DID DHT Service
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: DID DHT Service API
+  version: '{{.SVN}}'
+paths:
+  /{id}:
+    get:
+      consumes:
+      - application/octet-stream
+      description: Get a PKARR from the DHT
+      parameters:
+      - description: ID to get
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: 64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v.
+          schema:
+            items:
+              type: integer
+            type: array
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "404":
+          description: Not found
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get a PKARR from the DHT
+      tags:
+      - Relay
+    put:
+      consumes:
+      - application/octet-stream
+      description: Put a PKARR record into the DHT
+      parameters:
+      - description: ID to put
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v.
+        in: body
+        name: request
+        required: true
+        schema:
+          items:
+            type: integer
+          type: array
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Put a PKARR record into the DHT
+      tags:
+      - Relay
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Health is a simple handler that always responds with a 200 OK
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg_server.GetHealthCheckResponse'
+      summary: Health Check
+      tags:
+      - Health
+swagger: "2.0"

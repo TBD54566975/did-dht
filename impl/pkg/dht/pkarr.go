@@ -4,12 +4,14 @@ import (
 	"crypto/ed25519"
 	"time"
 
+	"github.com/TBD54566975/ssi-sdk/util"
 	"github.com/anacrolix/dht/v2/bep44"
+	"github.com/anacrolix/dht/v2/exts/getput"
+	"github.com/anacrolix/torrent/bencode"
 	"github.com/miekg/dns"
-	"github.com/sirupsen/logrus"
 )
 
-// CreatePKARRPutRequest creates a put request for the given records. Requires a public/private keypair and the records to put.
+// CreatePKARRPublishRequest creates a put request for the given records. Requires a public/private keypair and the records to put.
 // The records are expected to be a DNS message packet, such as:
 //
 //	dns.Msg{
@@ -31,11 +33,10 @@ import (
 //				},
 //		    }
 //		}
-func CreatePKARRPutRequest(publicKey ed25519.PublicKey, privateKey ed25519.PrivateKey, msg dns.Msg) (*bep44.Put, error) {
+func CreatePKARRPublishRequest(publicKey ed25519.PublicKey, privateKey ed25519.PrivateKey, msg dns.Msg) (*bep44.Put, error) {
 	packed, err := msg.Pack()
 	if err != nil {
-		logrus.WithError(err).Error("failed to pack records")
-		return nil, err
+		return nil, util.LoggingErrorMsg(err, "failed to pack records")
 	}
 	put := &bep44.Put{
 		V:   packed,
@@ -48,11 +49,14 @@ func CreatePKARRPutRequest(publicKey ed25519.PublicKey, privateKey ed25519.Priva
 
 // ParsePKARRGetResponse parses the response from a get request.
 // The response is expected to be a slice of DNS resource records.
-func ParsePKARRGetResponse(response []byte) ([]dns.RR, error) {
-	msg := new(dns.Msg)
-	if err := msg.Unpack(response); err != nil {
-		logrus.WithError(err).Error("failed to unpack records")
-		return nil, err
+func ParsePKARRGetResponse(response getput.GetResult) (*dns.Msg, error) {
+	var payload string
+	if err := bencode.Unmarshal(response.V, &payload); err != nil {
+		return nil, util.LoggingErrorMsg(err, "failed to unmarshal payload value")
 	}
-	return msg.Answer, nil
+	msg := new(dns.Msg)
+	if err := msg.Unpack([]byte(payload)); err != nil {
+		return nil, util.LoggingErrorMsg(err, "failed to unpack records")
+	}
+	return msg, nil
 }

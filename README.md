@@ -3,6 +3,20 @@
 The `did:dht` method. Home to the [DID DHT Method Specification](./spec.md), and a reference implementation of a server
 in Go.
 
+## Build & Run
+
+From the root directory run:
+
+```
+docker build . -t did-dht -f build/Dockerfile
+```
+
+and then
+
+```
+docker run -p8305:8305 did-dht
+```
+
 ## Implementations
 
 | Language   | Client | Server | Link |
