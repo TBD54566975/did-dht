@@ -36,8 +36,9 @@ func (e EnvironmentVariable) String() string {
 }
 
 type Config struct {
-	ServerConfig ServiceConfig    `toml:"server"`
-	DHTConfig    DHTServiceConfig `toml:"dht"`
+	ServerConfig ServiceConfig      `toml:"server"`
+	DHTConfig    DHTServiceConfig   `toml:"dht"`
+	PKARRConfig  PKARRServiceConfig `toml:"pkarr"`
 }
 
 type ServiceConfig struct {
@@ -53,9 +54,8 @@ type DHTServiceConfig struct {
 	BootstrapPeers []string `toml:"bootstrap_peers"`
 }
 
-type GossipServiceConfig struct {
-	// if set, the API will only accept signed messages
-	EnforceSignedMessages bool `toml:"enforce_signed_messages"`
+type PKARRServiceConfig struct {
+	RepublishCRON string `toml:"republish_cron"`
 }
 
 func GetDefaultConfig() Config {
@@ -70,6 +70,9 @@ func GetDefaultConfig() Config {
 		},
 		DHTConfig: DHTServiceConfig{
 			BootstrapPeers: GetDefaultBootstrapPeers(),
+		},
+		PKARRConfig: PKARRServiceConfig{
+			RepublishCRON: "0 */2 * * *",
 		},
 	}
 }

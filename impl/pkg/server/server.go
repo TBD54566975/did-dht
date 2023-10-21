@@ -29,7 +29,7 @@ type Server struct {
 	shutdown chan os.Signal
 
 	cfg *config.Config
-	svc *service.DIDService
+	svc *service.PKARRService
 }
 
 // NewServer returns a new instance of Server with the given db and host.
@@ -46,10 +46,6 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	pkarrService, err := service.NewPKARRService(cfg, db)
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "could not instantiate pkarr service")
-	}
-	didDHTService, err := service.NewDIDService(cfg, db, *pkarrService)
-	if err != nil {
-		return nil, util.LoggingErrorMsg(err, "could not instantiate did dht service")
 	}
 
 	handler.GET("/health", Health)
@@ -73,7 +69,7 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 			WriteTimeout:      time.Second * 5,
 		},
 		cfg:      cfg,
-		svc:      didDHTService,
+		svc:      pkarrService,
 		handler:  handler,
 		shutdown: shutdown,
 	}, nil

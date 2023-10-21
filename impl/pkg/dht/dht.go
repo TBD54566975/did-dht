@@ -8,7 +8,6 @@ import (
 	"github.com/anacrolix/dht/v2/bep44"
 	"github.com/anacrolix/dht/v2/exts/getput"
 	"github.com/anacrolix/torrent/types/infohash"
-	"github.com/sirupsen/logrus"
 
 	dhtint "github.com/TBD54566975/did-dht-method/internal/dht"
 	"github.com/TBD54566975/did-dht-method/internal/util"
@@ -25,8 +24,7 @@ func NewDHT(bootstrapPeers []string) (*DHT, error) {
 	c.StartingNodes = func() ([]dht.Addr, error) { return dht.ResolveHostPorts(bootstrapPeers) }
 	s, err := dht.NewServer(c)
 	if err != nil {
-		logrus.WithError(err).Error("failed to create dht server")
-		return nil, err
+		return nil, errutil.LoggingErrorMsg(err, "failed to create dht server")
 	}
 	return &DHT{Server: s}, nil
 }
@@ -47,8 +45,7 @@ func (d *DHT) Put(ctx context.Context, request bep44.Put) (string, error) {
 func (d *DHT) Get(ctx context.Context, key string) (*getput.GetResult, error) {
 	z32Decoded, err := util.Z32Decode(key)
 	if err != nil {
-		logrus.WithError(err).Error("failed to decode key")
-		return nil, err
+		return nil, errutil.LoggingErrorMsg(err, "failed to decode key")
 	}
 	res, t, err := getput.Get(ctx, infohash.HashBytes(z32Decoded), d.Server, nil, nil)
 	if err != nil {
@@ -58,13 +55,12 @@ func (d *DHT) Get(ctx context.Context, key string) (*getput.GetResult, error) {
 }
 
 // GetFull returns the full BEP-44 result for the given key from the DHT, using our modified
-// implementation of getput.Get. IT should only be used when it's needed to get the signature
+// implementation of getput.Get. It should ONLY be used when it's needed to get the signature
 // data for a record.
 func (d *DHT) GetFull(ctx context.Context, key string) (*dhtint.FullGetResult, error) {
 	z32Decoded, err := util.Z32Decode(key)
 	if err != nil {
-		logrus.WithError(err).Error("failed to decode key")
-		return nil, err
+		return nil, errutil.LoggingErrorMsg(err, "failed to decode key")
 	}
 	res, t, err := dhtint.Get(ctx, infohash.HashBytes(z32Decoded), d.Server, nil, nil)
 	if err != nil {
