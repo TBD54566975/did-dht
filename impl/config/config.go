@@ -36,15 +36,16 @@ func (e EnvironmentVariable) String() string {
 }
 
 type Config struct {
-	ServerConfig ServiceConfig      `toml:"server"`
+	ServerConfig ServerConfig       `toml:"server"`
 	DHTConfig    DHTServiceConfig   `toml:"dht"`
 	PKARRConfig  PKARRServiceConfig `toml:"pkarr"`
 }
 
-type ServiceConfig struct {
+type ServerConfig struct {
 	Environment Environment `toml:"env"`
 	APIHost     string      `toml:"api_host"`
 	APIPort     int         `toml:"api_port"`
+	BaseURL     string      `toml:"base_url"`
 	LogLocation string      `toml:"log_location"`
 	LogLevel    string      `toml:"log_level"`
 	DBFile      string      `toml:"db_file"`
@@ -60,10 +61,11 @@ type PKARRServiceConfig struct {
 
 func GetDefaultConfig() Config {
 	return Config{
-		ServerConfig: ServiceConfig{
+		ServerConfig: ServerConfig{
 			Environment: EnvironmentDev,
 			APIHost:     "0.0.0.0",
 			APIPort:     8305,
+			BaseURL:     "http://localhost:8305",
 			LogLocation: "log",
 			LogLevel:    "debug",
 			DBFile:      "diddht.db",
