@@ -29,7 +29,7 @@ type Server struct {
 	shutdown chan os.Signal
 
 	cfg *config.Config
-	svc *service.DIDService
+	svc *service.PKARRService
 }
 
 // NewServer returns a new instance of Server with the given db and host.
@@ -46,10 +46,6 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	pkarrService, err := service.NewPKARRService(cfg, db)
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "could not instantiate pkarr service")
-	}
-	didDHTService, err := service.NewDIDService(cfg, db, *pkarrService)
-	if err != nil {
-		return nil, util.LoggingErrorMsg(err, "could not instantiate did dht service")
 	}
 
 	handler.GET("/health", Health)
@@ -73,7 +69,7 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 			WriteTimeout:      time.Second * 5,
 		},
 		cfg:      cfg,
-		svc:      didDHTService,
+		svc:      pkarrService,
 		handler:  handler,
 		shutdown: shutdown,
 	}, nil
@@ -118,27 +114,12 @@ func setupHandler(env config.Environment) *gin.Engine {
 
 // PKARRAPI sets up the relay API routes according to https://github.com/Nuhvi/pkarr/blob/main/design/relays.md
 func PKARRAPI(rg *gin.RouterGroup, service *service.PKARRService) error {
-	relayRouter, err := NewRelayRouter(service)
+	relayRouter, err := NewPKARRRouter(service)
 	if err != nil {
 		return util.LoggingErrorMsg(err, "could not instantiate relay router")
 	}
 
-	rg.PUT("/:id", relayRouter.Put)
-	rg.GET("/:id", relayRouter.Get)
+	rg.PUT("/:id", relayRouter.PutRecord)
+	rg.GET("/:id", relayRouter.GetRecord)
 	return nil
 }
-
-// DIDDHTAPI sets up the DIDDHT API routes
-// func DIDDHTAPI(rg *gin.RouterGroup, service *service.DIDService) error {
-// 	didDHTRouter, err := NewDIDDHTRouter(service)
-// 	if err != nil {
-// 		return util.LoggingErrorMsg(err, "could not instantiate did:dht router")
-// 	}
-//
-// 	didDHTAPI := rg.Group("/did")
-// 	didDHTAPI.PUT("", didDHTRouter.PublishDID)
-// 	didDHTAPI.GET("", didDHTRouter.ListDIDs)
-// 	didDHTAPI.GET("/:id", didDHTRouter.GetDID)
-// 	didDHTAPI.DELETE("/:id", didDHTRouter.DeleteDID)
-// 	return nil
-// }
