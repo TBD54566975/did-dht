@@ -102,7 +102,7 @@ var identityAddCmd = &cobra.Command{
 			Answer: rrds,
 		}
 		// generate put request
-		putReq, err := dht.CreatePKARRPublishRequest(pubKey, privKey, msg)
+		putReq, err := dht.CreatePKARRPublishRequest(privKey, msg)
 		if err != nil {
 			logrus.WithError(err).Error("failed to create put request")
 			return err

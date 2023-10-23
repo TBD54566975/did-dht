@@ -12,21 +12,21 @@ import (
 	"github.com/TBD54566975/did-dht-method/pkg/service"
 )
 
-// RelayRouter is the router for the Relay API
-type RelayRouter struct {
+// PKARRRouter is the router for the PKARR API
+type PKARRRouter struct {
 	service *service.PKARRService
 }
 
-// NewRelayRouter returns a new instance of the Relay router
-func NewRelayRouter(service *service.PKARRService) (*RelayRouter, error) {
-	return &RelayRouter{service: service}, nil
+// NewPKARRRouter returns a new instance of the Relay router
+func NewPKARRRouter(service *service.PKARRService) (*PKARRRouter, error) {
+	return &PKARRRouter{service: service}, nil
 }
 
 // GetRecord godoc
 //
 //	@Summary		GetRecord a PKARR record from the DHT
 //	@Description	GetRecord a PKARR record from the DHT
-//	@Tags			Relay
+//	@Tags			PKARR
 //	@Accept			octet-stream
 //	@Produce		octet-stream
 //	@Param			id	path		string	true	"ID to get"
@@ -35,7 +35,7 @@ func NewRelayRouter(service *service.PKARRService) (*RelayRouter, error) {
 //	@Failure		404	{string}	string	"Not found"
 //	@Failure		500	{string}	string	"Internal server error"
 //	@Router			/{id} [get]
-func (r *RelayRouter) GetRecord(c *gin.Context) {
+func (r *PKARRRouter) GetRecord(c *gin.Context) {
 	id := GetParam(c, IDParam)
 	if id == nil || *id == "" {
 		LoggingRespondErrMsg(c, "missing id param", http.StatusBadRequest)
@@ -44,11 +44,11 @@ func (r *RelayRouter) GetRecord(c *gin.Context) {
 
 	resp, err := r.service.GetPKARR(c, *id)
 	if err != nil {
-		LoggingRespondErrWithMsg(c, err, "failed to get pkarr", http.StatusInternalServerError)
+		LoggingRespondErrWithMsg(c, err, "failed to get pkarr record", http.StatusInternalServerError)
 		return
 	}
 	if resp == nil {
-		LoggingRespondErrMsg(c, "pkarr not found", http.StatusNotFound)
+		LoggingRespondErrMsg(c, "pkarr record not found", http.StatusNotFound)
 		return
 	}
 
@@ -65,7 +65,7 @@ func (r *RelayRouter) GetRecord(c *gin.Context) {
 //
 //	@Summary		PutRecord a PKARR record into the DHT
 //	@Description	PutRecord a PKARR record into the DHT
-//	@Tags			Relay
+//	@Tags			PKARR
 //	@Accept			octet-stream
 //	@Param			id		path	string	true	"ID of the record to put"
 //	@Param			request	body	[]byte	true	"64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v."
@@ -73,7 +73,7 @@ func (r *RelayRouter) GetRecord(c *gin.Context) {
 //	@Failure		400	{string}	string	"Bad request"
 //	@Failure		500	{string}	string	"Internal server error"
 //	@Router			/{id} [put]
-func (r *RelayRouter) PutRecord(c *gin.Context) {
+func (r *PKARRRouter) PutRecord(c *gin.Context) {
 	id := GetParam(c, IDParam)
 	if id == nil || *id == "" {
 		LoggingRespondErrMsg(c, "missing id param", http.StatusBadRequest)
@@ -116,7 +116,7 @@ func (r *RelayRouter) PutRecord(c *gin.Context) {
 		Seq: seq,
 	}
 	if _, err = r.service.PublishPKARR(c, request); err != nil {
-		LoggingRespondErrWithMsg(c, err, "failed to publish pkarr request", http.StatusInternalServerError)
+		LoggingRespondErrWithMsg(c, err, "failed to publish pkarr record", http.StatusInternalServerError)
 		return
 	}
 

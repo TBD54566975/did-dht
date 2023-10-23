@@ -114,7 +114,7 @@ func setupHandler(env config.Environment) *gin.Engine {
 
 // PKARRAPI sets up the relay API routes according to https://github.com/Nuhvi/pkarr/blob/main/design/relays.md
 func PKARRAPI(rg *gin.RouterGroup, service *service.PKARRService) error {
-	relayRouter, err := NewRelayRouter(service)
+	relayRouter, err := NewPKARRRouter(service)
 	if err != nil {
 		return util.LoggingErrorMsg(err, "could not instantiate relay router")
 	}
@@ -123,18 +123,3 @@ func PKARRAPI(rg *gin.RouterGroup, service *service.PKARRService) error {
 	rg.GET("/:id", relayRouter.GetRecord)
 	return nil
 }
-
-// DIDDHTAPI sets up the DIDDHT API routes
-// func DIDDHTAPI(rg *gin.RouterGroup, service *service.DIDService) error {
-// 	didDHTRouter, err := NewDIDDHTRouter(service)
-// 	if err != nil {
-// 		return util.LoggingErrorMsg(err, "could not instantiate did:dht router")
-// 	}
-//
-// 	didDHTAPI := rg.Group("/did")
-// 	didDHTAPI.PUT("", didDHTRouter.PublishDID)
-// 	didDHTAPI.GET("", didDHTRouter.ListDIDs)
-// 	didDHTAPI.GET("/:id", didDHTRouter.GetDID)
-// 	didDHTAPI.DELETE("/:id", didDHTRouter.DeleteDID)
-// 	return nil
-// }

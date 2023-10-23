@@ -2,7 +2,6 @@ package dht
 
 import (
 	"context"
-	"crypto/ed25519"
 	"testing"
 
 	"github.com/TBD54566975/ssi-sdk/crypto"
@@ -22,7 +21,7 @@ func TestGetPutPKARRDHT(t *testing.T) {
 	d, err := NewDHT(config.GetDefaultBootstrapPeers())
 	require.NoError(t, err)
 
-	pubKey, privKey, err := util.GenerateKeypair()
+	_, privKey, err := util.GenerateKeypair()
 	require.NoError(t, err)
 
 	txtRecord := dns.TXT{
@@ -44,7 +43,7 @@ func TestGetPutPKARRDHT(t *testing.T) {
 		},
 		Answer: []dns.RR{&txtRecord},
 	}
-	put, err := CreatePKARRPublishRequest(pubKey, privKey, msg)
+	put, err := CreatePKARRPublishRequest(privKey, msg)
 	require.NoError(t, err)
 
 	id, err := d.Put(context.Background(), *put)
@@ -105,8 +104,7 @@ func TestGetPutDIDDHT(t *testing.T) {
 	didDocPacket, err := didID.ToDNSPacket(*doc)
 	require.NoError(t, err)
 
-	key := privKey.Public().(ed25519.PublicKey)
-	putReq, err := CreatePKARRPublishRequest(key, privKey, *didDocPacket)
+	putReq, err := CreatePKARRPublishRequest(privKey, *didDocPacket)
 	require.NoError(t, err)
 
 	gotID, err := dht.Put(context.Background(), *putReq)

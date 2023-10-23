@@ -22,7 +22,7 @@ paths:
     get:
       consumes:
       - application/octet-stream
-      description: Get a PKARR from the DHT
+      description: GetRecord a PKARR record from the DHT
       parameters:
       - description: ID to get
         in: path
@@ -50,15 +50,15 @@ paths:
           description: Internal server error
           schema:
             type: string
-      summary: Get a PKARR from the DHT
+      summary: GetRecord a PKARR record from the DHT
       tags:
       - Relay
     put:
       consumes:
       - application/octet-stream
-      description: Put a PKARR record into the DHT
+      description: PutRecord a PKARR record into the DHT
       parameters:
-      - description: ID to put
+      - description: ID of the record to put
         in: path
         name: id
         required: true
@@ -82,7 +82,7 @@ paths:
           description: Internal server error
           schema:
             type: string
-      summary: Put a PKARR record into the DHT
+      summary: PutRecord a PKARR record into the DHT
       tags:
       - Relay
   /health:

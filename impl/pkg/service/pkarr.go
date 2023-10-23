@@ -68,6 +68,10 @@ func (p PublishPKARRRequest) toRecord() storage.PKARRRecord {
 
 // PublishPKARR stores the record in the db, publishes the given PKARR to the DHT, and returns the z-base-32 encoded ID
 func (s *PKARRService) PublishPKARR(ctx context.Context, request PublishPKARRRequest) (string, error) {
+	if err := util.IsValidStruct(request); err != nil {
+		return "", err
+	}
+	// TODO(gabe): if putting to the DHT fails we should note that in the db and retry later
 	if err := s.db.WriteRecord(request.toRecord()); err != nil {
 		return "", err
 	}

@@ -5,7 +5,7 @@ in Go.
 
 ## Build & Run
 
-From the root directory run:
+From the `impl` directory run:
 
 ```
 docker build . -t did-dht -f build/Dockerfile

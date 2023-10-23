@@ -33,11 +33,12 @@ import (
 //				},
 //		    }
 //		}
-func CreatePKARRPublishRequest(publicKey ed25519.PublicKey, privateKey ed25519.PrivateKey, msg dns.Msg) (*bep44.Put, error) {
+func CreatePKARRPublishRequest(privateKey ed25519.PrivateKey, msg dns.Msg) (*bep44.Put, error) {
 	packed, err := msg.Pack()
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to pack records")
 	}
+	publicKey := privateKey.Public().(ed25519.PublicKey)
 	put := &bep44.Put{
 		V:   packed,
 		K:   (*[32]byte)(publicKey),
