@@ -119,8 +119,8 @@ func PKARRAPI(rg *gin.RouterGroup, service *service.PKARRService) error {
 		return util.LoggingErrorMsg(err, "could not instantiate relay router")
 	}
 
-	rg.PUT("/:id", relayRouter.Put)
-	rg.GET("/:id", relayRouter.Get)
+	rg.PUT("/:id", relayRouter.PutRecord)
+	rg.GET("/:id", relayRouter.GetRecord)
 	return nil
 }
 

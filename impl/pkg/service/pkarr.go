@@ -62,7 +62,7 @@ func (p PublishPKARRRequest) toRecord() storage.PKARRRecord {
 		V:   encoding.EncodeToString(p.V),
 		K:   encoding.EncodeToString(p.K[:]),
 		Sig: encoding.EncodeToString(p.Sig[:]),
-		Seq: 0,
+		Seq: p.Seq,
 	}
 }
 
@@ -137,14 +137,14 @@ func (s *PKARRService) GetPKARR(ctx context.Context, id string) (*GetPKARRRespon
 func (s *PKARRService) republish() {
 	allRecords, err := s.db.ListRecords()
 	if err != nil {
-		logrus.WithError(err).Error("failed to list records for republishing")
+		logrus.WithError(err).Error("failed to list record(s) for republishing")
 		return
 	}
 	if len(allRecords) == 0 {
 		logrus.Info("No records to republish")
 		return
 	}
-	logrus.Infof("Republishing %d records", len(allRecords))
+	logrus.Infof("Republishing %d record(s)", len(allRecords))
 	errCnt := 0
 	for _, record := range allRecords {
 		put, err := recordToBEP44Put(record)
@@ -159,7 +159,7 @@ func (s *PKARRService) republish() {
 			continue
 		}
 	}
-	logrus.Infof("Republishing complete. Successfully republished %d out of %d records", errCnt, len(allRecords))
+	logrus.Infof("Republishing complete. Successfully republished %d out of %d record(s)", len(allRecords)-errCnt, len(allRecords))
 }
 
 func recordToBEP44Put(record storage.PKARRRecord) (*bep44.Put, error) {

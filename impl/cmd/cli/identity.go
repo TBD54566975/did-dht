@@ -133,8 +133,8 @@ var identityAddCmd = &cobra.Command{
 
 var identityGetCmd = &cobra.Command{
 	Use:   "get",
-	Short: "Get an identity",
-	Long:  `Get an identity by its id.`,
+	Short: "GetRecord an identity",
+	Long:  `GetRecord an identity by its id.`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id := args[0]

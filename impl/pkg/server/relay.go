@@ -22,10 +22,10 @@ func NewRelayRouter(service *service.PKARRService) (*RelayRouter, error) {
 	return &RelayRouter{service: service}, nil
 }
 
-// Get godoc
+// GetRecord godoc
 //
-//	@Summary		Get a PKARR from the DHT
-//	@Description	Get a PKARR from the DHT
+//	@Summary		GetRecord a PKARR record from the DHT
+//	@Description	GetRecord a PKARR record from the DHT
 //	@Tags			Relay
 //	@Accept			octet-stream
 //	@Produce		octet-stream
@@ -35,7 +35,7 @@ func NewRelayRouter(service *service.PKARRService) (*RelayRouter, error) {
 //	@Failure		404	{string}	string	"Not found"
 //	@Failure		500	{string}	string	"Internal server error"
 //	@Router			/{id} [get]
-func (r *RelayRouter) Get(c *gin.Context) {
+func (r *RelayRouter) GetRecord(c *gin.Context) {
 	id := GetParam(c, IDParam)
 	if id == nil || *id == "" {
 		LoggingRespondErrMsg(c, "missing id param", http.StatusBadRequest)
@@ -61,19 +61,19 @@ func (r *RelayRouter) Get(c *gin.Context) {
 	RespondBytes(c, res, http.StatusOK)
 }
 
-// Put godoc
+// PutRecord godoc
 //
-//	@Summary		Put a PKARR record into the DHT
-//	@Description	Put a PKARR record into the DHT
+//	@Summary		PutRecord a PKARR record into the DHT
+//	@Description	PutRecord a PKARR record into the DHT
 //	@Tags			Relay
 //	@Accept			octet-stream
-//	@Param			id		path	string	true	"ID to put"
+//	@Param			id		path	string	true	"ID of the record to put"
 //	@Param			request	body	[]byte	true	"64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v."
 //	@Success		200
 //	@Failure		400	{string}	string	"Bad request"
 //	@Failure		500	{string}	string	"Internal server error"
 //	@Router			/{id} [put]
-func (r *RelayRouter) Put(c *gin.Context) {
+func (r *RelayRouter) PutRecord(c *gin.Context) {
 	id := GetParam(c, IDParam)
 	if id == nil || *id == "" {
 		LoggingRespondErrMsg(c, "missing id param", http.StatusBadRequest)
