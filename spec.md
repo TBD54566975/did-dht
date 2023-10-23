@@ -96,7 +96,7 @@ An example is as follows:
 
  | name        | rdata                                                    |
  |-------------|----------------------------------------------------------|
- | `_did.TLD`  | `vm=k1,k2,k3;auth=k1;asr=k2;cin=k3;cdel=k3;srv=s1,s2,s3` |
+ | `_did.TLD`  | `vm=k1,k2,k3;auth=k1;asm=k2;inv=k3;del=k3;srv=s1,s2,s3` |
  
 -------------------------------------------------------------------------
 The following instructions serve as a reference of mapping DID Document properties to DNS `TXT` records:
