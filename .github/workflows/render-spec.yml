@@ -3,27 +3,31 @@ on:
   push:
     branches:
       - main
+
 jobs:
-  build-and-deploy-spec:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout 🛎️
+      - name: Checkout
         uses: actions/checkout@v3
-        with:
-          persist-credentials: false
 
       - name: Install and Build 🔧
         run: |
           cd spec
           npm install
-          npm run build
-          pwd
-          ls -alt
+          npm run build 
           
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3.9.3
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+        
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: /spec/build
-          allow_empty_commit: true
-          force_orphan: true
+          path: './sped/build'
+          
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
