@@ -81,7 +81,7 @@ did-dht-format := did:dht:Z-BASE-32(raw-public-key-bytes)
 
 ### DIDs as a DNS Packet
 
-In this scheme we encode the [[ref:DID Document]] as multiple [TXT records](https://en.wikipedia.org/wiki/TXT_record).
+In this scheme we encode the [[ref:DID Document]] as multiple [DNS TXT records](https://en.wikipedia.org/wiki/TXT_record).
 Comprising a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then stored in the [[ref:DHT]].
 
 | Name     | Type | TTL    | Rdata                                     |
@@ -112,94 +112,107 @@ It might look like repeating `_did` is an overhead, but these can be compressed 
 * The DNS packet **MUST** set the _Authoritative Answer_ flag, since this is always an _Authoritative_ packet.
 
 * The DID identifier [[ref:z-base-32]]-encoded key **MUST** be appended as the Origin of all records:
+
 | Name                                                     | Type | TTL    | Rdata                                     |
 | -------------------------------------------------------- | ---- | ------ | ----------------------------------------- |
 | _did.o4dksfbqk85ogzdb5osziw6befigbuxmuxkuxq8434q89uj56uyy | TXT  |  7200  | vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2 |
 
-#### Property Mapping
+### Property Mapping
 
-The _root record_, `_did` or `_did.TLD` if a TLD is being utilized contains a list of IDs of the keys and service
-endpoints used in different sections of the DID Document.
-
-An example is as follows:
-
- | name        | rdata                                                    |
- |-------------|----------------------------------------------------------|
- | `_did.TLD`  | `vm=k1,k2,k3;auth=k1;asm=k2;inv=k3;del=k3;srv=s1,s2,s3`  |
-
--------------------------------------------------------------------------
-The following instructions serve as a reference of mapping DID Document properties to DNS `TXT` records:
-
-**1. Verification Methods**
-
-Each Verification Method _name_ is represented as a `_kN._did` record where `N` is the positional index of the
-Verification Method (e.g. `_k0`, `_k1`).
-
-Each Verification Method _data_ is represented with the form `id=M,t=N,k=O` where `M` is the key's ID, `N` is the index
-of the key's type from the table below, and `O` is the base64URL representation of the public key.
-
-| index | key type    |
-| ----- | ----------- |
-| 0     | `ed25519`   |
-| 1     | `secp256k1` |
-| 2     | `secp256r1` |
-
+* The _root record_, `_did` or `_did.TLD` if a [TLD](https://en.wikipedia.org/wiki/Top-level_domain) is being utilized
+contains a list of IDs of the keys and service endpoints used in different sections of the [[ref:DID Document]].
 
 An example is as follows:
 
-| name       | rdata                                                       |
-|------------|-------------------------------------------------------------|
-| `_k1._did` | `id=abcd,t=0,k=r96mnGNgWGOmjt6g_3_0nd4Kls5-kknrd4DdPW8qtfw` |
+| Name      | Type | TTL  | Rdata                                                 |
+| --------- | ---- | ---- | ----------------------------------------------------- |
+| _did.TLD  | TXT  | 7200 | vm=k1,k2,k3;auth=k1;asm=k2;inv=k3;del=k3;srv=s1,s2,s3 |
 
 -------------------------------------------------------------------------
 
-**2. Verification Relationships**
+The following instructions serve as a reference of mapping DID Document properties to [DNS TXT records](https://en.wikipedia.org/wiki/TXT_record):
 
-Each Verification Relationship, if utilized, is represented as a part of the root `_did.TLD` record.
+#### Verification Methods
 
-The following table maps Verification Relationship types to their record name.
+* Each Verification Method **name** is represented as a `_kN._did` record where `N` is the zero-indexed positional index of
+a given [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) (e.g. `_k0`, `_k1`).
+
+* Each [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) **rdata** is represented with the form
+`id=M,t=N,k=O` where `M` is the key's ID, `N` is the index of the key's type from [key type index](#key-type-index),
+and `O` is the base64URL [[spec:RFC4648]] representation of the public key.
+
+##### Key Type Index
+
+| Index | Key Type                                               |
+| ----- | ------------------------------------------------------ |
+| 0     | [Ed25519](https://ed25519.cr.yp.to/)                   |
+| 1     | [secp256k1](https://en.bitcoin.it/wiki/Secp256k1)      |
+| 2     | [secp256r1](https://neuromancer.sk/std/secg/secp256r1) |
+
+An example [Verification Method]((https://www.w3.org/TR/did-core/#verification-methods)) record represented as a DNS TXT
+record is as follows:
+
+| Name     | Rdata                                                     |
+| -------- | --------------------------------------------------------- |
+| _k0._did | id=abcd,t=0,k=r96mnGNgWGOmjt6g_3_0nd4Kls5-kknrd4DdPW8qtfw |
+
+-------------------------------------------------------------------------
+
+#### Verification Relationships
+
+* Each [Verification Relationship](https://www.w3.org/TR/did-core/#verification-relationships) is represented as a part
+of the root `_did.TLD` record (see: [Property Mapping](#property-mapping)).
+
+The following table maps Verification Relationship types to their record name:
+
+##### Verification Relationship Index
 
 | Verification Relationship  | Record Name |
-| ------------------------- | ---------- |
-| Authentication            | `auth`     |
-| Assertion                 | `asm`      |
-| Key Agreement             | `agm`      |
-| Capability Invocation     | `inv`      |
-| Capability Delegation     | `del`      |
+| ------------------------- | ----------- |
+| Authentication            | auth        |
+| Assertion                 | asm         |
+| Key Agreement             | agm         |
+| Capability Invocation     | inv         |
+| Capability Delegation     | del         |
 
-The record data is uniform across verification relationships, a comma separated list of key references:
+The record data is uniform across [Verification Relationships](https://www.w3.org/TR/did-core/#verification-relationships),
+represented as a comma separated list of key references.
 
 An example is as follows:
- | Verification Relationship  |  rdata in the root record                    |
- |---------------------------|----------------------------------------------|
- | `"authentication": ["#0", "#HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ"]` | `auth=0,HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ` |
- | `"assertionMethod": ["#0", "#HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ"]`| `asm=0,HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ`  |
- | `"keyAgreement": ["#1"]`              | `agm=1`      |
- | `"capabilityInvocation": ["#0"]`      | `inv=0`      |
- | `"capabilityDelegation": ["#0"]`      | `del=0`      |
+
+| Verification Relationship  | Rdata in the Root Record                    |
+|---------------------------|----------------------------------------------|
+| "authentication": ["#0", "#HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ"] | auth=0,HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ |
+| "assertionMethod": ["#0", "#HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ"]| asm=0,HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ  |
+| "keyAgreement": ["#1"]              | agm=1      |
+| "capabilityInvocation": ["#0"]      | inv=0      |
+| "capabilityDelegation": ["#0"]      | del=0      |
 
 
 -----------------------------------------------------
 
-**3. Services**
+#### Services
 
-Each Service, if utilized, is represented  name is represented as a `_sN._did` record where N is the positional index
-of the Service (e.g. `_s0`, `_s1`). Each Service _data_ is represented with the form `id=M,t=N,uri=O` where `M` is the
-Service's ID, `N` is the Service's Type and `O` is the Service's URI.
+* Each [Service](https://www.w3.org/TR/did-core/#services)'s **name** is represented as a `_sN._did` record where `N` is
+the zero-indexed positional index of the Service (e.g. `_s0`, `_s1`).
+* Each [Service](https://www.w3.org/TR/did-core/#services)'s **data** is represented with the form `id=M,t=N,uri=O`
+where `M` is the Service's ID, `N` is the Service's Type and `O` is the Service's URI.
 
 An example is given as follows:
 
- | name       |  rdata                                                      |
- |------------|-------------------------------------------------------------|
- | `_s0._did` | `id=dwn,t=DecentralizedWebNode,uri=https://example.com/dwn` |
+| name     |  rdata                                                    |
+| -------- | --------------------------------------------------------- |
+| _s0._did | id=dwn,t=DecentralizedWebNode,uri=https://example.com/dwn |
 
 
 Each Service is also represented as part of the root `_did.TLD` record as a list under the key `srv=<ids>` where `ids`
 is a comma separate list of all IDs for each Service.
 
------------------------------------------------------
+#### Example
 
-A sample transformation is provided of the following DID Document:
+A sample transformation is provided of a fully-featured DID Document to a DNS packet:
+
+**DID Document**
 
 ```json
 {
@@ -210,15 +223,11 @@ A sample transformation is provided of the following DID Document:
       "type": "JsonWebKey2020",
       "controller": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
       "publicKeyJwk": {
+        "kid": "0",
         "alg": "EdDSA",
         "crv": "Ed25519",
         "kty": "OKP",
-        "ext": "true",
-        "key_ops": [
-          "verify"
-        ],
-        "x": "r96mnGNgWGOmjt6g_3_0nd4Kls5-kknrd4DdPW8qtfw",
-        "kid": "0"
+        "x": "r96mnGNgWGOmjt6g_3_0nd4Kls5-kknrd4DdPW8qtfw"
       }
     },
     {
@@ -226,16 +235,12 @@ A sample transformation is provided of the following DID Document:
       "type": "JsonWebKey2020",
       "controller": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
       "publicKeyJwk": {
+        "kid": "HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ",
         "alg": "ES256K",
         "crv": "secp256k1",
         "kty": "EC",
-        "ext": "true",
-        "key_ops": [
-          "verify"
-        ],
         "x": "KI0DPvL5cGvznc8EDOAA5T9zQfLDQZvr0ev2NMLcxDw",
-        "y": "0iSbXxZo0jIFLtW8vVnoWd8tEzUV2o22BVc_IjVTIt8",
-        "kid": "HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ"
+        "y": "0iSbXxZo0jIFLtW8vVnoWd8tEzUV2o22BVc_IjVTIt8"
       }
     }
   ],
@@ -253,14 +258,14 @@ A sample transformation is provided of the following DID Document:
 }
 ```
 
-All records are of type `TXT` with an expiry of `7200` to align with the DHT's standard 2-hour expiry window.
+**DNS Resource Records**
 
- | name       | rdata                                                                          |
- |------------|--------------------------------------------------------------------------------|
- | `_did.TLD` | `vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;srv=s1`                           |
- | `_k0._did` | `id=0,t=0,h=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc`  |
- | `_k1._did` | `id=HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ,t=1,k=BCiNAz7y-XBr853PBAzgAOU_c0Hyw0Gb69Hr9jTC3MQ80iSbXxZo0jIFLtW8vVnoWd8tEzUV2o22BVc_IjVTIt8` |
- | `_s0._did` | `id=dwn,t=DecentralizedWebNode,uri=https://example.com/dwn`                    |
+| Name     | Rdata                                                                        |
+| -------- | ---------------------------------------------------------------------------- |
+| _did.TLD | vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;srv=s1                           |
+| _k0._did | id=0,t=0,h=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc  |
+| _k1._did | id=HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ,t=1,k=BCiNAz7y-XBr853PBAzgAOU_c0Hyw0Gb69Hr9jTC3MQ80iSbXxZo0jIFLtW8vVnoWd8tEzUV2o22BVc_IjVTIt8 |
+| _s0._did | id=dwn,t=DecentralizedWebNode,uri=https://example.com/dwn                    |
 
 ### Operations
 
@@ -272,51 +277,61 @@ and is referred to as the [[ref:Identity Key]].
 
 To create a `did:dht`, the process is as follows:
 
-1. Generate an [Ed25519](https://ed25519.cr.yp.to/) keypair and encode the public key using the format provided in
-the [format section](#format).
+1. Generate an [[ref:Ed25519]] keypair and encode the public key using the format provided in the [format section](#format).
 
 2. Construct a compliant JSON representation of a [[ref:DID Document]].
 
-    a. The document **MUST** include a [verification method](https://www.w3.org/TR/did-core/#verification-methods) with
+    a. The document **MUST** include a [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) with
  the _identifier key_ encoded as a `publicKeyJwk` as per [[spec:RFC7517]] with an `id` of ``#0`` and `type` of
  `JsonWebKey2020` as per [[ref:VC-JWS-2020]].
 
     b. The document can include any number of other [core properties](https://www.w3.org/TR/did-core/#core-properties);
  always representing key material as a `JWK` as per [[spec:RFC7517]].
 
-3. Map the output DID Document to a DNS packet as outlined in the [section below](#DNS-Packet-DID-document). 
+3. Map the output [[ref:DID Document]] to a DNS packet as outlined in [property mapping](#property-mapping).
 
-4. Construct a [[ref:BEP44]] put message with the `v` value as a DNS packet from the prior step.
+4. Construct a signed [[ref:BEP44]] put message with the `v` value as a [[ref:bencode]]d DNS packet from the prior step.
 
-5. Submit the result of (3) to the [[ref:DHT]], a [[ref:Pkarr]]] relay, or a [[ref:DID DHT service]].
+5. Submit the result of to the [[ref:DHT]] via a [[ref:Pkarr]] relay, or a [[ref:DID DHT service]].
  
 #### Read
 
 To read a `did:dht`, the process is as follows:
 
-1. Take the suffix of the DID, that is, the _encoded identifier key_, and pass it to a [[ref:Pkarr]] resolver.
+1. Take the suffix of the DID, that is, the _encoded identifier key_, and pass it to a [[ref:Pkarr]] relay or a [[ref:DID DHT service]].
 2. Decode the resulting [[ref:BEP44]] response's `v` value using [[ref:bencode]].
-3. Reverse the DNS packet process outlined above and re-construct a DID Document.
+3. Reverse the DNS [property mapping](#property-mapping) process and re-construct a compliant [[ref:DID Document]].
 
 #### Update
 
-Each write to the DHT is considered an update. As long as control of the _identity key_ is retained any update is
-possible with a unique sequence number with [mutable items](https://www.bittorrent.org/beps/bep_0044.html) using BEP44.
+Any valid BEP44 method written to the DHT is considered an update. This means as long as control of the [[ref:Identity Key]]
+is retained any update to the record set is made possibly by signing and writing records with a unique incremental
+sequence number with [mutable items](https://www.bittorrent.org/beps/bep_0044.html) using [[ref:BEP44]].
+
+It is **RECOMMENDED** that updates are made infrequently as caching of the DHT is highly encouraged.
+
+::: issue
+[ISSUE-26](https://github.com/TBD54566975/did-dht-method/issues/26)
+Add notes on distinguishing between keys that are no longer in use and keys that are still in use.
+:::
 
 #### Deactivate
 
-To deactivate a document there are two options:
+To deactivate a document there are a couple options:
     
 1. Let the DHT record expire and cease to publish it.
-2. Publish a new DHT record where the `rdata` of the root DNS record is the string "deactivated"
+2. Publish a new DHT record where the `rdata` of the root DNS record is the string "deactivated."
 
- | name         | rdata          |
- |--------------|----------------|
- | ``_did.TLD`  | `deactivated`  |
+| Name      | Type | TTL  | Rdata       |
+| --------- | ---- | ---- | ----------- |
+| _did.TLD  | TXT  | 7200 | deactivated |
 
 ## Bitcoin-anchored Gateways
 
-**(TODO): service endpoints / api**
+::: issue
+[ISSUE-10](https://github.com/TBD54566975/did-dht-method/issues/10) [ISSUE-11](https://github.com/TBD54566975/did-dht-method/issues/11)
+Fully define this API.
+:::
 
 To be recognized as a DID DHT retention gateway, the gateway operator must anchor a transaction on Bitcoin that
 timelocks Bitcoin value proportional to the number of DIDs they introduce into the _Retained DID Set_.
@@ -345,9 +360,21 @@ Document, to aid in Identity Agents (wallets) being able to assess whether resub
 
 ## Implementation Considerations
 
+::: issue
+[ISSUE-27](https://github.com/TBD54566975/did-dht-method/issues/27)
+
+Write this section.
+:::
+
 Data needs to be republished.
 
 ## Security and Privacy Considerations
+
+::: issue
+[ISSUE-28](https://github.com/TBD54566975/did-dht-method/issues/28)
+
+Write this section.
+:::
 
 ### Security
 

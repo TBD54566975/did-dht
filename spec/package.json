@@ -21,6 +21,7 @@
     "build:specs": "node -e \"require('spec-up')({ nowatch: true })\"",
     "dev": "npm run clean && npm run resources && npm run dev:specs",
     "dev:specs": "node -e \"require('spec-up')()\"",
+    "resources": "",
     "clean": "del build && mkdir build"
   }
 }
