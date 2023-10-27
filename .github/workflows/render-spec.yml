@@ -6,9 +6,6 @@ on:
 jobs:
   build-and-deploy-spec:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./spec
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v3
@@ -17,6 +14,7 @@ jobs:
 
       - name: Install and Build 🔧
         run: |
+          cd spec
           npm install
           npm run build
 
