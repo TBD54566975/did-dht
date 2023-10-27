@@ -1,0 +1,26 @@
+{
+  "name": "did-dht-method",
+  "description": "The DID DHT Method",
+  "version": "1.0.0",
+  "homepage": "http://tbd.website",
+  "license": "Apache 2.0",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/TBD54566975/did-dht-method"
+  },
+  "dependencies": {
+    "spec-up": "^0.10.6"
+  },
+  "devDependencies": {
+    "del-cli": "^4.0.1"
+  },
+  "scripts": {
+    "render": "npm run build",
+    "edit": "npm run dev",
+    "build": "npm run clean && npm run resources && npm run build:specs",
+    "build:specs": "node -e \"require('spec-up')({ nowatch: true })\"",
+    "dev": "npm run clean && npm run resources && npm run dev:specs",
+    "dev:specs": "node -e \"require('spec-up')()\"",
+    "clean": "del build && mkdir build"
+  }
+}

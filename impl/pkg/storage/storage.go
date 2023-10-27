@@ -115,8 +115,7 @@ func (s *Storage) ReadAll(namespace string) (map[string][]byte, error) {
 	err := s.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
 		if bucket == nil {
-			errMsg := fmt.Sprintf("namespace<%s> does not exist", namespace)
-			logrus.Error(errMsg)
+			logrus.Warnf("namespace<%s> does not exist", namespace)
 			return nil
 		}
 		cursor := bucket.Cursor()
@@ -128,14 +127,13 @@ func (s *Storage) ReadAll(namespace string) (map[string][]byte, error) {
 	return result, err
 }
 
-func (s *Storage) ReadAllKeys(namespace string) ([]string, error) {
+func (s *Storage) ReadAllKeys(_ context.Context, namespace string) ([]string, error) {
 	var result []string
 	err := s.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
 		if bucket == nil {
-			errMsg := fmt.Sprintf("namespace<%s> does not exist", namespace)
-			logrus.Error(errMsg)
-			return errors.New(errMsg)
+			logrus.Warnf("namespace<%s> does not exist", namespace)
+			return nil
 		}
 		cursor := bucket.Cursor()
 		for k, _ := cursor.First(); k != nil; k, _ = cursor.Next() {
