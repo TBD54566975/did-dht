@@ -4,6 +4,7 @@ import (
 	"crypto/ed25519"
 	"encoding/base64"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/TBD54566975/ssi-sdk/crypto"
@@ -16,13 +17,22 @@ import (
 )
 
 type (
-	DHT string
+	DHT       string
+	TypeIndex int
 )
 
 const (
 	// Prefix did:dht prefix
 	Prefix               = "did:dht"
 	DHTMethod did.Method = "dht"
+
+	Organization           TypeIndex = 1
+	GovernmentOrganization TypeIndex = 2
+	Corporation            TypeIndex = 3
+	LocalBusiness          TypeIndex = 4
+	SoftwarePackage        TypeIndex = 5
+	WebApplication         TypeIndex = 6
+	FinancialInstitution   TypeIndex = 7
 )
 
 func (d DHT) IsValid() bool {
@@ -179,8 +189,8 @@ func GetDIDDHTIdentifier(pubKey []byte) string {
 	return strings.Join([]string{Prefix, zbase32.EncodeToString(pubKey)}, ":")
 }
 
-// ToDNSPacket converts a DID DHT Document to a DNS packet
-func (d DHT) ToDNSPacket(doc did.Document) (*dns.Msg, error) {
+// ToDNSPacket converts a DID DHT Document to a DNS packet with an optional list of types to include
+func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex) (*dns.Msg, error) {
 	var records []dns.RR
 	var rootRecord []string
 	keyLookup := make(map[string]string)
@@ -311,6 +321,24 @@ func (d DHT) ToDNSPacket(doc did.Document) (*dns.Msg, error) {
 	}
 	records = append(records, &rootAnswer)
 
+	// add types record
+	if len(types) != 0 {
+		var typesStr []string
+		for _, t := range types {
+			typesStr = append(typesStr, strconv.Itoa(int(t)))
+		}
+		typesAnswer := dns.TXT{
+			Hdr: dns.RR_Header{
+				Name:   "_typ._did.",
+				Rrtype: dns.TypeTXT,
+				Class:  dns.ClassINET,
+				Ttl:    7200,
+			},
+			Txt: []string{"id=" + strings.Join(typesStr, ",")},
+		}
+		records = append(records, &typesAnswer)
+	}
+
 	// build the dns packet
 	return &dns.Msg{
 		MsgHdr: dns.MsgHdr{
@@ -323,11 +351,12 @@ func (d DHT) ToDNSPacket(doc did.Document) (*dns.Msg, error) {
 }
 
 // FromDNSPacket converts a DNS packet to a DID DHT Document
-func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, error) {
+func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 	doc := did.Document{
 		ID: d.String(),
 	}
 
+	var types []TypeIndex
 	keyLookup := make(map[string]string)
 	for _, rr := range msg.Answer {
 		switch record := rr.(type) {
@@ -341,15 +370,15 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, error) {
 				// Convert keyBase64URL back to PublicKeyJWK
 				pubKeyBytes, err := base64.RawURLEncoding.DecodeString(keyBase64URL)
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 				pubKey, err := crypto.BytesToPubKey(pubKeyBytes, keyType)
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 				pubKeyJWK, err := jwx.PublicKeyToPublicKeyJWK(vmID, pubKey)
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 
 				vm := did.VerificationMethod{
@@ -375,6 +404,18 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, error) {
 				}
 				doc.Services = append(doc.Services, service)
 
+			} else if record.Hdr.Name == "_typ._did." {
+				if record.Txt[0] == "" || len(record.Txt) != 1 {
+					return nil, nil, fmt.Errorf("invalid types record")
+				}
+				typesStr := strings.Split(strings.TrimPrefix(record.Txt[0], "id="), ",")
+				for _, t := range typesStr {
+					tInt, err := strconv.Atoi(t)
+					if err != nil {
+						return nil, nil, err
+					}
+					types = append(types, TypeIndex(tInt))
+				}
 			} else if record.Hdr.Name == "_did." {
 				rootData := strings.Join(record.Txt, ";")
 				rootItems := strings.Split(rootData, ";")
@@ -421,7 +462,7 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, error) {
 		}
 	}
 
-	return &doc, nil
+	return &doc, types, nil
 }
 
 func parseTxtData(data string) map[string]string {
