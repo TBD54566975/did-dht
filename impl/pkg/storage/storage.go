@@ -127,7 +127,7 @@ func (s *Storage) ReadAll(namespace string) (map[string][]byte, error) {
 	return result, err
 }
 
-func (s *Storage) ReadAllKeys(_ context.Context, namespace string) ([]string, error) {
+func (s *Storage) ReadAllKeys(namespace string) ([]string, error) {
 	var result []string
 	err := s.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
