@@ -41,7 +41,7 @@ digital identity_.
 ~ The unique identifier string within a DID URI. e.g. The unique suffix of `did:dht:123` would be `123`.
 
 [[def:DID Suffix Data, Suffix Data]]
-~ Data required to deterministically generate a DID, the [[identity key]].
+~ Data required to deterministically generate a DID, the [[ref:Identity Key]].
 
 [[def:Identity Key]]
 ~ An [[ref:Ed25519]] public key encoded with [[ref:z-base-32]] used to uniquely identify a `did:dht` document.
@@ -59,6 +59,17 @@ sovereign, publicly addressable domains."
 protocol. It is a distributed system for storing and finding data on a peer-to-peer network. It is based on
 [Kademlia](https://en.wikipedia.org/wiki/Kademlia) and is primarily used to store and retrieve _torrent_ metadata.
 It has between 16 and 28 million concurrent users.
+
+[[def:Gateway, DID DHT Node, Bitcoin-anchored Gateway]]
+~ A node that acts as a gateway to the DID DHT. The gateway may offer a set of APIs to interact with the DID DHT, such
+as features providing guaranteed retention, historical resolution, and other features.
+
+[[def:Retained DID Set]]
+~ The set of DIDs that a [[ref:Gateway]] is retaining, and thus is responsible for republishing.
+
+[[def:Retention Proof]]
+~ A proof of work that is performed by the [[ref:DID]] controller to prove that they are still in control of the DID. This
+proof is used by nodes to determine how long they should retain a DID.
 
 ## DID DHT Method Specification
 
@@ -119,6 +130,10 @@ It might look like repeating `_did` is an overhead, but these can be compressed 
 
 ### Property Mapping
 
+The following section describes how a [[ref:DID Document]] is mapped to a DNS packet. To avoid repeating potentially
+long identifiers in resource name fields, resources are aliased with zero-indexed values (e.g. `k0`, `k1`, `s0`, `s1`).
+The full identifier is then stored in the resource data field (e.g. `id=abcd,t=0,k=...`).
+
 * The _root record_, `_did` or `_did.TLD` if a [TLD](https://en.wikipedia.org/wiki/Top-level_domain) is being utilized
 contains a list of IDs of the keys and service endpoints used in different sections of the [[ref:DID Document]].
 
@@ -127,8 +142,6 @@ An example is as follows:
 | Name      | Type | TTL  | Rdata                                                 |
 | --------- | ---- | ---- | ----------------------------------------------------- |
 | _did.TLD  | TXT  | 7200 | vm=k1,k2,k3;auth=k1;asm=k2;inv=k3;del=k3;srv=s1,s2,s3 |
-
--------------------------------------------------------------------------
 
 The following instructions serve as a reference of mapping DID Document properties to [DNS TXT records](https://en.wikipedia.org/wiki/TXT_record):
 
@@ -152,11 +165,9 @@ and `O` is the base64URL [[spec:RFC4648]] representation of the public key.
 An example [Verification Method]((https://www.w3.org/TR/did-core/#verification-methods)) record represented as a DNS TXT
 record is as follows:
 
-| Name     | Rdata                                                     |
-| -------- | --------------------------------------------------------- |
-| _k0._did | id=abcd,t=0,k=r96mnGNgWGOmjt6g_3_0nd4Kls5-kknrd4DdPW8qtfw |
-
--------------------------------------------------------------------------
+| Name     | Type | TTL  | Rdata                                                     |
+| -------- | ---- | ---- | --------------------------------------------------------- |
+| _k0._did | TXT  | 7200 | id=abcd,t=0,k=r96mnGNgWGOmjt6g_3_0nd4Kls5-kknrd4DdPW8qtfw |
 
 #### Verification Relationships
 
@@ -180,16 +191,13 @@ represented as a comma separated list of key references.
 
 An example is as follows:
 
-| Verification Relationship  | Rdata in the Root Record                    |
-|---------------------------|----------------------------------------------|
+| Verification Relationship            | Rdata in the Root Record                     |
+|-------------------------------------|----------------------------------------------|
 | "authentication": ["#0", "#HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ"] | auth=0,HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ |
 | "assertionMethod": ["#0", "#HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ"]| asm=0,HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ  |
-| "keyAgreement": ["#1"]              | agm=1      |
-| "capabilityInvocation": ["#0"]      | inv=0      |
-| "capabilityDelegation": ["#0"]      | del=0      |
-
-
------------------------------------------------------
+| "keyAgreement": ["#1"]              | agm=1                                        |
+| "capabilityInvocation": ["#0"]      | inv=0                                        |
+| "capabilityDelegation": ["#0"]      | del=0                                        |
 
 #### Services
 
@@ -200,10 +208,9 @@ where `M` is the Service's ID, `N` is the Service's Type and `O` is the Service'
 
 An example is given as follows:
 
-| name     |  rdata                                                    |
-| -------- | --------------------------------------------------------- |
-| _s0._did | id=dwn,t=DecentralizedWebNode,uri=https://example.com/dwn |
-
+| Name     | Type | TTL  | Rdata                                                     |
+| -------- | ---- | ---- | --------------------------------------------------------- |
+| _s0._did | TXT  | 7200 | id=dwn,t=DecentralizedWebNode,uri=https://example.com/dwn |
 
 Each Service is also represented as part of the root `_did.TLD` record as a list under the key `srv=<ids>` where `ids`
 is a comma separate list of all IDs for each Service.
@@ -260,12 +267,12 @@ A sample transformation is provided of a fully-featured DID Document to a DNS pa
 
 **DNS Resource Records**
 
-| Name     | Rdata                                                                        |
-| -------- | ---------------------------------------------------------------------------- |
-| _did.TLD | vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;srv=s1                           |
-| _k0._did | id=0,t=0,h=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc  |
-| _k1._did | id=HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ,t=1,k=BCiNAz7y-XBr853PBAzgAOU_c0Hyw0Gb69Hr9jTC3MQ80iSbXxZo0jIFLtW8vVnoWd8tEzUV2o22BVc_IjVTIt8 |
-| _s0._did | id=dwn,t=DecentralizedWebNode,uri=https://example.com/dwn                    |
+| Name     | Type | TTL   | Rdata                                                                        |
+| -------- | ---- | ----- | ---------------------------------------------------------------------------- |
+| _did.TLD | TXT  | 7200  | vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;srv=s1                           |
+| _k0._did | TXT  | 7200  | id=0,t=0,h=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc  |
+| _k1._did | TXT  | 7200  | id=HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ,t=1,k=BCiNAz7y-XBr853PBAzgAOU_c0Hyw0Gb69Hr9jTC3MQ80iSbXxZo0jIFLtW8vVnoWd8tEzUV2o22BVc_IjVTIt8 |
+| _s0._did | TXT  | 7200  | id=dwn,t=DecentralizedWebNode,uri=https://example.com/dwn                    |
 
 ### Operations
 
@@ -292,28 +299,23 @@ To create a `did:dht`, the process is as follows:
 
 4. Construct a signed [[ref:BEP44]] put message with the `v` value as a [[ref:bencode]]d DNS packet from the prior step.
 
-5. Submit the result of to the [[ref:DHT]] via a [[ref:Pkarr]] relay, or a [[ref:DID DHT service]].
+5. Submit the result of to the [[ref:DHT]] via a [[ref:Pkarr]] relay, or a [[ref:Gateway]].
  
 #### Read
 
 To read a `did:dht`, the process is as follows:
 
-1. Take the suffix of the DID, that is, the _encoded identifier key_, and pass it to a [[ref:Pkarr]] relay or a [[ref:DID DHT service]].
+1. Take the suffix of the DID, that is, the _encoded identifier key_, and pass it to a [[ref:Pkarr]] relay or a [[ref:Gateway]].
 2. Decode the resulting [[ref:BEP44]] response's `v` value using [[ref:bencode]].
 3. Reverse the DNS [property mapping](#property-mapping) process and re-construct a compliant [[ref:DID Document]].
 
 #### Update
 
-Any valid BEP44 method written to the DHT is considered an update. This means as long as control of the [[ref:Identity Key]]
-is retained any update to the record set is made possibly by signing and writing records with a unique incremental
-sequence number with [mutable items](https://www.bittorrent.org/beps/bep_0044.html) using [[ref:BEP44]].
+Any valid [[ref:BEP44]] record written to the DHT is considered an update. This means as long as control of the
+[[ref:Identity Key]] is retained any update is made possibly by signing and writing records with a unique incremental
+sequence number with [mutable items](https://www.bittorrent.org/beps/bep_0044.html).
 
 It is **RECOMMENDED** that updates are made infrequently as caching of the DHT is highly encouraged.
-
-::: issue
-[ISSUE-26](https://github.com/TBD54566975/did-dht-method/issues/26)
-Add notes on distinguishing between keys that are no longer in use and keys that are still in use.
-:::
 
 #### Deactivate
 
@@ -326,42 +328,193 @@ To deactivate a document there are a couple options:
 | --------- | ---- | ---- | ----------- |
 | _did.TLD  | TXT  | 7200 | deactivated |
 
+::: note
+If you have published your DID through a [[ref:Gateway]] you may need to contact the operator to have them remove the
+record from their [[ref:Retained DID Set]].
+:::
+
+### Type Indexing
+
+Type indexing is an **OPTIONAL** feature that enables DIDs to flag themselves as being of a certain type. Types are not
+included as a part of the DID Document, but rather included as part of the DNS packet. This allows for DIDs to be
+indexed by type by [[ref:Gateway]]s, and for DIDs to be resolved by type.
+
+DIDs can be indexed by type by adding a `_typ._did` record to the DNS packet. A DID may have **AT MOST** one type index
+record. This record is a TXT record with the following format:
+
+* The record **name** represented as a `_typ._did`.
+* The record **data** is represented with the form `id=0,1,2` where the value is a comma separated list of types from
+the [type index](#type-index).
+
+An example type record is as follows:
+
+| Name      | Type | TTL  | Rdata       |
+| --------- | ---- | ---- | ----------- |
+| _typ._did | TXT  | 7200 | id=0,1,2    |
+
+#### Type Index
+
+| Type Name               | Schema                                    | Type Integer |
+|-------------------------|-------------------------------------------| ------------ |
+| Organization            | https://schema.org/Organization           | 1            |
+| Government Organization | https://schema.org/GovernmentOrganization | 2            |
+| Corporation             | https://schema.org/Corporation            | 3            |
+| Local Business          | https://schema.org/LocalBusiness          | 4            |
+| Software Package        | https://schema.org/SoftwareSourceCode     | 5            |
+| Web App                 | https://schema.org/WebApplication         | 6            |
+| Financial Institution   | https://schema.org/FinancialService       | 7            |
+
 ## Bitcoin-anchored Gateways
 
 ::: issue
-[ISSUE-10](https://github.com/TBD54566975/did-dht-method/issues/10) [ISSUE-11](https://github.com/TBD54566975/did-dht-method/issues/11)
-Fully define this API.
+[](https://github.com/TBD54566975/did-dht-method/issues/10)
+Fully define the BTC interactions.
 :::
 
-To be recognized as a DID DHT retention gateway, the gateway operator must anchor a transaction on Bitcoin that
-timelocks Bitcoin value proportional to the number of DIDs they introduce into the _Retained DID Set_.
+As an **OPTIONAL** feature of the DID DHT Method, nodes may choose to act as a gateway to the DID DHT for a fee. This
+fee is paid in Bitcoin, and the gateway operator must anchor a transaction on Bitcoin that [[ref:timelock]]s
+Bitcoin value proportional to the number of DIDs they introduce into the [[ref:Retained DID Set]]. Notably, this is not a fee
+for the creation of a DID, but rather a fee for the retention of a DID paid by the node operator. DID controllers "pay"
+for retention by providing a [retention proof](#generating-a-retention-proof).
 
-The amount of value locked must be no less than the mean value of the upper half of UTXOs for the block in which the
-timelock takes effect, and the lock must be a *relative timelock* set to 1000 blocks.
+The amount of value locked must be no less than the mean value of the upper half of [UTXOs](https://en.wikipedia.org/wiki/Unspent_transaction_output)
+for the block in which the timelock takes effect, and the lock must be a *relative timelock* set to **1000 blocks**.
 
-## Retained DID Set
+### Retained DID Set
 
-### Generating a Retention Proof
+#### Generating a Retention Proof
 
 Perform Proof of Work over the DID's identifier + the `retention` value of a given DID operation (composed of the
 selected bitcoin block hash and nonce). The resulting Retention Proof Hash determines the duration of retention based
  on the number of leading zeros of the hash, which must be no less than 26.
 
-### Managing the Retained DID Set
+#### Managing the Retained DID Set
 
 Nodes following the Retention Set rules SHOULD sort DIDs they are retaining by age of retention proof, followed by
 number of retention proof leading 0s. When a node needs to reduce its retained set of DID entries, it SHOULD remove
 entries from the bottom of the list in accordance with this sort.
 
-### Reporting on Retention Status
+#### Reporting on Retention Status
 
 Nodes MUST include the approximate time until retention fall-off in the Method-specific metadata of a resolved DID
 Document, to aid in Identity Agents (wallets) being able to assess whether resubmission is required.
 
+### Gateway API
+
+At a minimum, a gateway **MUST** support the
+[Relay API defined by Pkarr](https://github.com/Nuhvi/pkarr/blob/main/design/relays.md).
+
+Expanding on this API, a Gateway **MUST** support the following API endpoints:
+
+#### Register or Update a DID
+
+- **Method:** `PUT`
+- **Path:** `/did`
+- **Request Body:** A JSON payload constructed as follows...
+    - `did` - **string** - The DID to register.
+    - `sig` - **string** - A base64URL-encoded signature of the [[ref:BEP44]] payload
+    - `seq` - **integer** - A sequence number for the DID. This number **MUST** be unique for each DID operation,
+    recommended to be a unix timestamp.
+    - `v` - **string** - A base64URL-encoded bencoded DNS packet containing the DID Document.
+- **Returns**:
+    - `200` - Success.
+    - `400` - Invalid request body.
+    - `401` - Invalid signature.
+    - `409` - DID already exists with a higher sequence number.
+
+```json
+{
+    "did": "did:dht:example",
+    "sig": "<base64URL-encoded-signature>",
+    "seq": 1234,
+    "v": "<base64URL-encoded bencoded DNS packet>"
+}
+```
+
+Upon receiving a request to register a DID, the Gateway **MUST** verify the signature of the request, and if valid,
+publish the DID Document to the DHT. If the DNS Packets contains a `_typ._did` record, the Gateway **MUST** index the
+DID by its type.
+
+#### Resolving a DID
+
+- **Method:** `GET`
+- **Path:** `/did/:id`
+- **Returns**:
+    - `200` - Success.
+        - `did` - **object** - A JSON object representing the DID's Document.
+        - `types` - **array** - An array of type strings for the DID.
+    - `404` - DID not found.
+
+```json
+{
+    "did": {
+        "id": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
+        "verificationMethod": [
+            {
+                "id": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y#0",
+                "type": "JsonWebKey2020",
+                "controller": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
+                "publicKeyJwk": {
+                    "kid": "0",
+                    "alg": "EdDSA",
+                    "crv": "Ed25519",
+                    "kty": "OKP",
+                    "x": "r96mnGNgWGOmjt6g_3_0nd4Kls5-kknrd4DdPW8qtfw"
+                }
+            }
+        ],
+        "authentication": ["#0"],
+        "assertionMethod": ["#0"]
+    },
+    "types": [1, 4]
+}
+```
+
+Upon receiving a request to resolve a DID, the Gateway **MUST** query the DHT for the DID Document, and if found,
+return the DID Document. If the records are not found in the DHT, the Gateway **MAY** fall back to its local storage.
+If the DNS Packets contains a `_typ._did` record, the Gateway **MUST** return the type index.
+
+::: note
+This API is not required to return the full DNS packet, but rather the DID Document and type index. If the full DNS
+packet, with its signature data is wanted, it is recommended to use the
+[Relay API](https://github.com/Nuhvi/pkarr/blob/main/design/relays.md) directly.
+:::
+
+#### Deactivating a DID
+
+To intentionally deactivate a DID, as opposed to letting the record cease being republished to the DHT, a DID controller
+follows the same process as [updating a DID](#register-or-update-a-did), but with a record format outlined in the
+[section on deactivation](#deactivate).
+
+Upon receiving a request to deactivate a DID, the Gateway **MUST** verify the signature of the request, and if valid,
+stop republishing the DHT. If the DNS Packets contains a `_typ._did` record, the Gateway **MUST** remove the type index.
+
+#### Type Indexing
+
+- **Method:** `GET`
+- **Path:** `/did/types?id=:id`
+    - `id` - **string** - The type to query from the index.
+- **Returns**:
+    - `200` - Success.
+        - `dids` - **array** - An array of DIDs matching the associated type.
+    - `404` - Type not found.
+
+```json
+{
+    "dids": [
+        "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
+        "did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj"
+    ]
+}
+```
+
+A query to the type index returns an array of DIDs matching the associated type. If the type is not found, a `404` is
+returned. If there are no DIDs matching the type, an empty array is returned.
+
 ## Implementation Considerations
 
 ::: issue
-[ISSUE-27](https://github.com/TBD54566975/did-dht-method/issues/27)
+[](https://github.com/TBD54566975/did-dht-method/issues/27)
 
 Write this section.
 :::
@@ -371,7 +524,7 @@ Data needs to be republished.
 ## Security and Privacy Considerations
 
 ::: issue
-[ISSUE-28](https://github.com/TBD54566975/did-dht-method/issues/28)
+[](https://github.com/TBD54566975/did-dht-method/issues/28)
 
 Write this section.
 :::
@@ -401,5 +554,9 @@ Z. O'Whielacronx; November 2002.
 [[def:VC-JWS-2020]]
 ~ [Verifiable Credentials JSON Web Signature Suite 2020](https://www.w3.org/TR/vc-jws-2020/). O. Steele, M. Jones; 29
 June 2023. [W3C](https://www.w3.org/).
+
+[[def:Timelock]]
+~ [Timelock](https://github.com/bitcoin/bips/blob/master/bip-0065.mediawiki). P. Todd. 01 October 2014.
+[Bitcoin](https://github.com/bitcoin).
 
 [[spec]]
