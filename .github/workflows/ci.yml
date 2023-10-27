@@ -46,6 +46,15 @@ jobs:
       - name: Install Mage
         run: go install github.com/magefile/mage
 
+      - name: Check if swagger is up to date
+        if: ${{ github.ref != 'refs/heads/main' }}
+        run: |
+          mage -v spec
+          if (git diff --shortstat | grep '[0-9]'); then \
+          echo "Swagger spec is out of date. Please run mage spec"; \
+          exit 1;
+          fi
+
       - name: Build
         run: mage build
 

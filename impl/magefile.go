@@ -118,8 +118,7 @@ func Spec() error {
 		return err
 	}
 
-	// We need to enable dependencies because many of our external API objects have ssi-sdk objects.
-	return sh.Run(swagCommand, "init", "-g", "cmd/main.go", "--pd", "--parseInternal", "-ot", "go,yaml")
+	return sh.Run(swagCommand, "init", "-g", "cmd/main.go", "--overridesFile", "docs/overrides.swaggo", "--pd", "--parseInternal", "-ot", "go,yaml")
 }
 
 func ColorizeTestOutput(w io.Writer) io.Writer {

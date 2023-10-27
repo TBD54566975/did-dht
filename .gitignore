@@ -144,3 +144,7 @@ dist
 .DS_STORE
 .idea
 *.db
+
+# spec stuff
+spec/build
+spec/node_modules

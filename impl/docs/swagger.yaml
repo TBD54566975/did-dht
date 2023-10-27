@@ -52,7 +52,7 @@ paths:
             type: string
       summary: GetRecord a PKARR record from the DHT
       tags:
-      - Relay
+      - PKARR
     put:
       consumes:
       - application/octet-stream
@@ -84,7 +84,7 @@ paths:
             type: string
       summary: PutRecord a PKARR record into the DHT
       tags:
-      - Relay
+      - PKARR
   /health:
     get:
       consumes:
