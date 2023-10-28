@@ -121,13 +121,34 @@ func TestToDNSPacket(t *testing.T) {
 		require.NotEmpty(t, doc)
 
 		didID := DHT(doc.ID)
-		packet, err := didID.ToDNSPacket(*doc)
+		packet, err := didID.ToDNSPacket(*doc, nil)
 		require.NoError(t, err)
 		require.NotEmpty(t, packet)
 
-		decodedDoc, err := didID.FromDNSPacket(packet)
+		decodedDoc, types, err := didID.FromDNSPacket(packet)
 		require.NoError(t, err)
 		require.NotEmpty(t, decodedDoc)
+		require.Empty(t, types)
+
+		assert.EqualValues(t, *doc, *decodedDoc)
+	})
+
+	t.Run("doc with types - test to dns packet round trip", func(t *testing.T) {
+		privKey, doc, err := GenerateDIDDHT(CreateDIDDHTOpts{})
+		require.NoError(t, err)
+		require.NotEmpty(t, privKey)
+		require.NotEmpty(t, doc)
+
+		didID := DHT(doc.ID)
+		packet, err := didID.ToDNSPacket(*doc, []TypeIndex{1, 2, 3})
+		require.NoError(t, err)
+		require.NotEmpty(t, packet)
+
+		decodedDoc, types, err := didID.FromDNSPacket(packet)
+		require.NoError(t, err)
+		require.NotEmpty(t, decodedDoc)
+		require.NotEmpty(t, types)
+		require.Equal(t, types, []TypeIndex{1, 2, 3})
 
 		assert.EqualValues(t, *doc, *decodedDoc)
 	})
@@ -169,13 +190,14 @@ func TestToDNSPacket(t *testing.T) {
 		require.NotEmpty(t, doc)
 
 		didID := DHT(doc.ID)
-		packet, err := didID.ToDNSPacket(*doc)
+		packet, err := didID.ToDNSPacket(*doc, nil)
 		require.NoError(t, err)
 		require.NotEmpty(t, packet)
 
-		decodedDoc, err := didID.FromDNSPacket(packet)
+		decodedDoc, types, err := didID.FromDNSPacket(packet)
 		require.NoError(t, err)
 		require.NotEmpty(t, decodedDoc)
+		require.Empty(t, types)
 
 		assert.EqualValues(t, *doc, *decodedDoc)
 	})

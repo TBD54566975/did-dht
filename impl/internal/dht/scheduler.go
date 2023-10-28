@@ -21,11 +21,11 @@ func NewScheduler() Scheduler {
 }
 
 // Schedule schedules a job to run and starts it asynchronously
-func (s *Scheduler) Schedule(_ string, job func()) error {
+func (s *Scheduler) Schedule(schedule string, job func()) error {
 	if s.job != nil {
 		return errors.New("job already scheduled")
 	}
-	j, err := s.scheduler.Cron("* * * * *").Do(job)
+	j, err := s.scheduler.Cron(schedule).Do(job)
 	if err != nil {
 		return err
 	}
