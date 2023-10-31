@@ -64,9 +64,9 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 		Server: &http.Server{
 			Addr:              fmt.Sprintf("%s:%d", cfg.ServerConfig.APIHost, cfg.ServerConfig.APIPort),
 			Handler:           handler,
-			ReadTimeout:       time.Second * 5,
-			ReadHeaderTimeout: time.Second * 5,
-			WriteTimeout:      time.Second * 5,
+			ReadTimeout:       time.Second * 15,
+			ReadHeaderTimeout: time.Second * 15,
+			WriteTimeout:      time.Second * 15,
 		},
 		cfg:      cfg,
 		svc:      pkarrService,
