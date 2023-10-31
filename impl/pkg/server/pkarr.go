@@ -115,7 +115,7 @@ func (r *PKARRRouter) PutRecord(c *gin.Context) {
 		Sig: sigBytes,
 		Seq: seq,
 	}
-	if _, err = r.service.PublishPKARR(c, request); err != nil {
+	if err = r.service.PublishPKARR(c, request); err != nil {
 		LoggingRespondErrWithMsg(c, err, "failed to publish pkarr record", http.StatusInternalServerError)
 		return
 	}

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 
 	"github.com/TBD54566975/ssi-sdk/util"
 	"github.com/anacrolix/dht/v2/bep44"
@@ -56,6 +57,23 @@ type PublishPKARRRequest struct {
 	Seq int64    `validate:"required"`
 }
 
+// isValid returns an error if the request is invalid
+// also validates the signature
+func (p PublishPKARRRequest) isValid() error {
+	if err := util.IsValidStruct(p); err != nil {
+		return err
+	}
+	// validate the signature
+	bv, err := bencode.Marshal(p.V)
+	if err != nil {
+		return err
+	}
+	if !bep44.Verify(p.K[:], nil, p.Seq, bv, p.Sig[:]) {
+		return errors.New("signature is invalid")
+	}
+	return nil
+}
+
 func (p PublishPKARRRequest) toRecord() storage.PKARRRecord {
 	encoding := base64.RawURLEncoding
 	return storage.PKARRRecord{
@@ -67,20 +85,25 @@ func (p PublishPKARRRequest) toRecord() storage.PKARRRecord {
 }
 
 // PublishPKARR stores the record in the db, publishes the given PKARR to the DHT, and returns the z-base-32 encoded ID
-func (s *PKARRService) PublishPKARR(ctx context.Context, request PublishPKARRRequest) (string, error) {
-	if err := util.IsValidStruct(request); err != nil {
-		return "", err
+func (s *PKARRService) PublishPKARR(ctx context.Context, request PublishPKARRRequest) error {
+	if err := request.isValid(); err != nil {
+		return err
 	}
+
 	// TODO(gabe): if putting to the DHT fails we should note that in the db and retry later
 	if err := s.db.WriteRecord(request.toRecord()); err != nil {
-		return "", err
+		return err
 	}
-	return s.dht.Put(ctx, bep44.Put{
+
+	// return here and put it in the DHT asynchronously
+	go s.dht.Put(ctx, bep44.Put{
 		V:   request.V,
 		K:   &request.K,
 		Sig: request.Sig,
 		Seq: request.Seq,
 	})
+
+	return nil
 }
 
 // GetPKARRResponse is the response to a get PKARR request

@@ -18,7 +18,7 @@ func TestPKARRService(t *testing.T) {
 	require.NotEmpty(t, svc)
 
 	t.Run("test put bad record", func(t *testing.T) {
-		_, err := svc.PublishPKARR(context.Background(), PublishPKARRRequest{})
+		err := svc.PublishPKARR(context.Background(), PublishPKARRRequest{})
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "validation for 'V' failed on the 'required' tag")
 	})
@@ -29,13 +29,14 @@ func TestPKARRService(t *testing.T) {
 		assert.Nil(t, got)
 	})
 
-	t.Run("test put and get record", func(t *testing.T) {
+	t.Run("test record with a bad signature", func(t *testing.T) {
 		// create a did doc as a packet to store
 		sk, doc, err := did.GenerateDIDDHT(did.CreateDIDDHTOpts{})
 		require.NoError(t, err)
 		require.NotEmpty(t, doc)
 
-		packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil)
+		d := did.DHT(doc.ID)
+		packet, err := d.ToDNSPacket(*doc, nil)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, packet)
 
@@ -43,16 +44,53 @@ func TestPKARRService(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, putMsg)
 
-		id, err := svc.PublishPKARR(context.Background(), PublishPKARRRequest{
+		err = svc.PublishPKARR(context.Background(), PublishPKARRRequest{
 			V:   putMsg.V.([]byte),
 			K:   *putMsg.K,
 			Sig: putMsg.Sig,
 			Seq: putMsg.Seq,
 		})
 		assert.NoError(t, err)
-		assert.NotEmpty(t, id)
 
-		got, err := svc.GetPKARR(context.Background(), id)
+		// invalidate the signature
+		putMsg.Sig[0] = 0
+		err = svc.PublishPKARR(context.Background(), PublishPKARRRequest{
+			V:   putMsg.V.([]byte),
+			K:   *putMsg.K,
+			Sig: putMsg.Sig,
+			Seq: putMsg.Seq,
+		})
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "signature is invalid")
+	})
+
+	t.Run("test put and get record", func(t *testing.T) {
+		// create a did doc as a packet to store
+		sk, doc, err := did.GenerateDIDDHT(did.CreateDIDDHTOpts{})
+		require.NoError(t, err)
+		require.NotEmpty(t, doc)
+
+		d := did.DHT(doc.ID)
+		packet, err := d.ToDNSPacket(*doc, nil)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, packet)
+
+		putMsg, err := dht.CreatePKARRPublishRequest(sk, *packet)
+		require.NoError(t, err)
+		require.NotEmpty(t, putMsg)
+
+		err = svc.PublishPKARR(context.Background(), PublishPKARRRequest{
+			V:   putMsg.V.([]byte),
+			K:   *putMsg.K,
+			Sig: putMsg.Sig,
+			Seq: putMsg.Seq,
+		})
+		assert.NoError(t, err)
+
+		suffix, err := d.Suffix()
+		assert.NoError(t, err)
+
+		got, err := svc.GetPKARR(context.Background(), suffix)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, got)
 		assert.Equal(t, putMsg.V, got.V)
