@@ -8,11 +8,10 @@ import (
 	"net/url"
 
 	"github.com/TBD54566975/ssi-sdk/did"
+	"github.com/TBD54566975/ssi-sdk/util"
 	"github.com/anacrolix/dht/v2/bep44"
-	"github.com/anacrolix/dht/v2/exts/getput"
+	"github.com/miekg/dns"
 	"github.com/pkg/errors"
-
-	"github.com/TBD54566975/did-dht-method/pkg/dht"
 )
 
 // GatewayClient is the client for the Gateway API
@@ -54,15 +53,11 @@ func (c *GatewayClient) GetDIDDocument(id string) (*did.Document, []TypeIndex, e
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to read response body")
 	}
-	getResult := getput.GetResult{
-		Seq: int64(binary.BigEndian.Uint64(body[64:72])),
-		V:   body[72:],
+	msg := new(dns.Msg)
+	if err = msg.Unpack(body[72:]); err != nil {
+		return nil, nil, util.LoggingErrorMsg(err, "failed to unpack records")
 	}
-	dnsPacket, err := dht.ParsePKARRGetResponse(getResult)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to parse pkarr get response")
-	}
-	return d.FromDNSPacket(dnsPacket)
+	return d.FromDNSPacket(msg)
 }
 
 // PutDocument puts a bep44.Put message to a did:dht Gateway
