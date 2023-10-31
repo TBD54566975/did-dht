@@ -120,5 +120,5 @@ func (r *PKARRRouter) PutRecord(c *gin.Context) {
 		return
 	}
 
-	Respond(c, nil, http.StatusOK)
+	ResponseStatus(c, http.StatusOK)
 }
