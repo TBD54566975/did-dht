@@ -56,7 +56,7 @@ func Respond(c *gin.Context, data any, statusCode int) {
 	}
 
 	// if there's no payload to marshal, set the status code of the response and return
-	if statusCode == http.StatusNoContent {
+	if statusCode == http.StatusNoContent || data == nil {
 		c.Status(statusCode)
 		return
 	}
