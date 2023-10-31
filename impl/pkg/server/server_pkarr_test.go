@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -53,6 +54,9 @@ func TestPKARRRouter(t *testing.T) {
 		w = httptest.NewRecorder()
 		req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", testServerURL, suffix), nil)
 		c = newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
+
+		// wait for the record to be published
+		time.Sleep(10 * time.Second)
 
 		pkarrRouter.GetRecord(c)
 		assert.True(t, is2xxResponse(w.Code))
