@@ -36,11 +36,11 @@ const (
 )
 
 func (d DHT) IsValid() bool {
-	prefix, err := d.Suffix()
+	suffix, err := d.Suffix()
 	if err != nil {
 		return false
 	}
-	pk, err := zbase32.DecodeString(string(d)[len(prefix)+1:])
+	pk, err := zbase32.DecodeString(suffix)
 	return err == nil && len(pk) == ed25519.PublicKeySize
 }
 
@@ -53,7 +53,7 @@ func (d DHT) Suffix() (string, error) {
 	if suffix, ok := strings.CutPrefix(string(d), Prefix+":"); ok {
 		return suffix, nil
 	}
-	return "", fmt.Errorf("invalid did:dht: %s", d)
+	return "", fmt.Errorf("invalid did:dht prefix: %s", d)
 }
 
 func (DHT) Method() did.Method {
