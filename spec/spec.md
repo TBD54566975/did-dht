@@ -1,7 +1,7 @@
 The DID DHT Method Specification 1.0
 ==================
 
-**Specification Status: Working Draft**
+**Specification Status**: Working Draft
 
 **Latest Draft:** [tbd54566975.github.io/did-dht-method](https://tbd54566975.github.io/did-dht-method)
 
@@ -364,40 +364,43 @@ An example type record is as follows:
 | Web App                 | https://schema.org/WebApplication         | 6            |
 | Financial Institution   | https://schema.org/FinancialService       | 7            |
 
-## Bitcoin-anchored Gateways
+## Gateways
 
 ::: issue
 [](https://github.com/TBD54566975/did-dht-method/issues/10)
 Fully define the BTC interactions.
 :::
-
-As an **OPTIONAL** feature of the DID DHT Method, nodes may choose to act as a gateway to the DID DHT for a fee. This
-fee is paid in Bitcoin, and the gateway operator must anchor a transaction on Bitcoin that [[ref:timelock]]s
-Bitcoin value proportional to the number of DIDs they introduce into the [[ref:Retained DID Set]]. Notably, this is not a fee
-for the creation of a DID, but rather a fee for the retention of a DID paid by the node operator. DID controllers "pay"
-for retention by providing a [retention proof](#generating-a-retention-proof).
-
-The amount of value locked must be no less than the mean value of the upper half of [UTXOs](https://en.wikipedia.org/wiki/Unspent_transaction_output)
-for the block in which the timelock takes effect, and the lock must be a *relative timelock* set to **1000 blocks**.
+Gateways are nodes in the network that offer additional DID-centric features beyond what a generic Mainline DHT node offers. This section details some of those features, the operational requirements for running a gateway, and various other aspects, like how they can be optionally added to the decentralized gateway registry.
 
 ### Retained DID Set
 
 #### Generating a Retention Proof
 
-Perform Proof of Work over the DID's identifier + the `retention` value of a given DID operation (composed of the
-selected bitcoin block hash and nonce). The resulting Retention Proof Hash determines the duration of retention based
- on the number of leading zeros of the hash, which must be no less than 26.
+Perform Proof of Work hashing over the DID's identifier + the `retention` value of a given DID operation (composed of the selected bitcoin block hash and nonce) using the SHA-256 hashing algorithm. The resulting Retention Proof Hash determines the duration of retention based on the number of leading zeros of the hash, which must be no less than 26 bits of the 256 bit hash value.
 
 #### Managing the Retained DID Set
 
-Nodes following the Retention Set rules SHOULD sort DIDs they are retaining by age of retention proof, followed by
-number of retention proof leading 0s. When a node needs to reduce its retained set of DID entries, it SHOULD remove
-entries from the bottom of the list in accordance with this sort.
+Nodes following the Retention Set rules SHOULD sort DIDs they are retaining by the number of leading 0s in their retention proofs in descending order, followed by block hash's index number in descending order. When a node needs to reduce its retained set of DID entries, it SHOULD remove entries from the bottom of the list in accordance with this sort.
 
 #### Reporting on Retention Status
 
 Nodes MUST include the approximate time until retention fall-off in the Method-specific metadata of a resolved DID
 Document, to aid in Identity Agents (wallets) being able to assess whether resubmission is required.
+
+### Registered Gateways
+
+As an **OPTIONAL** feature of the DID DHT Method, the operator of a gateway may choose elevate it as a Registered Gateway that can be addressed by any party that leverages the decentralized gateway registry for finding registered nodes. Registration is accomplished as follows:
+
+1. Generate a relative [[ref:timelock]] transaction for the Bitcoin blockchain with the following attributes:
+    - Set the lock duration to 1000
+    - Add locked value locked must be no less than the mean value of the upper quintile of [UTXOs](https://en.wikipedia.org/wiki/Unspent_transaction_output) as of a block that is no more than 10 blocks earlier from the block the locking transaction is included in (this effectively provides a 10 block grace period for the transaction to make it into the chain).
+    - Add an OP_RETURN string composed of the following comma separated values:
+        - The starting block number used to compute the fee average across 3990 blocks.
+        - The URI where your node can be addressed
+2. Ensure the [[ref:timelock]] transaction is included within 10 blocks of the block number that was specified as the base block number for average UTXO value calculation.
+3. If this is a relocking transaction that refreshes an existing registration of a node:
+    - The relocking transaction ****MUST**** spend the outputs of the lock it is replacing.
+    - If the operator wants to avoid other nodes and clients using the decentralized registry from dropping the registered gateway from their registered gateway list, the relocking transaction ****MUST**** be included in the blockchain within 10 blocks of the previous lock's expiration.
 
 ### Gateway API
 
