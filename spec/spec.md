@@ -395,9 +395,9 @@ As an **OPTIONAL** feature of the DID DHT Method, the operator of a gateway may 
     - Set the lock duration to 1000
     - Add locked value locked must be no less than the mean value of the upper quintile of [UTXOs](https://en.wikipedia.org/wiki/Unspent_transaction_output) as of a block that is no more than 10 blocks earlier from the block the locking transaction is included in (this effectively provides a 10 block grace period for the transaction to make it into the chain).
     - Add an OP_RETURN string composed of the following comma separated values:
-        - The starting block number used to compute the fee average across 3990 blocks.
+        - The block number used to compute the mean value of the upper quintile of [UTXOs](https://en.wikipedia.org/wiki/Unspent_transaction_output).
         - The URI where your node can be addressed
-2. Ensure the [[ref:timelock]] transaction is included within 10 blocks of the block number that was specified as the base block number for average UTXO value calculation.
+2. Ensure the [[ref:timelock]] transaction is included within 10 blocks of the block number that was specified as the block number for average UTXO value calculation.
 3. If this is a relocking transaction that refreshes an existing registration of a node:
     - The relocking transaction ****MUST**** spend the outputs of the lock it is replacing.
     - If the operator wants to avoid other nodes and clients using the decentralized registry from dropping the registered gateway from their registered gateway list, the relocking transaction ****MUST**** be included in the blockchain within 10 blocks of the previous lock's expiration.
