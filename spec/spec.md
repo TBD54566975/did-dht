@@ -5,6 +5,8 @@ The DID DHT Method Specification 1.0
 
 **Latest Draft:** [tbd54566975.github.io/did-dht-method](https://tbd54566975.github.io/did-dht-method)
 
+**Latest Update:** November 14, 2023
+
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
 ~ [Daniel Buchner](https://github.com/csuwildcat)
@@ -31,11 +33,14 @@ As [[ref:Pkarr]] states, mainline is chosen for the following reasons:
 The syntax of the identifier and accompanying data model used by the protocol is conformant with the [[spec:DID-Core]]
 specification and shall be registered with the [[spec:DID-Spec-Registries]].
 
+## Conformance
+
+The key words MAY, MUST, MUST NOT, RECOMMENDED, SHOULD, and SHOULD NOT in this document are to be interpreted as described in [BCP 14](https://www.rfc-editor.org/info/bcp14) [[spec:RFC2119]] [[spec:RFC8174]] when, and only when, they appear in all capitals, as shown here.
+
 ## Terminology
 
-[[def:Decentralized Identifier, Decentralized Identifier, DID]]
-~ A [W3C specification](https://www.w3.org/TR/did-core/) describing an _identifier that enables verifiable, decentralized
-digital identity_.
+[[def:Decentralized Identifier, Decentralized Identifier, DID, DID Document]]
+~ A [W3C specification](https://www.w3.org/TR/did-core/) describing an _identifier that enables verifiable, decentralized digital identity_. Associated with a document containing properties outlined in the specification.
 
 [[def:DID Suffix, Suffix]]
 ~ The unique identifier string within a DID URI. e.g. The unique suffix of `did:dht:123` would be `123`.
@@ -55,21 +60,25 @@ between the Domain Name System and peer-to-peer overlay networks, enabling self-
 sovereign, publicly addressable domains."
 
 [[def:Mainline DHT, DHT, Mainline]]
-~ [Mainline DHT](https://en.wikipedia.org/wiki/Mainline_DHT) is the name given to the DHT used by the BitTorrent
-protocol. It is a distributed system for storing and finding data on a peer-to-peer network. It is based on
-[Kademlia](https://en.wikipedia.org/wiki/Kademlia) and is primarily used to store and retrieve _torrent_ metadata.
-It has between 16 and 28 million concurrent users.
+~ [Mainline DHT](https://en.wikipedia.org/wiki/Mainline_DHT) is the name given to the DHT used by the BitTorrent protocol. It is a distributed system for storing and finding data on a peer-to-peer network. It is based on [Kademlia](https://en.wikipedia.org/wiki/Kademlia) and is primarily used to store and retrieve _torrent_ metadata. It has between 16 and 28 million concurrent users.
 
-[[def:Gateway, DID DHT Node, Bitcoin-anchored Gateway]]
-~ A node that acts as a gateway to the DID DHT. The gateway may offer a set of APIs to interact with the DID DHT, such
-as features providing guaranteed retention, historical resolution, and other features.
+[[def:Gateway, Gateways, Nodes, DID DHT Node, Bitcoin-anchored Gateway]]
+~ A node that acts as a gateway to the DID DHT. The gateway may offer a set of APIs to interact with the DID DHT, such as features providing guaranteed retention, historical resolution, and other features.
 
-[[def:Retained DID Set]]
+[[def:Registered Gateway, Reigstered Gateways]]
+~ A gateway that has chosen to make itself discoverable via a [[ref:Gateway Registry]].
+
+[[def:Gateway Registry, Gateway Registries]]
+~ A system used to make [[ref:Gateways]], more specifically, [[ref:Registered Gateways]] discoverable.
+
+[[def:Client, Clients]]
+~ A client is a piece of software that is responsible for generating a `did:dht` and submitting it to a [[ref:Mainline]] node or [[ref:Gateway]].
+
+[[def:Retained DID Set, Retained Set, Retention Set]]
 ~ The set of DIDs that a [[ref:Gateway]] is retaining, and thus is responsible for republishing.
 
-[[def:Retention Proof]]
-~ A proof of work that is performed by the [[ref:DID]] controller to prove that they are still in control of the DID. This
-proof is used by nodes to determine how long they should retain a DID.
+[[def:Retention Proof, Retention Proofs]]
+~ A proof of work that is performed by the [[ref:DID]] controller to prove that they are still in control of the DID. This proof is used by nodes to determine how long they should retain a DID.
 
 ## DID DHT Method Specification
 
@@ -113,19 +122,19 @@ The recommended TTL value is 7200 seconds (2 hours), which is the default TTL fo
 as additional records of the format `<ID>._did`, which contains the zero-indexed value of each `key` or `service` as
 attributes.
 
-* All records **MUST** end in `_did` or `_did.TLD` if a TLD is being used with the record.
+* All records ****MUST**** end in `_did` or `_did.TLD` if a TLD is being used with the record.
 
 ::: note
 It might look like repeating `_did` is an overhead, but these can be compressed away using normal DNS standard
 [packet compression](https://courses.cs.duke.edu/fall16/compsci356/DNS/DNS-primer.pdf) techniques.
 :::
 
-* The DNS packet **MUST** set the _Authoritative Answer_ flag, since this is always an _Authoritative_ packet.
+* The DNS packet ****MUST**** set the _Authoritative Answer_ flag, since this is always an _Authoritative_ packet.
 
-* The DID identifier [[ref:z-base-32]]-encoded key **MUST** be appended as the Origin of all records:
+* The DID identifier [[ref:z-base-32]]-encoded key ****MUST**** be appended as the Origin of all records:
 
-| Name                                                     | Type | TTL    | Rdata                                     |
-| -------------------------------------------------------- | ---- | ------ | ----------------------------------------- |
+| Name                                                      | Type | TTL    | Rdata                                     |
+| --------------------------------------------------------- | ---- | ------ | ----------------------------------------- |
 | _did.o4dksfbqk85ogzdb5osziw6befigbuxmuxkuxq8434q89uj56uyy | TXT  |  7200  | vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2 |
 
 ### Property Mapping
@@ -277,7 +286,7 @@ A sample transformation is provided of a fully-featured DID Document to a DNS pa
 ### Operations
 
 Entries to the [[ref:DHT]] require a signed record. As such, the keypair that is generated for the [[ref:Pkarr]]
-identifier is used to sign the [[ref:DHT]] record. This keypair **MUST** always be present in a `did:dht` document
+identifier is used to sign the [[ref:DHT]] record. This keypair ****MUST**** always be present in a `did:dht` document
 and is referred to as the [[ref:Identity Key]].
 
 #### Create
@@ -288,7 +297,7 @@ To create a `did:dht`, the process is as follows:
 
 2. Construct a compliant JSON representation of a [[ref:DID Document]].
 
-    a. The document **MUST** include a [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) with
+    a. The document ****MUST**** include a [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) with
  the _identifier key_ encoded as a `publicKeyJwk` as per [[spec:RFC7517]] with an `id` of ``#0`` and `type` of
  `JsonWebKey2020` as per [[ref:VC-JWS-2020]].
 
@@ -315,7 +324,7 @@ Any valid [[ref:BEP44]] record written to the DHT is considered an update. This 
 [[ref:Identity Key]] is retained any update is made possibly by signing and writing records with a unique incremental
 sequence number with [mutable items](https://www.bittorrent.org/beps/bep_0044.html).
 
-It is **RECOMMENDED** that updates are made infrequently as caching of the DHT is highly encouraged.
+It is ****RECOMMENDED**** that updates are made infrequently as caching of the DHT is highly encouraged.
 
 #### Deactivate
 
@@ -366,59 +375,89 @@ An example type record is as follows:
 
 ## Gateways
 
-::: issue
-[](https://github.com/TBD54566975/did-dht-method/issues/10)
-Fully define the BTC interactions.
-:::
-Gateways are nodes in the network that offer additional DID-centric features beyond what a generic Mainline DHT node offers. This section details some of those features, the operational requirements for running a gateway, and various other aspects, like how they can be optionally added to the decentralized gateway registry.
+Gateways serve as specialized nodes within the network, providing a range of DID-centric functionalities that extend beyond the capabilities of a standard [[ref:Mainline DHT]] node. This section elaborates on these unique features, outlines the operational prerequisites for managing a gateway, and discusses various other facets, including the optional integration of these gateways into the decentralized registry system.
 
 ### Retained DID Set
 
+A [[ref:Retained DID Set]] refers to the set of DIDs a [[ref:Gateway]] retains and republishes to the DHT. A [[ref:Gateway]] may choose to surface additional [APIs](#gateway-api) based on this set, such as surfacing a [type index](#type-index).
+
 #### Generating a Retention Proof
 
-Perform Proof of Work hashing over the DID's identifier + the `retention` value of a given DID operation (composed of the selected bitcoin block hash and nonce) using the SHA-256 hashing algorithm. The resulting Retention Proof Hash determines the duration of retention based on the number of leading zeros of the hash, which must be no less than 26 bits of the 256 bit hash value.
+A [[ref:Retention Proof]] is a form of [Proof of Work](https://en.bitcoin.it/wiki/Proof_of_work) performed over a DID's identifier concatenated with the `retention` value of a given DID operation. The `retention` value is composed of a hash value ****RECOMMENDED**** to be the most recent [Bitcoin block hash](https://csrc.nist.gov/glossary/term/block_header#:~:text=Definitions%3A,cryptographic%20nonce%20(if%20needed).), and a random [nonce](https://en.wikipedia.org/wiki/Cryptographic_nonce) using the [SHA-256 hashing algorithm](https://en.wikipedia.org/wiki/SHA-2). The resulting _Retention Proof Hash_ is used to determine the duration of retention based on the number of leading zeros of the hash, referred to as the _difficulty_, which ****MUST**** be no less than 26 bits of the 256 bit hash value. The algorithm, in detail, is as follows:
+
+1. Obtain a `did:dht` identifier and set it to `DID`.
+2. Get the difficulty and recent hash from the server set to `DIFFICULTY` and `BLOCK_HASH` respectively.
+2. Generate a random 32-bit integer nonce value set to `NONCE`.
+3. Compute the [SHA-256](https://en.wikipedia.org/wiki/SHA-2) hash over `ATTEMPT` where `ATTEMPT` = (`DID` + (`BLOCK_HASH` + `NONCE`)).
+4. Inspect the result of `ATTEMPT`, and ensure it has >= `DIFFICULTY` bits of leading zeroes. 
+  a. If so, `ATTEMPT` = `RENTION_PROOF`.
+  b. Else, regenerate `NONCE` and go to step 3.
+5. Submit the `RETENTION_PROOF` to the [Gateway API](#register=or-update-a-did).
+
 
 #### Managing the Retained DID Set
 
-Nodes following the Retention Set rules SHOULD sort DIDs they are retaining by the number of leading 0s in their retention proofs in descending order, followed by block hash's index number in descending order. When a node needs to reduce its retained set of DID entries, it SHOULD remove entries from the bottom of the list in accordance with this sort.
+[[ref:Nodes]] following the [[ref:Retention Set]] rules ******SHOULD****** sort DIDs they are retaining by the number of _leading 0s_ in their [[ref:Retention Proofs]] in descending order, followed by block hash's index number in descending order. When a [[ref:node]] needs to reduce its [[ref:retained set]] of DID entries, it ****SHOULD**** remove entries from the bottom of the list in accordance with this sort.
 
 #### Reporting on Retention Status
 
-Nodes MUST include the approximate time until retention fall-off in the Method-specific metadata of a resolved DID
-Document, to aid in Identity Agents (wallets) being able to assess whether resubmission is required.
+Nodes ****MUST**** include the approximate time until retention fall-off in the [DID Resoution Metadata](https://www.w3.org/TR/did-core/#did-resolution-metadata) of a resolved [[ref:DID Document]], to aid [[ref:clients]] in being able to assess whether resubmission is required.
 
 ### Registered Gateways
 
-As an **OPTIONAL** feature of the DID DHT Method, the operator of a gateway may choose elevate it as a Registered Gateway that can be addressed by any party that leverages the decentralized gateway registry for finding registered nodes. Registration is accomplished as follows:
+As an **OPTIONAL** feature of the DID DHT Method, operators of a [[ref:Gateway]] have the opportunity to upgrade it to a [[ref:Registered Gateway]]. A [[ref:Registered Gateway]] distinguishes itself by being discoverable through a [[ref:Gateway Registry]]. This feature enables it to be easily located via various internet-based discovery mechanisms. The primary purpose of [[ref:Registered Gateways]] is to simplify the process of finding [[ref:Gateways]], accessible to any entity utilizing a [[ref:Gateway Registry]] to locate registered [[ref:Nodes]]. The [[ref:Gateway Registries]] themselves can vary in nature, encompassing a spectrum from centrally managed directories to diverse decentralized systems including databases, ledgers, or other structures.
+
+:::todo
+Consider moving gateway registries to a seprate document
+:::
+
+#### Bitcoin Gateway Registry
 
 1. Generate a relative [[ref:timelock]] transaction for the Bitcoin blockchain with the following attributes:
     - Set the lock duration to 1000
     - Add locked value locked must be no less than the mean value of the upper quintile of [UTXOs](https://en.wikipedia.org/wiki/Unspent_transaction_output) as of a block that is no more than 10 blocks earlier from the block the locking transaction is included in (this effectively provides a 10 block grace period for the transaction to make it into the chain).
-    - Add an OP_RETURN string composed of the following comma separated values:
+    - Add an `OP_RETURN` string composed of the following comma separated values:
         - The block number used to compute the mean value of the upper quintile of [UTXOs](https://en.wikipedia.org/wiki/Unspent_transaction_output).
-        - The URI where your node can be addressed
+        - The `URI` where your [[ref:node]] can be addressed
 2. Ensure the [[ref:timelock]] transaction is included within 10 blocks of the block number that was specified as the block number for average UTXO value calculation.
-3. If this is a relocking transaction that refreshes an existing registration of a node:
-    - The relocking transaction ****MUST**** spend the outputs of the lock it is replacing.
-    - If the operator wants to avoid other nodes and clients using the decentralized registry from dropping the registered gateway from their registered gateway list, the relocking transaction ****MUST**** be included in the blockchain within 10 blocks of the previous lock's expiration.
+3. If this is a relocking transaction that refreshes an existing registration of a [[ref:node]]:
+    - The relocking transaction ******MUST****** spend the outputs of the lock it is replacing.
+    - If the operator wants to avoid other nodes and clients using the decentralized registry from dropping the [[ref:Registered Gateway]] from their [[ref:Registered Gateway]] list, the relocking transaction ******MUST****** be included in the blockchain within 10 blocks of the previous lock's expiration.
 
 ### Gateway API
 
-At a minimum, a gateway **MUST** support the
-[Relay API defined by Pkarr](https://github.com/Nuhvi/pkarr/blob/main/design/relays.md).
+At a minimum, a gateway ****MUST**** support the [Relay API defined by Pkarr](https://github.com/Nuhvi/pkarr/blob/main/design/relays.md).
 
-Expanding on this API, a Gateway **MUST** support the following API endpoints:
+Expanding on this API, a Gateway ****MUST**** support the following API endpoints:
+
+#### Get the Current Difficulty
+
+- **Method:** `GET`
+- **Path:** `/difficulty`
+- **Returns**:
+  _ `200` - Success.
+    - `block_hash` - **string** - The most recent block hash.
+    - `difficulty` - **integer** - The current difficulty.
+  - `404` - Not found. Difficulty not supported by this gateway.
+
+```json
+{
+  "block_hash": "000000000000000000022be0c55caae4152d023dd57e8d63dc1a55c1f6de46e7",
+  "difficulty": 26
+}
+```
 
 #### Register or Update a DID
 
 - **Method:** `PUT`
 - **Path:** `/did`
 - **Request Body:** A JSON payload constructed as follows...
-    - `did` - **string** - The DID to register.
-    - `sig` - **string** - A base64URL-encoded signature of the [[ref:BEP44]] payload
-    - `seq` - **integer** - A sequence number for the DID. This number **MUST** be unique for each DID operation,
+    - `did` - **string** - **REQUIRED** - The DID to register.
+    - `sig` - **string** - **REQUIRED** - A base64URL-encoded signature of the [[ref:BEP44]] payload
+    - `seq` - **integer** - **REQUIRED** - A sequence number for the DID. This number ****MUST**** be unique for each DID operation,
     recommended to be a unix timestamp.
-    - `v` - **string** - A base64URL-encoded bencoded DNS packet containing the DID Document.
+    - `v` - **string** -  **REQUIRED** -A base64URL-encoded bencoded DNS packet containing the DID Document.
+    - `retention_proof` - **string** –  **OPTIONAL** - A retention proof calculated according to the [retention proof algorithm](#generating-a-retention-proof).
 - **Returns**:
     - `200` - Success.
     - `400` - Invalid request body.
@@ -434,8 +473,8 @@ Expanding on this API, a Gateway **MUST** support the following API endpoints:
 }
 ```
 
-Upon receiving a request to register a DID, the Gateway **MUST** verify the signature of the request, and if valid,
-publish the DID Document to the DHT. If the DNS Packets contains a `_typ._did` record, the Gateway **MUST** index the
+Upon receiving a request to register a DID, the Gateway ****MUST**** verify the signature of the request, and if valid,
+publish the DID Document to the DHT. If the DNS Packets contains a `_typ._did` record, the Gateway ****MUST**** index the
 DID by its type.
 
 #### Resolving a DID
@@ -473,9 +512,9 @@ DID by its type.
 }
 ```
 
-Upon receiving a request to resolve a DID, the Gateway **MUST** query the DHT for the DID Document, and if found,
-return the DID Document. If the records are not found in the DHT, the Gateway **MAY** fall back to its local storage.
-If the DNS Packets contains a `_typ._did` record, the Gateway **MUST** return the type index.
+Upon receiving a request to resolve a DID, the Gateway ****MUST**** query the DHT for the DID Document, and if found,
+return the DID Document. If the records are not found in the DHT, the Gateway ****MAY**** fall back to its local storage.
+If the DNS Packets contains a `_typ._did` record, the Gateway ****MUST**** return the type index.
 
 ::: note
 This API is not required to return the full DNS packet, but rather the DID Document and type index. If the full DNS
@@ -489,14 +528,14 @@ To intentionally deactivate a DID, as opposed to letting the record cease being 
 follows the same process as [updating a DID](#register-or-update-a-did), but with a record format outlined in the
 [section on deactivation](#deactivate).
 
-Upon receiving a request to deactivate a DID, the Gateway **MUST** verify the signature of the request, and if valid,
-stop republishing the DHT. If the DNS Packets contains a `_typ._did` record, the Gateway **MUST** remove the type index.
+Upon receiving a request to deactivate a DID, the Gateway ****MUST**** verify the signature of the request, and if valid,
+stop republishing the DHT. If the DNS Packets contains a `_typ._did` record, the Gateway ****MUST**** remove the type index.
 
 #### Type Indexing
 
 - **Method:** `GET`
 - **Path:** `/did/types?id=:id`
-    - `id` - **string** - The type to query from the index.
+    - `id` - **string** - **REQUIRED** -The type to query from the index.
 - **Returns**:
     - `200` - Success.
         - `dids` - **array** - An array of DIDs matching the associated type.
