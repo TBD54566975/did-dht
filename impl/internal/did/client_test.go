@@ -36,11 +36,3 @@ func TestClient(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, doc, gotDID)
 }
-
-func TestTest(t *testing.T) {
-	client, err := NewGatewayClient("https://diddht.tbddev.org")
-	require.NoError(t, err)
-
-	_, err = client.GetMessage("yj47pezutnpw9pyudeeai8cx8z8d6wg35genrkoqf9k3rmfzy58o")
-	require.NoError(t, err)
-}
