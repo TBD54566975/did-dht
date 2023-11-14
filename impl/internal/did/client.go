@@ -60,6 +60,26 @@ func (c *GatewayClient) GetDIDDocument(id string) (*did.Document, []TypeIndex, e
 	return d.FromDNSPacket(msg)
 }
 
+func (c *GatewayClient) GetMessage(id string) (*dns.Msg, error) {
+	resp, err := http.Get(c.gatewayURL + "/" + id)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get did document")
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.Errorf("failed to get did document, status code: %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read response body")
+	}
+	msg := new(dns.Msg)
+	if err = msg.Unpack(body[72:]); err != nil {
+		return nil, util.LoggingErrorMsg(err, "failed to unpack records")
+	}
+	return msg, nil
+}
+
 // PutDocument puts a bep44.Put message to a did:dht Gateway
 func (c *GatewayClient) PutDocument(id string, put bep44.Put) error {
 	d := DHT(id)
