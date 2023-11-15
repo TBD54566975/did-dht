@@ -39,7 +39,7 @@ The key words MAY, MUST, MUST NOT, RECOMMENDED, SHOULD, and SHOULD NOT in this d
 
 ## Terminology
 
-[[def:Decentralized Identifier, Decentralized Identifier, DID, DID Document]]
+[[def:Decentralized Identifier, Decentralized Identifier, DID, DIDs, DID Document, DID Documents]]
 ~ A [W3C specification](https://www.w3.org/TR/did-core/) describing an _identifier that enables verifiable, decentralized digital identity_. Associated with a document containing properties outlined in the specification.
 
 [[def:DID Suffix, Suffix]]
@@ -59,7 +59,7 @@ The key words MAY, MUST, MUST NOT, RECOMMENDED, SHOULD, and SHOULD NOT in this d
 between the Domain Name System and peer-to-peer overlay networks, enabling self-issued public keys to function as
 sovereign, publicly addressable domains."
 
-[[def:Mainline DHT, DHT, Mainline]]
+[[def:Mainline DHT, DHT, Mainline, Mainline Node]]
 ~ [Mainline DHT](https://en.wikipedia.org/wiki/Mainline_DHT) is the name given to the DHT used by the BitTorrent protocol. It is a distributed system for storing and finding data on a peer-to-peer network. It is based on [Kademlia](https://en.wikipedia.org/wiki/Kademlia) and is primarily used to store and retrieve _torrent_ metadata. It has between 16 and 28 million concurrent users.
 
 [[def:Gateway, Gateways, Nodes, DID DHT Node, Bitcoin-anchored Gateway]]
@@ -522,6 +522,14 @@ packet, with its signature data is wanted, it is recommended to use the
 [Relay API](https://github.com/Nuhvi/pkarr/blob/main/design/relays.md) directly.
 :::
 
+
+##### Historical Resolution
+::: issue
+[](https://github.com/TBD54566975/did-dht-method/issues/42)
+
+Specify historical resolution API.
+:::
+
 #### Deactivating a DID
 
 To intentionally deactivate a DID, as opposed to letting the record cease being republished to the DHT, a DID controller
@@ -558,22 +566,76 @@ returned. If there are no DIDs matching the type, an empty array is returned.
 ::: issue
 [](https://github.com/TBD54566975/did-dht-method/issues/27)
 
+Expand on this section.
+:::
+
+### Conflict Resolution
+
+According to [[ref:BEP44]] [[ref:Nodes]] can leverage the `seq` sequence number to handle conflicts:
+
+> Storing nodes receiving a put request where seq is lower than or equal to what's already stored on the node, MUST reject the request. If the sequence number is equal, and the value is also the same, the node SHOULD reset its timeout counter.
+
+In the case where the sequence number is equal, but the value is different, nodes need to decide which value to accept and which to reject. In order to make this determination nodes ****MUST**** compare the payloads lexicographically to determine a [lexicographical order](https://en.wikipedia.org/wiki/Lexicographic_order), and reject the payload with a **lower** lexicographical order.
+
+### Historical Key State
+
+Given the 1000-byte size constraints of [[ref:Mainline DHT]], users are encoutered to only put strictly-necessary data into their [[ref:DID Documents]]. However, key rotation is a commonly recommended security practice, which could lead to having many historically necessary keys in a [[ref: DID Document]], increasing the size of the document. To address this concern, and to distinguish between keys that are currently active and keys that are no longer used but where once considered valid users ****MAY**** make use of the [service property](https://www.w3.org/TR/did-core/#services) to store signed-records of historical key state, saving space in the [[ref:DID Document]] itself.
+
+### Size Constraints
+
+:::todo
 Write this section.
 :::
 
-Data needs to be republished.
+### Republishing Data
+
+:::todo
+Write this section.
+:::
+
+### Rate Limiting
+
+:::todo
+Write this section.
+:::
 
 ## Security and Privacy Considerations
 
-::: issue
-[](https://github.com/TBD54566975/did-dht-method/issues/28)
+When implementing and using the `did:dht` method there are a number of security and privacy considerations to be aware of to ensure expected and legitimate behavior.
 
-Write this section.
-:::
+### Data Conflicts
 
-### Security
+Malicious actors may try to force [[ref:Nodes]] into uncertain states by manipulating the sequence number associated with a record set. There are three such cases to be aware of:
 
-### Privacy
+- **Low Sequence Number** - If a [[ref:Node]] has not seen sequence numbers for a given record it ****MUST**** make a query to its peers to see if they have encountered the record. If another peer is found who has encountered the record before, the record with the latest sequence number must be selected. If the node has encountered greater sequence numbers before the node ****MAY**** reject the record set. If the node supports [historical resolution](#historical-resolution) it ****MAY**** choose to accept the request and insert the record into historical ordered state.
+
+- **Conflicting Sequence Number** - When a malicious actor publishes _valid but conflicting_ records to two different [[ref:Mainline Nodes]] or [[ref:Gateways]]. Implementers are encouraged to follow the guidance outlined in the section on [conflict resolution](#conflict-resolution). 
+
+- **High Sequence Number** - Since sequence numbers ****MUST**** be second representations of [Unix time](https://en.wikipedia.org/wiki/Unix_time), it is ****RECOMMENDED**** that nodes reject sequence numbers that represent timestamps greater than **2 hours** into the future.
+
+### Data Availability
+
+Given the nature of decentralized distributed systems, there are no strong guarantees that all [[ref:Nodes]] have access to the same state. It is ****RECOMMENDED**** to both publish and read from multiple [[ref:Gateways]] to reduce such risks. As an **optional** enhancement [[ref:Gateways]] ****MAY**** choose to share state amongst themselves via mechanisms such as a [gossip protocol](https://en.wikipedia.org/wiki/Gossip_protocol).
+
+### Data Authenticity
+
+To enter into the DHT using [[ref:BEP44]] your records must be signed by an [[ref:Ed25519]] private key. When retrieving records either through a [[ref:Mainline Node]] or a [[ref:Gateway]] is it ****RECOMMENDED**** that one verifies the cryptographic integrity of the record themselves instead of trusting a node to have done the validation. Nodes that do not return a signature value ****MUST NOT**** be trusted.
+
+### Key Compromise
+
+Since the `did:dht` makes use of a single, un-rotatable root key, there is a risk of root key compromise. Such a compromise may be tough to detect without external assurances of identity. Implementers are encouraged to be aware of this possibility and devise strategies that support entities transitioning to new [[ref:DIDs]] over time.
+
+### Public Data
+
+[[ref:Mainline]] is a public network. As such, there is risk in storing private, sensitive, or personally identifying information (PII) on such a network. Storing such sensitive information on the network or in the contents of a `did:dht` document is strongly discouraged.
+
+### Data Retention
+
+[[ref:Mainline]] offers a limited duration (approximately 2 hours) for retaining records in the DHT. To ensure the verifiability of data signed by a [[ref:DID]], consistent republishing of [[ref:DID Document]] records is crucial. To address this, using [[ref:Gateways]] equipped with [[ref:Retention Proofs]] is ****RECOMMENDED****. However, this approach introduces the potential issue of prolonged data retention. To balance this, it is ****RECOMMENDED**** that [[ref:Gateways]] implement measures supporting the "[Right to be Forgotten](https://en.wikipedia.org/wiki/Right_to_be_forgotten)," enabling precise control over the duration for which data is retained.
+
+### Cryptographic Risk
+
+The security of data within the [[ref:Mainline DHT]]—which relies on mutable records using [[ref:Ed25519]] keys—is intrinsically tied to the strength of these keys and their underlying algorithms, as outlined in [[spec:RFC8032]]. Should vulnerabilities be discovered in [[ref:Ed25519]] or if advancements in quantum computing compromise its cryptographic foundations, the [[ref:Mainline]] method could become obsolete.
 
 ## References
 
