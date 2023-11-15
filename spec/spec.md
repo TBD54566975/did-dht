@@ -563,12 +563,6 @@ returned. If no DIDs match the type, an empty array is returned.
 
 ## Implementation Considerations
 
-::: issue
-[](https://github.com/TBD54566975/did-dht-method/issues/27)
-
-Expand on this section.
-:::
-
 ### Conflict Resolution
 
 According to [[ref:BEP44]] [[ref:Nodes]] can leverage the `seq` sequence number to handle conflicts:
@@ -577,27 +571,28 @@ According to [[ref:BEP44]] [[ref:Nodes]] can leverage the `seq` sequence number 
 
 When the sequence number is equal, but the value is different, nodes need to decide which value to accept and which to reject. To make this determination nodes ****MUST**** compare the payloads lexicographically to determine a [lexicographical order](https://en.wikipedia.org/wiki/Lexicographic_order), and reject the payload with a **lower** lexicographical order.
 
-### Historical Key State
-
-Given the 1000-byte size constraints of [[ref:Mainline DHT]], users are encoutered to only put strictly-necessary data into their [[ref:DID Documents]]. However, key rotation is a commonly recommended security practice, which could lead to having many historically necessary keys in a [[ref: DID Document]], increasing the size of the document. To address this concern and to distinguish between keys that are currently active and keys that are no longer used but were once considered valid users ****MAY**** make use of the [service property](https://www.w3.org/TR/did-core/#services) to store signed records of historical key state, saving space in the [[ref:DID Document]] itself.
-
 ### Size Constraints
 
-:::todo
-Write this section.
-:::
+[[ref:BEP44]] payload sizes are limited to 1000 bytes. Accordingly, we have defined [an efficient representation of a DID Document](#dids-as-a-dns-packet) and leverage DNS packet encoding to optimize our payload sizes. With this encoding format we recommend additional considerations to keep payload sizes minimal:
+
+#### Representing Keys
+
+Outside of the encoding of a cryptographic key itself, whose size cannot be further minimized, we ****RECOMMEND**** the following representations of keys and their identifiers with usage of `JsonWebKey2020`:
+
+* The [[ref:Identity Key]]'s identifier ****MUST**** always be `#0`.
+* Key identifiers (`kid`s) ****MAY**** be omitted. If omitted, upon reconstruction of a DID Document, the JWK's key ID is set to its JWK Thumbprint [[spec:RFC7638]].
+
+#### Historical Key State
+
+However, key rotation is a commonly recommended security practice, which could lead to having many historically necessary keys in a [[ref: DID Document]], increasing the size of the document. To address this concern and to distinguish between keys that are currently active and keys that are no longer used but were once considered valid users ****MAY**** make use of the [service property](https://www.w3.org/TR/did-core/#services) to store signed records of historical key state, saving space in the [[ref:DID Document]] itself.
 
 ### Republishing Data
 
-:::todo
-Write this section.
-:::
+[[ref:Mainline]] offers a limited duration (approximately 2 hours) for retaining records in the DHT. To ensure the verifiability of data signed by a [[ref:DID]], consistent republishing of [[ref:DID Document]] records is crucial. To address this, it is ****RECOMMENDED**** to use [[ref:Gateways]] equipped with [[ref:Retention Proofs]] support.
 
 ### Rate Limiting
 
-:::todo
-Write this section.
-:::
+To reduce the risk of [Denial of Service Attacks](https://www.cisa.gov/news-events/news/understanding-denial-service-attacks), spam, and other unwanted traffic, it is ****RECOMMENDED**** that [[ref:Gateways]] require [[ref:Retention Proofs]]. The use of [[ref:Retention Proofs]] can act as an attack prevention measure, as it would be costly to scale retention proof calculations. [[ref:Nodes]] ****MAY**** choose to explore other rate limiting techniques, such as IP-limiting, or an access-token based approach.
 
 ## Security and Privacy Considerations
 
@@ -631,11 +626,11 @@ Since the `did:dht` uses a single, un-rotatable root key, there is a risk of roo
 
 ### Data Retention
 
-[[ref:Mainline]] offers a limited duration (approximately 2 hours) for retaining records in the DHT. To ensure the verifiability of data signed by a [[ref:DID]], consistent republishing of [[ref:DID Document]] records is crucial. To address this, using [[ref:Gateways]] equipped with [[ref:Retention Proofs]] is ****RECOMMENDED****. However, this approach introduces the potential issue of prolonged data retention. To balance this, it is ****RECOMMENDED**** that [[ref:Gateways]] implement measures supporting the "[Right to be Forgotten](https://en.wikipedia.org/wiki/Right_to_be_forgotten)," enabling precise control over the data retention duration.
+It is ****RECOMMENDED**** that [[ref:Gateways]] implement measures supporting the "[Right to be Forgotten](https://en.wikipedia.org/wiki/Right_to_be_forgotten)," enabling precise control over the data retention duration.
 
 ### Cryptographic Risk
 
-The security of data within the [[ref:Mainline DHT]]—which relies on mutable records using [[ref:Ed25519]] keys—is intrinsically tied to the strength of these keys and their underlying algorithms, as outlined in [[spec:RFC8032]]. Should vulnerabilities be discovered in [[ref:Ed25519]] or if advancements in quantum computing compromise its cryptographic foundations, the [[ref:Mainline]] method could become obsolete.
+The security of data within the [[ref:Mainline DHT]] which relies on mutable records using [[ref:Ed25519]] keys—is intrinsically tied to the strength of these keys and their underlying algorithms, as outlined in [[spec:RFC8032]]. Should vulnerabilities be discovered in [[ref:Ed25519]] or if advancements in quantum computing compromise its cryptographic foundations, the [[ref:Mainline]] method could become obsolete.
 
 ## References
 
