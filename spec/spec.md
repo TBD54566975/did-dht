@@ -363,7 +363,7 @@ An example type record is as follows:
 
 #### Type Index
 
-:::note
+::: note
 The type `0` is reserved for DIDs that do not wish to associate themselves with a specific type, but wish to make
 themselves discoverable via a [[ref:Gateway]]'s API.
 :::
@@ -413,8 +413,10 @@ Nodes ****MUST**** include the approximate time until retention fall-off in the 
 
 As an **OPTIONAL** feature of the DID DHT Method, operators of a [[ref:Gateway]] have the opportunity to upgrade it to a [[ref:Registered Gateway]]. A [[ref:Registered Gateway]] distinguishes itself by being discoverable through a [[ref:Gateway Registry]]. This feature allows for easy location through various internet-based discovery mechanisms. The primary purpose of [[ref:Registered Gateways]] is to simplify the process of finding [[ref:Gateways]], accessible to any entity utilizing a [[ref:Gateway Registry]] to locate registered [[ref:Nodes]]. The [[ref:Gateway Registries]] can vary in nature, encompassing a spectrum from centrally managed directories to diverse decentralized systems including databases, ledgers, or other structures.
 
-:::todo
-Consider moving gateway registries to a seprate document
+::: issue
+[](https://github.com/TBD54566975/did-dht-method/issues/45)
+
+Consider moving gateway registries to a seprate document.
 :::
 
 #### Bitcoin Gateway Registry
@@ -520,7 +522,7 @@ DID by its type.
 
 Upon receiving a request to resolve a DID, the Gateway ****MUST**** query the DHT for the DID Document, and if found,
 return the DID Document. If the records are not found in the DHT, the Gateway ****MAY**** fall back to its local storage.
-If the DNS Packets contains a `_typ._did` record, the Gateway ****MUST**** return the type index.
+If the DNS Packets contains a `_typ._did.` record, the Gateway ****MUST**** return the type index.
 
 ::: note
 This API is not required to return the complete DNS packet but rather the DID Document and type index. If the full DNS
@@ -543,7 +545,7 @@ follows the same process as [updating a DID](#register-or-update-a-did), but wit
 [section on deactivation](#deactivate).
 
 Upon receiving a request to deactivate a DID, the Gateway ****MUST**** verify the signature of the request, and if valid,
-stop republishing the DHT. If the DNS Packets contains a `_typ._did` record, the Gateway ****MUST**** remove the type index.
+stop republishing the DHT. If the DNS Packets contains a `_typ._did.` record, the Gateway ****MUST**** remove the type index.
 
 #### Type Indexing
 
@@ -566,6 +568,12 @@ stop republishing the DHT. If the DNS Packets contains a `_typ._did` record, the
 
 A query to the type index returns an array of DIDs matching the associated type. If the type is not found, a `404` is
 returned. If no DIDs match the type, an empty array is returned.
+
+::: issue
+[](https://github.com/TBD54566975/did-dht-method/issues/49)
+
+Support pagination.
+:::
 
 ## Implementation Considerations
 
