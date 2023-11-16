@@ -5,7 +5,7 @@ The DID DHT Method Specification 1.0
 
 **Latest Draft:** [tbd54566975.github.io/did-dht-method](https://tbd54566975.github.io/did-dht-method)
 
-**Latest Update:** November 14, 2023
+**Latest Update:** November 16, 2023
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -104,25 +104,25 @@ did-dht-format := did:dht:Z-BASE-32(raw-public-key-bytes)
 In this scheme, we encode the [[ref:DID Document]] as multiple [DNS TXT records](https://en.wikipedia.org/wiki/TXT_record).
 Comprising a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then stored in the [[ref:DHT]].
 
-| Name     | Type | TTL    | Rdata                                     |
-| -------- | ---- | ------ | ----------------------------------------- |
-| _did     | TXT  |  7200  | vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2 |
-| _k0._did | TXT  |  7200  | t=0,k=`<b64url>`                          |
-| _k1._did | TXT  |  7200  | t=1,k=`<b64url>`                          |
-| _k2._did | TXT  |  7200  | t=1,k=`<b64url>`                          |
-| _s0._did | TXT  |  7200  | t=LinkedDomains;uri=foo.com;...           |
-| _s1._did | TXT  |  7200  | t=DWN;uri=https://dwn.tbddev.org/dwn5;... |
+| Name      | Type | TTL    | Rdata                                     |
+| --------- | ---- | ------ | ----------------------------------------- |
+| _did.     | TXT  |  7200  | vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2 |
+| _k0._did. | TXT  |  7200  | t=0,k=`<b64url>`                          |
+| _k1._did. | TXT  |  7200  | t=1,k=`<b64url>`                          |
+| _k2._did. | TXT  |  7200  | t=1,k=`<b64url>`                          |
+| _s0._did. | TXT  |  7200  | t=LinkedDomains;uri=foo.com;...           |
+| _s1._did. | TXT  |  7200  | t=DWN;uri=https://dwn.tbddev.org/dwn5;... |
 
 ::: note
 The recommended TTL value is 7200 seconds (2 hours), the default TTL for Mainline records.
 :::
 
-* A root `_did` record identifies the [property mapping](#property-mapping) for the document. Other records such as `srv`
+* A root `_did.` record identifies the [property mapping](#property-mapping) for the document. Other records such as `srv`
 (services), `vm` (verification methods), and verification relationships (e.g. authentication, assertion, etc.) are surfaced
-as additional records of the format `<ID>._did`, which contains the zero-indexed value of each `key` or `service` as
+as additional records of the format `<ID>._did.`, which contains the zero-indexed value of each `key` or `service` as
 attributes.
 
-* All records ****MUST**** end in `_did` or `_did.TLD` if a TLD is associated with the record.
+* All records ****MUST**** end in `_did.` or `_did.TLD.` if a TLD is associated with the record.
 
 ::: note
 It might look like repeating `_did` is an overhead, but is compressed away using normal DNS standard
@@ -133,9 +133,9 @@ It might look like repeating `_did` is an overhead, but is compressed away using
 
 * The DID identifier [[ref:z-base-32]]-encoded key ****MUST**** be appended as the Origin of all records:
 
-| Name                                                      | Type | TTL    | Rdata                                     |
-| --------------------------------------------------------- | ---- | ------ | ----------------------------------------- |
-| _did.o4dksfbqk85ogzdb5osziw6befigbuxmuxkuxq8434q89uj56uyy | TXT  |  7200  | vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2 |
+| Name                                                       | Type | TTL    | Rdata                                     |
+| ---------------------------------------------------------- | ---- | ------ | ----------------------------------------- |
+| _did.o4dksfbqk85ogzdb5osziw6befigbuxmuxkuxq8434q89uj56uyy. | TXT  |  7200  | vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2 |
 
 ### Property Mapping
 
@@ -143,14 +143,14 @@ The following section describes mapping a [[ref:DID Document]] to a DNS packet. 
 long identifiers in resource name fields, resource names are aliased with zero-indexed values (e.g. `k0`, `k1`, `s0`, `s1`).
 The complete identifier is stored in the resource data field (e.g. `id=abcd,t=0,k=...`).
 
-* The _root record_, `_did` or `_did.TLD` if a [TLD](https://en.wikipedia.org/wiki/Top-level_domain) is being utilized
+* The _root record_, `_did.` or `_did.TLD.` if a [TLD](https://en.wikipedia.org/wiki/Top-level_domain) is being utilized
 contains a list of IDs of the keys and service endpoints used in different sections of the [[ref:DID Document]].
 
 An example is as follows:
 
-| Name      | Type | TTL  | Rdata                                                 |
-| --------- | ---- | ---- | ----------------------------------------------------- |
-| _did.TLD  | TXT  | 7200 | vm=k1,k2,k3;auth=k1;asm=k2;inv=k3;del=k3;srv=s1,s2,s3 |
+| Name       | Type | TTL  | Rdata                                                 |
+| ---------- | ---- | ---- | ----------------------------------------------------- |
+| _did.TLD.  | TXT  | 7200 | vm=k1,k2,k3;auth=k1;asm=k2;inv=k3;del=k3;srv=s1,s2,s3 |
 
 The following instructions serve as a reference of mapping DID Document properties to [DNS TXT records](https://en.wikipedia.org/wiki/TXT_record):
 
@@ -174,26 +174,26 @@ and `O` is the base64URL [[spec:RFC4648]] representation of the public key.
 An example [Verification Method]((https://www.w3.org/TR/did-core/#verification-methods)) record represented as a DNS TXT
 record is as follows:
 
-| Name     | Type | TTL  | Rdata                                                     |
-| -------- | ---- | ---- | --------------------------------------------------------- |
-| _k0._did | TXT  | 7200 | id=abcd,t=0,k=r96mnGNgWGOmjt6g_3_0nd4Kls5-kknrd4DdPW8qtfw |
+| Name      | Type | TTL  | Rdata                                                     |
+| --------- | ---- | ---- | --------------------------------------------------------- |
+| _k0._did. | TXT  | 7200 | id=abcd,t=0,k=r96mnGNgWGOmjt6g_3_0nd4Kls5-kknrd4DdPW8qtfw |
 
 #### Verification Relationships
 
 * Each [Verification Relationship](https://www.w3.org/TR/did-core/#verification-relationships) is represented as a part
-of the root `_did.TLD` record (see: [Property Mapping](#property-mapping)).
+of the root `_did.TLD.` record (see: [Property Mapping](#property-mapping)).
 
 The following table acts as a map between Verification Relationship types and their record name:
 
 ##### Verification Relationship Index
 
-| Verification Relationship  | Record Name |
-| ------------------------- | ----------- |
-| Authentication            | auth        |
-| Assertion                 | asm         |
-| Key Agreement             | agm         |
-| Capability Invocation     | inv         |
-| Capability Delegation     | del         |
+| Verification Relationship  | Record Name   |
+| -------------------------- | ------------- |
+| Authentication             | `auth`        |
+| Assertion                  | `asm`         |
+| Key Agreement              | `agm`         |
+| Capability Invocation      | `inv`         |
+| Capability Delegation      | `del`         |
 
 The record data is uniform across [Verification Relationships](https://www.w3.org/TR/did-core/#verification-relationships),
 represented as a comma-separated list of key references.
@@ -210,18 +210,18 @@ An example is as follows:
 
 #### Services
 
-* Each [Service](https://www.w3.org/TR/did-core/#services)'s **name** is represented as a `_sN._did` record where `N` is
+* Each [Service](https://www.w3.org/TR/did-core/#services)'s **name** is represented as a `_sN._did.` record where `N` is
 the zero-indexed positional index of the Service (e.g. `_s0`, `_s1`).
 * Each [Service](https://www.w3.org/TR/did-core/#services)'s **data** is represented with the form `id=M,t=N,uri=O`
 where `M` is the Service's ID, `N` is the Service's Type and `O` is the Service's URI.
 
 An example is given as follows:
 
-| Name     | Type | TTL  | Rdata                                                     |
-| -------- | ---- | ---- | --------------------------------------------------------- |
-| _s0._did | TXT  | 7200 | id=dwn,t=DecentralizedWebNode,uri=https://example.com/dwn |
+| Name      | Type | TTL  | Rdata                                                     |
+| --------- | ---- | ---- | --------------------------------------------------------- |
+| _s0._did. | TXT  | 7200 | id=dwn,t=DecentralizedWebNode,uri=https://example.com/dwn |
 
-Each Service is represented as part of the root `_did.TLD` record as a list under the key `srv=<ids>` where `ids`
+Each Service is represented as part of the root `_did.TLD.` record as a list under the key `srv=<ids>` where `ids`
 is a comma-separated list of all IDs for each Service.
 
 #### Example
@@ -276,12 +276,12 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
 
 **DNS Resource Records**
 
-| Name     | Type | TTL   | Rdata                                                                        |
-| -------- | ---- | ----- | ---------------------------------------------------------------------------- |
-| _did.TLD | TXT  | 7200  | vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;srv=s1                           |
-| _k0._did | TXT  | 7200  | id=0,t=0,h=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc  |
-| _k1._did | TXT  | 7200  | id=HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ,t=1,k=BCiNAz7y-XBr853PBAzgAOU_c0Hyw0Gb69Hr9jTC3MQ80iSbXxZo0jIFLtW8vVnoWd8tEzUV2o22BVc_IjVTIt8 |
-| _s0._did | TXT  | 7200  | id=dwn,t=DecentralizedWebNode,uri=https://example.com/dwn                    |
+| Name      | Type | TTL   | Rdata                                                                        |
+| --------- | ---- | ----- | ---------------------------------------------------------------------------- |
+| _did.TLD. | TXT  | 7200  | vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;srv=s1                           |
+| _k0._did. | TXT  | 7200  | id=0,t=0,h=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc  |
+| _k1._did. | TXT  | 7200  | id=HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ,t=1,k=BCiNAz7y-XBr853PBAzgAOU_c0Hyw0Gb69Hr9jTC3MQ80iSbXxZo0jIFLtW8vVnoWd8tEzUV2o22BVc_IjVTIt8 |
+| _s0._did. | TXT  | 7200  | id=dwn,t=DecentralizedWebNode,uri=https://example.com/dwn                    |
 
 ### Operations
 
@@ -333,9 +333,9 @@ To deactivate a document, there are a couple options:
 1. Let the DHT record expire and cease to publish it.
 2. Publish a new DHT record where the `rdata` of the root DNS record is the string "deactivated."
 
-| Name      | Type | TTL  | Rdata       |
-| --------- | ---- | ---- | ----------- |
-| _did.TLD  | TXT  | 7200 | deactivated |
+| Name       | Type | TTL  | Rdata       |
+| ---------- | ---- | ---- | ----------- |
+| _did.TLD.  | TXT  | 7200 | deactivated |
 
 ::: note
 If you have published your DID through a [[ref:Gateway]], you may need to contact the operator to have them remove the
@@ -344,27 +344,33 @@ record from their [[ref:Retained DID Set]].
 
 ### Type Indexing
 
-Type indexing is an **OPTIONAL** feature that enables DIDs to flag themselves as being of a particular type. Types are not
-included as a part of the DID Document, but rather as part of the DNS packet. This allows for DIDs to be
-indexed by type by [[ref:Gateway]]s, and for DIDs to be resolved by type.
+Type indexing is an **OPTIONAL** feature that enables DIDs to become **discoverable**, by flagging themselves as being of
+a particular type. Types are not included as a part of the DID Document, but rather as part of the DNS packet. This allows
+for DIDs to be indexed by type by [[ref:Gateways]], and for DIDs to be resolved by type.
 
-DIDs can be indexed by type by adding a `_typ._did` record to the DNS packet. A DID may have **AT MOST** one type index
+DIDs can be indexed by type by adding a `_typ._did.` record to the DNS packet. A DID may have **AT MOST** one type index
 record. This record is a TXT record with the following format:
 
-* The record **name** represented as a `_typ._did`.
+* The record **name** represented as a `_typ._did.`.
 * The record **data** is represented with the form `id=0,1,2` where the value is a comma-separated list of types from
 the [type index](#type-index).
 
 An example type record is as follows:
 
-| Name      | Type | TTL  | Rdata       |
-| --------- | ---- | ---- | ----------- |
-| _typ._did | TXT  | 7200 | id=0,1,2    |
+| Name       | Type | TTL  | Rdata       |
+| ---------- | ---- | ---- | ----------- |
+| _typ._did. | TXT  | 7200 | id=0,1,2    |
 
 #### Type Index
 
+::: note
+The type `0` is reserved for DIDs that do not wish to associate themselves with a specific type, but wish to make
+themselves discoverable via a [[ref:Gateway]]'s API.
+:::
+
 | Type Name               | Schema                                    | Type Integer |
 |-------------------------|-------------------------------------------| ------------ |
+| Discoverable            | -                                         | 0            |
 | Organization            | https://schema.org/Organization           | 1            |
 | Government Organization | https://schema.org/GovernmentOrganization | 2            |
 | Corporation             | https://schema.org/Corporation            | 3            |
@@ -407,8 +413,10 @@ Nodes ****MUST**** include the approximate time until retention fall-off in the 
 
 As an **OPTIONAL** feature of the DID DHT Method, operators of a [[ref:Gateway]] have the opportunity to upgrade it to a [[ref:Registered Gateway]]. A [[ref:Registered Gateway]] distinguishes itself by being discoverable through a [[ref:Gateway Registry]]. This feature allows for easy location through various internet-based discovery mechanisms. The primary purpose of [[ref:Registered Gateways]] is to simplify the process of finding [[ref:Gateways]], accessible to any entity utilizing a [[ref:Gateway Registry]] to locate registered [[ref:Nodes]]. The [[ref:Gateway Registries]] can vary in nature, encompassing a spectrum from centrally managed directories to diverse decentralized systems including databases, ledgers, or other structures.
 
-:::todo
-Consider moving gateway registries to a seprate document
+::: issue
+[](https://github.com/TBD54566975/did-dht-method/issues/45)
+
+Consider moving gateway registries to a seprate document.
 :::
 
 #### Bitcoin Gateway Registry
@@ -514,7 +522,7 @@ DID by its type.
 
 Upon receiving a request to resolve a DID, the Gateway ****MUST**** query the DHT for the DID Document, and if found,
 return the DID Document. If the records are not found in the DHT, the Gateway ****MAY**** fall back to its local storage.
-If the DNS Packets contains a `_typ._did` record, the Gateway ****MUST**** return the type index.
+If the DNS Packets contains a `_typ._did.` record, the Gateway ****MUST**** return the type index.
 
 ::: note
 This API is not required to return the complete DNS packet but rather the DID Document and type index. If the full DNS
@@ -537,7 +545,7 @@ follows the same process as [updating a DID](#register-or-update-a-did), but wit
 [section on deactivation](#deactivate).
 
 Upon receiving a request to deactivate a DID, the Gateway ****MUST**** verify the signature of the request, and if valid,
-stop republishing the DHT. If the DNS Packets contains a `_typ._did` record, the Gateway ****MUST**** remove the type index.
+stop republishing the DHT. If the DNS Packets contains a `_typ._did.` record, the Gateway ****MUST**** remove the type index.
 
 #### Type Indexing
 
@@ -560,6 +568,12 @@ stop republishing the DHT. If the DNS Packets contains a `_typ._did` record, the
 
 A query to the type index returns an array of DIDs matching the associated type. If the type is not found, a `404` is
 returned. If no DIDs match the type, an empty array is returned.
+
+::: issue
+[](https://github.com/TBD54566975/did-dht-method/issues/49)
+
+Support pagination.
+:::
 
 ## Implementation Considerations
 
