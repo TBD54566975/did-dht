@@ -5,7 +5,9 @@ The DID DHT Method Specification 1.0
 
 **Latest Draft:** [tbd54566975.github.io/did-dht-method](https://tbd54566975.github.io/did-dht-method)
 
-**Latest Update:** November 16, 2023
+**Registry:** [DID DHT Method Specification Registry](registry/index.html)
+
+**Latest Update:** November 20, 2023
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -65,8 +67,8 @@ sovereign, publicly addressable domains."
 [[def:Gateway, Gateways, Nodes, DID DHT Node, Bitcoin-anchored Gateway]]
 ~ A node that acts as a gateway to the DID DHT. The gateway may offer a set of APIs to interact with the DID DHT, such as features providing guaranteed retention, historical resolution, and other features.
 
-[[def:Registered Gateway, Reigstered Gateways]]
-~ A gateway that has chosen to make itself discoverable via a [[ref:Gateway Registry]].
+[[def:Registered Gateway, Registered Gateways]]
+~ A gateway that has chosen to make itself discoverable via a [[ref:Gateway Registry]] such as [our own registry](registry/index.html#gateways).
 
 [[def:Gateway Registry, Gateway Registries]]
 ~ A system used to make [[ref:Gateways]], more specifically, [[ref:Registered Gateways]] discoverable.
@@ -160,23 +162,8 @@ The following instructions serve as a reference of mapping DID Document properti
 a given [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) (e.g. `_k0`, `_k1`).
 
 * Each [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) **rdata** is represented with the form
-`id=M,t=N,k=O` where `M` is the key's ID, `N` is the index of the key's type from [key type index](#key-type-index),
+`id=M,t=N,k=O` where `M` is the key's ID, `N` is the index of the key's type from [key type index](registry/index.html#key-type-index),
 and `O` is the base64URL [[spec:RFC4648]] representation of the public key.
-
-##### Key Type Index
-
-| Index | Key Type                                               |
-| ----- | ------------------------------------------------------ |
-| 0     | [Ed25519](https://ed25519.cr.yp.to/)                   |
-| 1     | [secp256k1](https://en.bitcoin.it/wiki/Secp256k1)      |
-| 2     | [secp256r1](https://neuromancer.sk/std/secg/secp256r1) |
-
-An example [Verification Method]((https://www.w3.org/TR/did-core/#verification-methods)) record represented as a DNS TXT
-record is as follows:
-
-| Name      | Type | TTL  | Rdata                                                     |
-| --------- | ---- | ---- | --------------------------------------------------------- |
-| _k0._did. | TXT  | 7200 | id=abcd,t=0,k=r96mnGNgWGOmjt6g_3_0nd4Kls5-kknrd4DdPW8qtfw |
 
 #### Verification Relationships
 
@@ -353,7 +340,7 @@ record. This record is a TXT record with the following format:
 
 * The record **name** represented as a `_typ._did.`.
 * The record **data** is represented with the form `id=0,1,2` where the value is a comma-separated list of types from
-the [type index](#type-index).
+the [type index](#type-indexing).
 
 An example type record is as follows:
 
@@ -361,40 +348,29 @@ An example type record is as follows:
 | ---------- | ---- | ---- | ----------- |
 | _typ._did. | TXT  | 7200 | id=0,1,2    |
 
-#### Type Index
 
-::: note
-The type `0` is reserved for DIDs that do not wish to associate themselves with a specific type, but wish to make
-themselves discoverable via a [[ref:Gateway]]'s API.
-:::
-
-| Type Name               | Schema                                    | Type Integer |
-|-------------------------|-------------------------------------------| ------------ |
-| Discoverable            | -                                         | 0            |
-| Organization            | https://schema.org/Organization           | 1            |
-| Government Organization | https://schema.org/GovernmentOrganization | 2            |
-| Corporation             | https://schema.org/Corporation            | 3            |
-| Local Business          | https://schema.org/LocalBusiness          | 4            |
-| Software Package        | https://schema.org/SoftwareSourceCode     | 5            |
-| Web App                 | https://schema.org/WebApplication         | 6            |
-| Financial Institution   | https://schema.org/FinancialService       | 7            |
+Types can be found and registered in the [DID DHT Registry](registry/index.html#indexed-types).
 
 ## Gateways
 
-Gateways serve as specialized nodes within the network, providing a range of DID-centric functionalities that extend beyond the capabilities of a standard [[ref:Mainline DHT]] node. This section elaborates on these unique features, outlines the operational prerequisites for managing a gateway, and discusses various other facets, including the optional integration of these gateways into the decentralized registry system.
+Gateways serve as specialized nodes within the network, providing a range of DID-centric functionalities that extend beyond the capabilities of a standard [[ref:Mainline DHT]] node. This section elaborates on these unique features, outlines the operational prerequisites for managing a gateway, and discusses various other facets, including the optional integration of these gateways into a registry system.
+
+### Discovering Gateways
+
+As an **OPTIONAL** feature of the DID DHT Method, operators of a [[ref:Gateway]] have the opportunity to make it to a [[ref:Registered Gateway]]. A [[ref:Registered Gateway]] distinguishes itself by being discoverable through a [[ref:Gateway Registry]]. This feature allows for easy location through various internet-based discovery mechanisms. The primary purpose of [[ref:Registered Gateways]] is to simplify the process of finding [[ref:Gateways]], accessible to any entity utilizing a [[ref:Gateway Registry]] to locate registered [[ref:Nodes]]. The [[ref:Gateway Registries]] can vary in nature, encompassing a spectrum from centrally managed directories to diverse decentralized systems including databases, ledgers, or other structures. [[ref:Registered Gateways]] are exposed through the [Gateway Registry](registry/index.html#gateways).
 
 ### Retained DID Set
 
-A [[ref:Retained DID Set]] refers to the set of DIDs a [[ref:Gateway]] retains and republishes to the DHT. A [[ref:Gateway]] may choose to surface additional [APIs](#gateway-api) based on this set, such as providing a [type index](#type-index).
+A [[ref:Retained DID Set]] refers to the set of DIDs a [[ref:Gateway]] retains and republishes to the DHT. A [[ref:Gateway]] may choose to surface additional [APIs](#gateway-api) based on this set, such as providing a [type index](#type-indexing).
 
 #### Generating a Retention Proof
 
-A [[ref:Retention Proof]] is a form of [Proof of Work](https://en.bitcoin.it/wiki/Proof_of_work) performed over a DID's identifier concatenated with the `retention` value of a given DID operation. The `retention` value is composed of a hash value ****RECOMMENDED**** to be the most recent [Bitcoin block hash](https://csrc.nist.gov/glossary/term/block_header#:~:text=Definitions%3A,cryptographic%20nonce%20(if%20needed).), and a random [nonce](https://en.wikipedia.org/wiki/Cryptographic_nonce) using the [SHA-256 hashing algorithm](https://en.wikipedia.org/wiki/SHA-2). The resulting _Retention Proof Hash_ is used to determine the retention duration based on the number of leading zeros of the hash, referred to as the _difficulty_, which ****MUST**** be no less than 26 bits of the 256-bit hash value. The algorithm, in detail, is as follows:
+A [[ref:Retention Proof]] is a form of [Proof of Work](https://en.bitcoin.it/wiki/Proof_of_work) performed over a DID's identifier concatenated with the `retention` value of a given DID operation. The `retention` value is composed of a hash value specified [in the gateway registry](registry/index.html#gateways), and a random [nonce](https://en.wikipedia.org/wiki/Cryptographic_nonce) using the [SHA-256 hashing algorithm](https://en.wikipedia.org/wiki/SHA-2). The resulting _Retention Proof Hash_ is used to determine the retention duration based on the number of leading zeros of the hash, referred to as the _difficulty_, which ****MUST**** be no less than 26 bits of the 256-bit hash value. The algorithm, in detail, is as follows:
 
 1. Obtain a `did:dht` identifier and set it to `DID`.
-2. Get the difficulty and recent hash from the server set to `DIFFICULTY` and `BLOCK_HASH`, respectively.
+2. Get the difficulty and recent hash from the server set to `DIFFICULTY` and `HASH`, respectively.
 2. Generate a random 32-bit integer nonce value set to `NONCE`.
-3. Compute the [SHA-256](https://en.wikipedia.org/wiki/SHA-2) hash over `ATTEMPT` where `ATTEMPT` = (`DID` + `BLOCK_HASH` + `NONCE`).
+3. Compute the [SHA-256](https://en.wikipedia.org/wiki/SHA-2) hash over `ATTEMPT` where `ATTEMPT` = (`DID` + `HASH` + `NONCE`).
 4. Inspect the result of `ATTEMPT`, and ensure it has >= `DIFFICULTY` bits of leading zeroes. 
   a. If so, `ATTEMPT` = `RENTION_PROOF`.
   b. Else, regenerate `NONCE` and go to step 3.
@@ -403,34 +379,11 @@ A [[ref:Retention Proof]] is a form of [Proof of Work](https://en.bitcoin.it/wik
 
 #### Managing the Retained DID Set
 
-[[ref:Nodes]] following the [[ref:Retention Set]] rules ******SHOULD****** sort DIDs they are retaining by the number of _leading 0s_ in their [[ref:Retention Proofs]] in descending order, followed by block hash's index number in descending order. When a [[ref:node]] needs to reduce its [[ref:retained set]] of DID entries, it ****SHOULD**** remove entries from the bottom of the list following this sort.
+[[ref:Nodes]] following the [[ref:Retention Set]] rules ****SHOULD**** sort DIDs they are retaining by the number of _leading 0s_ in their [[ref:Retention Proofs]] in descending order, followed by block hash's index number in descending order. When a [[ref:node]] needs to reduce its [[ref:retained set]] of DID entries, it ****SHOULD**** remove entries from the bottom of the list following this sort.
 
 #### Reporting on Retention Status
 
 Nodes ****MUST**** include the approximate time until retention fall-off in the [DID Resoution Metadata](https://www.w3.org/TR/did-core/#did-resolution-metadata) of a resolved [[ref:DID Document]], to aid [[ref:clients]] in being able to assess whether resubmission is required.
-
-### Registered Gateways
-
-As an **OPTIONAL** feature of the DID DHT Method, operators of a [[ref:Gateway]] have the opportunity to upgrade it to a [[ref:Registered Gateway]]. A [[ref:Registered Gateway]] distinguishes itself by being discoverable through a [[ref:Gateway Registry]]. This feature allows for easy location through various internet-based discovery mechanisms. The primary purpose of [[ref:Registered Gateways]] is to simplify the process of finding [[ref:Gateways]], accessible to any entity utilizing a [[ref:Gateway Registry]] to locate registered [[ref:Nodes]]. The [[ref:Gateway Registries]] can vary in nature, encompassing a spectrum from centrally managed directories to diverse decentralized systems including databases, ledgers, or other structures.
-
-::: issue
-[](https://github.com/TBD54566975/did-dht-method/issues/45)
-
-Consider moving gateway registries to a seprate document.
-:::
-
-#### Bitcoin Gateway Registry
-
-1. Generate a relative [[ref:timelock]] transaction for the Bitcoin blockchain with the following attributes:
-    - Set the lock duration to 1000
-    - Add locked value locked must be no less than the mean value of the upper quintile of [UTXOs](https://en.wikipedia.org/wiki/Unspent_transaction_output) as of a block that is no more than 10 blocks earlier from the block the locking transaction is included in (this effectively provides a 10 block grace period for the transaction to make it into the chain).
-    - Add an `OP_RETURN` string composed of the following comma-separated values:
-        - The block number used to compute the mean value of the upper quintile of [UTXOs](https://en.wikipedia.org/wiki/Unspent_transaction_output).
-        - The `URI` where your [[ref:node]] can be addressed
-2. Include the [[ref:timelock]] transaction within 10 blocks of the block number specified for the average UTXO value calculation.
-3. If this is a relocking transaction that refreshes an existing registration of a [[ref:node]]:
-    - The relocking transaction ******MUST****** spend the outputs of the lock it replaces.
-    - If the operator wants to prevent other nodes and clients using the decentralized registry from dropping the [[ref:Registered Gateway]] from their [[ref:Registered Gateway]] list, the relocking transaction ****MUST**** be included in the blockchain within ten blocks of the previous lock's expiration.
 
 ### Gateway API
 
@@ -682,6 +635,12 @@ The security of data within the [[ref:Mainline DHT]] which relies on mutable rec
 
 ## Appendix
 
+### Test Vectors
+
+::: issue
+[](https://github.com/TBD54566975/did-dht-method/issues/37)
+:::
+
 ### Open API Definition
 
 ```yaml
@@ -709,9 +668,5 @@ Z. O'Whielacronx; November 2002.
 [[def:VC-JWS-2020]]
 ~ [Verifiable Credentials JSON Web Signature Suite 2020](https://www.w3.org/TR/vc-jws-2020/). O. Steele, M. Jones; 29
 June 2023. [W3C](https://www.w3.org/).
-
-[[def:Timelock]]
-~ [Timelock](https://github.com/bitcoin/bips/blob/master/bip-0065.mediawiki). P. Todd. 01 October 2014.
-[Bitcoin](https://github.com/bitcoin).
 
 [[spec]]

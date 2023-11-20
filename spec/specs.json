@@ -1,9 +1,21 @@
 {
   "specs": [
     {
-      "title": "The DID DHT Method",
+      "title": "The DID DHT Method Specification",
       "spec_directory": ".",
       "output_path": "./build",
+      "logo": "https://avatars.githubusercontent.com/u/94492651",
+      "logo_link": "https://tbd.website",
+      "source": {
+        "host": "github",
+        "account": "tbd54566975",
+        "repo": "did-dht-method"
+      }
+    },
+    {
+      "title": "The DID DHT Method Registry",
+      "spec_directory": "./registry",
+      "output_path": "./build/registry",
       "logo": "https://avatars.githubusercontent.com/u/94492651",
       "logo_link": "https://tbd.website",
       "source": {
