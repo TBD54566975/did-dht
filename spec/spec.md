@@ -436,21 +436,23 @@ Consider moving gateway registries to a seprate document.
 
 At a minimum, a gateway ****MUST**** support the [Relay API defined by Pkarr](https://github.com/Nuhvi/pkarr/blob/main/design/relays.md).
 
-Expanding on this API, a Gateway ****MUST**** support the following API endpoints:
+Expanding on this API, a Gateway ****MUST**** support the following API, which is also made available via an [OpenAPI document](#open-api-definition).
 
 #### Get the Current Difficulty
 
+Difficulty is exposed as an **OPTIONAL** endpoint based on support of [retention proofs](#retained-did-set).
+
 - **Method:** `GET`
 - **Path:** `/difficulty`
-- **Returns**:
-  _ `200` - Success.
-    - `block_hash` - **string** - The most recent block hash.
+- **Returns:**
+  - `200` - Success.
+    - `hash` - **string** - The current hash.
     - `difficulty` - **integer** - The current difficulty.
   - `404` - Not found. Difficulty not supported by this gateway.
 
 ```json
 {
-  "block_hash": "000000000000000000022be0c55caae4152d023dd57e8d63dc1a55c1f6de46e7",
+  "hash": "000000000000000000022be0c55caae4152d023dd57e8d63dc1a55c1f6de46e7",
   "difficulty": 26
 }
 ```
@@ -460,17 +462,17 @@ Expanding on this API, a Gateway ****MUST**** support the following API endpoint
 - **Method:** `PUT`
 - **Path:** `/did`
 - **Request Body:** A JSON payload constructed as follows...
-    - `did` - **string** - **REQUIRED** - The DID to register.
-    - `sig` - **string** - **REQUIRED** - A base64URL-encoded signature of the [[ref:BEP44]] payload
-    - `seq` - **integer** - **REQUIRED** - A sequence number for the DID. This number ****MUST**** be unique for each DID operation,
-    recommended to be a unix timestamp.
-    - `v` - **string** -  **REQUIRED** -A base64URL-encoded bencoded DNS packet containing the DID Document.
+    - `did` - **string** - **REQUIRED** - The DID to register or update.
+    - `sig` - **string** - **REQUIRED** - A base64URL-encoded signature of the [[ref:BEP44]] payload.
+    - `seq` - **integer** - **REQUIRED** - A sequence number for the request. This number ****MUST**** be unique for each DID operation,
+    recommended to be a unix timestamp in seconds.
+    - `v` - **string** -  **REQUIRED** - A base64URL-encoded bencoded DNS packet containing the DID Document.
     - `retention_proof` - **string** –  **OPTIONAL** - A retention proof calculated according to the [retention proof algorithm](#generating-a-retention-proof).
-- **Returns**:
-    - `200` - Success.
+- **Returns:**
+    - `202` - Accepted. The server has accepted the request as valid and will publish to the DHT.
     - `400` - Invalid request body.
     - `401` - Invalid signature.
-    - `409` - DID already exists with a higher sequence number.
+    - `409` - DID already exists with a higher sequence number. DID may be accepted if the [[ref:Gateway]] supports [historical resolution](#historical-resolution).
 
 ```json
 {
@@ -482,17 +484,19 @@ Expanding on this API, a Gateway ****MUST**** support the following API endpoint
 ```
 
 Upon receiving a request to register a DID, the Gateway ****MUST**** verify the signature of the request and if valid
-publish the DID Document to the DHT. If the DNS Packets contains a `_typ._did` record, the Gateway ****MUST**** index the
+publish the DID Document to the DHT. If the DNS Packets contains a `_typ._did.` record, the Gateway ****MUST**** index the
 DID by its type.
 
 #### Resolving a DID
 
 - **Method:** `GET`
 - **Path:** `/did/:id`
-- **Returns**:
+  - `id` - **string** - **REQUIRED** - ID of the DID to resolve.
+- **Returns:**
     - `200` - Success.
         - `did` - **object** - A JSON object representing the DID's Document.
-        - `types` - **array** - An array of type strings for the DID.
+        - `types` - **array** - An array of [type strings](#type-indexing) for the DID.
+        - `sequence_numbers` - **array** - An sorted array of seen sequence numbers, used with [historical resolution](#historical-resolution).
     - `404` - DID not found.
 
 ```json
@@ -516,7 +520,8 @@ DID by its type.
         "authentication": ["#0"],
         "assertionMethod": ["#0"]
     },
-    "types": [1, 4]
+    "types": [1, 4],
+    "sequence_numbers": [1700356854, 1700461736]
 }
 ```
 
@@ -532,11 +537,22 @@ packet, with its signature data, is required it is ****RECOMMENDED**** to use th
 
 
 ##### Historical Resolution
-::: issue
-[](https://github.com/TBD54566975/did-dht-method/issues/42)
 
-Specify historical resolution API.
-:::
+[[ref:Nodes]] ****MAY**** choose to support historical resolution, which is to surface different version of the same [[ref:DID Document]],
+sorted by sequence number, according to the rules set out in the section on [conflict resolution](#conflict-resolution).
+
+Upon [resolving a DID](#resolving-a-did), the Gateway will return the parameter `sequence_numbers` if there exists historical state for
+a given [[ref:DID]]. The following API can be used with specific sequence numbers to fetch historical state:
+
+- **Method:** `GET`
+- **Path:** `/did/:id?seq=:sequence_number`
+    - `id` - **string** - **REQUIRED** - ID of the DID to resolve
+    - `seq` - **integer** - **OPTIONAL** - Sequence number of the DID to resolve
+- **Returns**:
+    - `200` - Success.
+        - `did` - **object** - A JSON object representing the DID's Document.
+        - `types` - **array** - An array of [type strings](#type-indexing) for the DID.
+    - `404` - DID not found for the given sequence number.
 
 #### Deactivating a DID
 
@@ -549,31 +565,49 @@ stop republishing the DHT. If the DNS Packets contains a `_typ._did.` record, th
 
 #### Type Indexing
 
+**Get Info**
+
 - **Method:** `GET`
-- **Path:** `/did/types?id=:id`
-    - `id` - **string** - **REQUIRED** -The type to query from the index.
-- **Returns**:
+- **Path:** `/did/types`
+- **Returns:**
+  - `200` - Success.
+    - **array** - An array of objects describing the known types.
+  - `404` - Type indexing not supported.
+
+```json
+[
+  {
+    "type": 1,
+    "description": "Organization"
+  },
+  { 
+    "type": 7,
+    "description": "Financial Institution"
+  }
+]
+```
+
+**Get a Specific Type**
+
+- **Method:** `GET`
+- **Path:** `/did/types/:id`
+    - `id` - **integer** - **REQUIRED** - The type to query from the index.
+    - `offset` - **integer** - **OPTIONAL** - Specifies the starting position from where the type records should be retrieved (Default: `0`).
+    - `limit` - **integer** - **OPTIONAL** - Specifies the maximum number of type records to retrieve (Default: `100`).
+- **Returns:**
     - `200` - Success.
-        - `dids` - **array** - An array of DIDs matching the associated type.
+        - **array** - An array of DID Identifiers matching the associated type.
     - `404` - Type not found.
 
 ```json
-{
-    "dids": [
-        "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
-        "did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj"
-    ]
-}
+[
+  "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
+  "did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj"
+]
 ```
 
 A query to the type index returns an array of DIDs matching the associated type. If the type is not found, a `404` is
 returned. If no DIDs match the type, an empty array is returned.
-
-::: issue
-[](https://github.com/TBD54566975/did-dht-method/issues/49)
-
-Support pagination.
-:::
 
 ## Implementation Considerations
 
@@ -645,6 +679,14 @@ It is ****RECOMMENDED**** that [[ref:Gateways]] implement measures supporting th
 ### Cryptographic Risk
 
 The security of data within the [[ref:Mainline DHT]] which relies on mutable records using [[ref:Ed25519]] keys—is intrinsically tied to the strength of these keys and their underlying algorithms, as outlined in [[spec:RFC8032]]. Should vulnerabilities be discovered in [[ref:Ed25519]] or if advancements in quantum computing compromise its cryptographic foundations, the [[ref:Mainline]] method could become obsolete.
+
+## Appendix
+
+### Open API Definition
+
+```yaml
+[[insert: api.yaml]]
+```
 
 ## References
 
