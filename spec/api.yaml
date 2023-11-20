@@ -1,0 +1,247 @@
+openapi: 3.0.1
+info:
+  title: DID DHT Gateway API
+  description: "The [DID DHT API](https://did-dht.com)"
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: Working Draft
+paths:
+  /{id}:
+    get:
+      tags:
+      - Pkarr Relay
+      summary: Get Pkarr records from the DHT
+      description: Get a Pkarr record set from the DHT
+      parameters:
+      - name: id
+        in: path
+        description: ID to get
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: "64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v."
+          content:
+            application/octet-stream:
+              schema:
+                type: array
+                items:
+                  type: integer
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: string
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                type: string
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: string
+    put:
+      tags:
+      - Pkarr Relay
+      summary: Put a Pkarr record set into the DHT
+      description: Put a Pkarr record set into the DHT
+      parameters:
+      - name: id
+        in: path
+        description: ID to put
+        required: true
+        schema:
+          type: string
+      requestBody:
+        description: "64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v."
+        content:
+          application/octet-stream:
+            schema:
+              type: array
+              items:
+                type: integer
+        required: true
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: string
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: string
+  /did:
+    put:
+      tags:
+      - DID
+      summary: Register or Update a DID
+      description: Register or Updte a DID in the DHT
+      requestBody:
+        description: A deconstructed Pkarr request object
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                did:
+                  type: string
+                  description: The DID to register or update.
+                sig:
+                  type: string
+                  descrption: A base64URL-encoded signature of the BEP44 payload.
+                seq:
+                  type: integer
+                  description: A sequence number for the request, recommended to be a unix timestamp in seconds.
+                v:
+                  type: string
+                  descrption: A base64URL-encoded bencoded DNS packet containing the DID Document.
+                retention_proof:
+                  type: string
+                  description: A retention proof calculated according to the spec-defined retention proof algorithm.
+              required: [did, sig, seq, v]
+      responses:
+        "202":
+          description: Accepted. The server has accepted the request as valid and will publish it to the
+          content:
+            application/json:
+              schema:
+                type: string
+        "400":
+          description: Invalid request body.
+          content:
+            application/json:
+              schema:
+                type: string
+        "401":
+          description: Invalid signature.
+          content:
+            application/json:
+              schema:
+                type: string
+        "409":
+          description: DID already exists with a higher sequence number. May still be accepted if the Gateway supports historical resolution.
+          content:
+            application/json:
+              schema:
+                type: string
+  /did/{id}:
+    get:
+      tags:
+      - DID
+      summary: Resolve a DID
+      description: Resolve a DID from the DHT first, with a fallback to local storage.
+      parameters: 
+        - name: id
+          in: path
+          description: DID to resolve.
+          required: true
+          schema:
+            type: string
+            format: did:dht:*
+        - name: seq
+          in: query
+          description: Sequence number of the DID to resolve.
+          required: false
+          schema:
+            type: integer
+      responses: 
+        "200":
+          description: The resolved DID Document.
+          content:
+            application/json:
+              schema:
+                type: object
+        "404":
+          description: DID could not be resolved.
+          content:
+            application/json:
+              schema:
+                type: string
+  /did/types:
+    get:
+      tags:
+      - DID
+      summary: Retrieve a list of supported types for indexing.
+      description: Retrieve a list of supported indexing types, according to the spec-defined type list.
+      responses:
+        "200":
+          description: A list of types support, alongisde their human-readable description.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    type:
+                      type: integer
+                    description:
+                      type: string
+                  required: [type, description]
+        "404":
+          description: Type indexing not supported by this gateway.
+          content:
+            application/json:
+              schema:
+                type: string                  
+  /did/types/{id}:
+    get:
+      tags:
+      - DID
+      summary: Retrieve a list of DIDs indexed under a given type.
+      description: Retrieve a list of DIDs indexed under a given type, according to the spec-defined type index.
+      parameters:
+        - name: id
+          in: path
+          description: Type to query.
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: A list of DIDs indexed under the given type.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                 type: string
+                 format: did:dht:*
+  /difficulty:
+    get:
+      tags:
+      - DID
+      summary: Get information about the current difficulty.
+      description: Get information needed to calculate a retention proof for DID PUT operations.
+      responses:
+        "200":
+          description: The current hash and difficulty to calculate a retention proof against.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hash:
+                    type: string
+                  difficulty:
+                    type: integer
+                required: [hash, difficulty]
+        "404":
+          description: Retention proofs not supported by this gateway.
+          content:
+            application/json:
+              schema:
+                type: string     
