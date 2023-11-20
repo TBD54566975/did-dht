@@ -210,6 +210,16 @@ paths:
           required: true
           schema:
             type: integer
+        - name: offset
+          in: query
+          description: Specifies the starting position from where the type records should be retrieved. Default is 0.
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          description: Specifies the maximum number of type records to retrieve. Deafult is 100.
+          schema:
+            type: integer
       responses:
         "200":
           description: A list of DIDs indexed under the given type.
