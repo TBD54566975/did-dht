@@ -3,9 +3,9 @@ The DID DHT Method Specification 1.0
 
 **Specification Status**: Working Draft
 
-**Latest Draft:** [tbd54566975.github.io/did-dht-method](https://tbd54566975.github.io/did-dht-method)
+**Latest Draft:** [https://did-dht.com](https://did-dht.com)
 
-**Registry:** [DID DHT Method Specification Registry](registry/index.html)
+**Registry:** [https://did-dht.com/registry](https://did-dht.com/registry)
 
 **Latest Update:** November 20, 2023
 
@@ -20,6 +20,36 @@ The DID DHT Method Specification 1.0
 
 ## Abstract
 A [DID Method](https://www.w3.org/TR/did-core/) based on [Pkarr](https://github.com/nuhvi/pkarr), identified by `did:dht`.
+
+<style id="protocol-stack-styles">
+  #protocol-stack-styles + table {
+    display: table;
+    width: 400px;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px -1px rgb(0 0 0 / 80%);
+    overflow: hidden;
+  }
+  #protocol-stack-styles + table tr, #protocol-stack-styles + table td {
+    border: none;
+  }
+  #protocol-stack-styles + table tr {
+    text-shadow: 0 1px 2px rgb(255 255 255 / 75%);
+  }
+  #protocol-stack-styles + table tr:nth-child(1) {
+    background: hsl(149deg 100% 86%);
+  }
+  #protocol-stack-styles + table tr:nth-child(2) {
+    background: hsl(0deg 100% 82%);
+  }
+  #protocol-stack-styles + table tr:nth-child(3) {
+    background: hsl(198deg 100% 87%);
+  }
+</style>
+
+:----: |
+DID DHT |
+[Pkarr](https://github.com/nuhvi/pkarr)|
+[Mainline DHT](https://en.wikipedia.org/wiki/Mainline_DHT) |
 
 [[ref:Pkarr]] stands for **P**ublic **K**ey **A**ddressable **R**esource **R**ecords. [[ref:Pkarr]] makes use of the
 [Mainline DHT](https://en.wikipedia.org/wiki/Mainline_DHT), specifically [[ref:BEP44]] to store records. This DID
