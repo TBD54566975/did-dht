@@ -1,12 +1,13 @@
 package did
 
 import (
+	"crypto/ed25519"
+	"encoding/json"
 	"testing"
 
 	"github.com/TBD54566975/ssi-sdk/crypto"
 	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
 	"github.com/TBD54566975/ssi-sdk/did"
-	"github.com/TBD54566975/ssi-sdk/did/ion"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -44,7 +45,7 @@ func TestGenerateDIDDHT(t *testing.T) {
 	t.Run("test generate did:dht with opts", func(t *testing.T) {
 		pubKey, _, err := crypto.GenerateSECP256k1Key()
 		require.NoError(t, err)
-		pubKeyJWK, err := jwx.PublicKeyToPublicKeyJWK("key1", pubKey)
+		pubKeyJWK, err := jwx.PublicKeyToPublicKeyJWK(nil, pubKey)
 		require.NoError(t, err)
 
 		opts := CreateDIDDHTOpts{
@@ -56,7 +57,7 @@ func TestGenerateDIDDHT(t *testing.T) {
 						Controller:   "did:dht:123456789abcdefghi",
 						PublicKeyJWK: pubKeyJWK,
 					},
-					Purposes: []ion.PublicKeyPurpose{ion.AssertionMethod, ion.CapabilityInvocation},
+					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
 				},
 			},
 			Services: []did.Service{
@@ -156,7 +157,7 @@ func TestToDNSPacket(t *testing.T) {
 	t.Run("doc with multiple keys and services - test to dns packet round trip", func(t *testing.T) {
 		pubKey, _, err := crypto.GenerateSECP256k1Key()
 		require.NoError(t, err)
-		pubKeyJWK, err := jwx.PublicKeyToPublicKeyJWK("key1", pubKey)
+		pubKeyJWK, err := jwx.PublicKeyToPublicKeyJWK(nil, pubKey)
 		require.NoError(t, err)
 
 		opts := CreateDIDDHTOpts{
@@ -168,7 +169,7 @@ func TestToDNSPacket(t *testing.T) {
 						Controller:   "did:dht:123456789abcdefghi",
 						PublicKeyJWK: pubKeyJWK,
 					},
-					Purposes: []ion.PublicKeyPurpose{ion.AssertionMethod, ion.CapabilityInvocation},
+					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
 				},
 			},
 			Services: []did.Service{
@@ -199,6 +200,111 @@ func TestToDNSPacket(t *testing.T) {
 		require.NotEmpty(t, decodedDoc)
 		require.Empty(t, types)
 
-		assert.EqualValues(t, *doc, *decodedDoc)
+		decodedJSON, err := json.Marshal(decodedDoc)
+		require.NoError(t, err)
+
+		docJSON, err := json.Marshal(doc)
+		require.NoError(t, err)
+
+		assert.JSONEq(t, string(docJSON), string(decodedJSON))
+	})
+}
+
+func TestVectors(t *testing.T) {
+
+	type testVectorDNSRecord struct {
+		RecordType string `json:"type"`
+		TTL        string `json:"ttl"`
+		Record     string `json:"rdata"`
+	}
+
+	t.Run("test vector 1", func(t *testing.T) {
+		var pubKeyJWK jwx.PublicKeyJWK
+		retrieveTestVectorAs(t, vector1PublicKeyJWK1, &pubKeyJWK)
+
+		pubKey, err := pubKeyJWK.ToPublicKey()
+		require.NoError(t, err)
+
+		doc, err := CreateDIDDHTDID(pubKey.(ed25519.PublicKey), CreateDIDDHTOpts{})
+		require.NoError(t, err)
+		require.NotEmpty(t, doc)
+
+		var expectedDIDDocument did.Document
+		retrieveTestVectorAs(t, vector1DIDDocument, &expectedDIDDocument)
+		assert.EqualValues(t, expectedDIDDocument, *doc)
+
+		didID := DHT(doc.ID)
+		packet, err := didID.ToDNSPacket(*doc, nil)
+		require.NoError(t, err)
+		require.NotEmpty(t, packet)
+
+		var expectedDNSRecords map[string]testVectorDNSRecord
+		retrieveTestVectorAs(t, vector1DNSRecords, &expectedDNSRecords)
+
+		for _, record := range packet.Answer {
+			expectedRecord, ok := expectedDNSRecords[record.Header().Name]
+			require.True(t, ok)
+
+			s := record.String()
+			assert.Contains(t, s, expectedRecord.RecordType)
+			assert.Contains(t, s, expectedRecord.TTL)
+			assert.Contains(t, s, expectedRecord.Record)
+		}
+	})
+
+	t.Run("test vector 2", func(t *testing.T) {
+		var pubKeyJWK jwx.PublicKeyJWK
+		retrieveTestVectorAs(t, vector1PublicKeyJWK1, &pubKeyJWK)
+
+		pubKey, err := pubKeyJWK.ToPublicKey()
+		require.NoError(t, err)
+
+		var secpJWK jwx.PublicKeyJWK
+		retrieveTestVectorAs(t, vector2PublicKeyJWK2, &secpJWK)
+
+		doc, err := CreateDIDDHTDID(pubKey.(ed25519.PublicKey), CreateDIDDHTOpts{
+			VerificationMethods: []VerificationMethod{
+				{
+					VerificationMethod: did.VerificationMethod{
+						ID:           secpJWK.KID,
+						Type:         "JsonWebKey2020",
+						PublicKeyJWK: &secpJWK,
+					},
+					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
+				},
+			},
+			Services: []did.Service{
+				{
+					ID:              "service-1",
+					Type:            "TestService",
+					ServiceEndpoint: "https://test-service.com",
+				},
+			},
+		})
+		require.NoError(t, err)
+		require.NotEmpty(t, doc)
+
+		var expectedDIDDocument did.Document
+		retrieveTestVectorAs(t, vector2DIDDocument, &expectedDIDDocument)
+		assert.EqualValues(t, expectedDIDDocument, *doc)
+
+		didID := DHT(doc.ID)
+		packet, err := didID.ToDNSPacket(*doc, []TypeIndex{1, 2, 3})
+		require.NoError(t, err)
+		require.NotEmpty(t, packet)
+
+		var expectedDNSRecords map[string]testVectorDNSRecord
+		retrieveTestVectorAs(t, vector2DNSRecords, &expectedDNSRecords)
+
+		println(packet.String())
+		for _, record := range packet.Answer {
+			expectedRecord, ok := expectedDNSRecords[record.Header().Name]
+			require.True(t, ok)
+
+			s := record.String()
+			assert.Contains(t, s, expectedRecord.RecordType)
+			assert.Contains(t, s, expectedRecord.TTL)
+			assert.Contains(t, s, expectedRecord.Record)
+		}
 	})
 }

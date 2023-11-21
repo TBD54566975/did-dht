@@ -7,7 +7,6 @@ import (
 	"github.com/TBD54566975/ssi-sdk/crypto"
 	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
 	didsdk "github.com/TBD54566975/ssi-sdk/did"
-	"github.com/TBD54566975/ssi-sdk/did/ion"
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -67,7 +66,7 @@ func TestGetPutDIDDHT(t *testing.T) {
 
 	pubKey, _, err := crypto.GenerateSECP256k1Key()
 	require.NoError(t, err)
-	pubKeyJWK, err := jwx.PublicKeyToPublicKeyJWK("key1", pubKey)
+	pubKeyJWK, err := jwx.PublicKeyToPublicKeyJWK(nil, pubKey)
 	require.NoError(t, err)
 
 	opts := did.CreateDIDDHTOpts{
@@ -79,7 +78,7 @@ func TestGetPutDIDDHT(t *testing.T) {
 					Controller:   "did:dht:123456789abcdefghi",
 					PublicKeyJWK: pubKeyJWK,
 				},
-				Purposes: []ion.PublicKeyPurpose{ion.AssertionMethod, ion.CapabilityInvocation},
+				Purposes: []didsdk.PublicKeyPurpose{didsdk.AssertionMethod, didsdk.CapabilityInvocation},
 			},
 		},
 		Services: []didsdk.Service{

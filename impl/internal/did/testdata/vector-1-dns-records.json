@@ -1,0 +1,12 @@
+{
+  "_did.": {
+    "type": "TXT",
+    "ttl": "7200",
+    "rdata": "vm=k0;auth=k0;asm=k0;inv=k0;del=k0"
+  },
+  "_k0._did.": {
+    "type": "TXT",
+    "ttl": "7200",
+    "rdata": "id=0,t=0,k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE"
+  }
+}

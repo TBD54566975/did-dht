@@ -13,7 +13,7 @@
       }
     },
     {
-      "title": "The DID DHT Method Registry",
+      "title": "The DID DHT Method Specification Registry",
       "spec_directory": "./registry",
       "output_path": "./build/registry",
       "logo": "https://avatars.githubusercontent.com/u/94492651",
