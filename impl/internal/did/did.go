@@ -11,7 +11,6 @@ import (
 	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
 	"github.com/TBD54566975/ssi-sdk/cryptosuite"
 	"github.com/TBD54566975/ssi-sdk/did"
-	"github.com/TBD54566975/ssi-sdk/did/ion"
 	"github.com/miekg/dns"
 	"github.com/tv42/zbase32"
 )
@@ -70,7 +69,7 @@ type CreateDIDDHTOpts struct {
 
 type VerificationMethod struct {
 	VerificationMethod did.VerificationMethod `json:"verificationMethod"`
-	Purposes           []ion.PublicKeyPurpose `json:"purposes"`
+	Purposes           []did.PublicKeyPurpose `json:"purposes"`
 }
 
 // GenerateDIDDHT generates a did:dht identifier given a set of options
@@ -130,15 +129,15 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 			vmID := vm.VerificationMethod.ID[strings.LastIndex(vm.VerificationMethod.ID, "#"):]
 			for _, purpose := range vm.Purposes {
 				switch purpose {
-				case ion.Authentication:
+				case did.Authentication:
 					authentication = append(authentication, vmID)
-				case ion.AssertionMethod:
+				case did.AssertionMethod:
 					assertionMethod = append(assertionMethod, vmID)
-				case ion.KeyAgreement:
+				case did.KeyAgreement:
 					keyAgreement = append(keyAgreement, vmID)
-				case ion.CapabilityInvocation:
+				case did.CapabilityInvocation:
 					capabilityInvocation = append(capabilityInvocation, vmID)
-				case ion.CapabilityDelegation:
+				case did.CapabilityDelegation:
 					capabilityDelegation = append(capabilityDelegation, vmID)
 				default:
 					return nil, fmt.Errorf("unknown key purpose: %s:%s", vmID, purpose)
@@ -162,7 +161,8 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 	}
 
 	// create the did document
-	key0JWK, err := jwx.PublicKeyToPublicKeyJWK("0", pubKey)
+	kid := "0"
+	key0JWK, err := jwx.PublicKeyToPublicKeyJWK(&kid, pubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -376,7 +376,7 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 				if err != nil {
 					return nil, nil, err
 				}
-				pubKeyJWK, err := jwx.PublicKeyToPublicKeyJWK(vmID, pubKey)
+				pubKeyJWK, err := jwx.PublicKeyToPublicKeyJWK(&vmID, pubKey)
 				if err != nil {
 					return nil, nil, err
 				}

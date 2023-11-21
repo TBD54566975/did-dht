@@ -667,9 +667,154 @@ The security of data within the [[ref:Mainline DHT]] which relies on mutable rec
 
 ### Test Vectors
 
-::: issue
-[](https://github.com/TBD54566975/did-dht-method/issues/37)
-:::
+#### Vector 1
+
+A minimal DID Document.
+
+**Identity Public Key JWK:**
+
+```json
+{
+  "kty": "OKP",
+  "crv": "Ed25519",
+  "x": "YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE",
+  "alg": "EdDSA",
+  "kid": "0"
+}
+```
+
+**DID Document:**
+
+```json
+{
+  "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo",
+  "verificationMethod": [
+    {
+      "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0",
+      "type": "JsonWebKey2020",
+      "controller": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo",
+      "publicKeyJwk": {
+        "kty": "OKP",
+        "crv": "Ed25519",
+        "x": "YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE",
+        "alg": "EdDSA",
+        "kid": "0"
+      }
+    }
+  ],
+  "authentication": ["#0"],
+  "assertionMethod": ["#0"],
+  "capabilityInvocation": ["#0"],
+  "capabilityDelegation": ["#0"]
+}
+```
+
+**DNS Resource Records:**
+
+| Name      | Type | TTL  | Rdata       |
+| --------- | ---- | ---- | ----------- |
+| _did.     | TXT  | 7200 | vm=k0;auth=k0;asm=k0;inv=k0;del=k0 |
+| _k0._did. | TXT  | 7200 | id=0,t=0,k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE |
+
+
+#### Vector 2
+
+A DID Document with two keys ([[ref:Identity Key]] and a secp256k1 key), a service endpoint, and two types to index.
+
+**Identity Public Key JWK:**
+
+```json
+{
+  "kty": "OKP",
+  "crv": "Ed25519",
+  "x": "YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE",
+  "alg": "EdDSA",
+  "kid": "0"
+}
+```
+
+**secp256k1 Public Key JWK:**
+
+```json
+{
+  "kty": "EC",
+  "crv": "secp256k1",
+  "x": "1_o0IKHGNamet8-3VYNUTiKlhVK-LilcKrhJSPHSNP0",
+  "y": "qzU8qqh0wKB6JC_9HCu8pHE-ZPkDpw4AdJ-MsV2InVY",
+  "alg": "ES256K",
+  "kid": "0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw"
+}
+```
+
+**Key Purposes:** Assertion Method, Capability Invocation.
+
+**Service:**
+
+```json
+{
+  "id": "service-1",
+  "type": "TestService",
+  "serviceEndpoint": "https://test-service.com"
+}
+```
+
+**Types:** 1, 2, 3.
+
+**DID Document:**
+
+```json
+{
+  "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo",
+  "verificationMethod": [
+    {
+      "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0",
+      "type": "JsonWebKey2020",
+      "controller": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo",
+      "publicKeyJwk": {
+        "kty": "OKP",
+        "crv": "Ed25519",
+        "x": "YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE",
+        "alg": "EdDSA",
+        "kid": "0"
+      }
+    },
+    {
+      "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw",
+      "type": "JsonWebKey2020",
+      "controller": "",
+      "publicKeyJwk": {
+        "kty": "EC",
+        "crv": "secp256k1",
+        "x": "1_o0IKHGNamet8-3VYNUTiKlhVK-LilcKrhJSPHSNP0",
+        "y": "qzU8qqh0wKB6JC_9HCu8pHE-ZPkDpw4AdJ-MsV2InVY",
+        "alg": "ES256K",
+        "kid": "0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw"
+      }
+    }
+  ],
+  "authentication": ["#0"],
+  "assertionMethod": ["#0", "#0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw"],
+  "capabilityInvocation": ["#0", "#0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw"],
+  "capabilityDelegation": ["#0"],
+  "service": [
+    {
+      "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#service-1",
+      "type": "TestService",
+      "serviceEndpoint": "https://test-service.com"
+    }
+  ]
+}
+```
+
+**DNS Resource Records:**
+
+| Name      | Type | TTL  | Rdata       |
+| --------- | ---- | ---- | ----------- |
+| _did.     | TXT  | 7200 | vm=k0,k1;svc=s0;auth=k0;asm=k0,k1;inv=k0,k1;del=k0 |
+| _k0.did.  | TXT  | 7200 | id=0,t=0,k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE |
+| _k1.did.  | TXT  | 7200 | id=0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw,t=1,k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9 |
+| _s0.did.  | TXT  | 7200 | id=service-1,t=TestService,uri=https://test-service.com |
+| _typ.did. | TXT  | 7200 | id=1,2,3 |
 
 ### Open API Definition
 

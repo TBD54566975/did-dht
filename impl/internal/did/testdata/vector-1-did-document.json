@@ -1,0 +1,21 @@
+{
+  "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo",
+  "verificationMethod": [
+    {
+      "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0",
+      "type": "JsonWebKey2020",
+      "controller": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo",
+      "publicKeyJwk": {
+        "kty": "OKP",
+        "crv": "Ed25519",
+        "x": "YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE",
+        "alg": "EdDSA",
+        "kid": "0"
+      }
+    }
+  ],
+  "authentication": ["#0"],
+  "assertionMethod": ["#0"],
+  "capabilityInvocation": ["#0"],
+  "capabilityDelegation": ["#0"]
+}
