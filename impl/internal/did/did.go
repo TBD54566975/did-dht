@@ -116,10 +116,19 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 			seenIDs[vm.VerificationMethod.ID] = true
 
 			// update ID and controller in place
-			if vm.VerificationMethod.ID == "" || strings.Contains(vm.VerificationMethod.ID, "#") {
+			if strings.Contains(vm.VerificationMethod.ID, "#") {
 				return nil, fmt.Errorf("verification method id %s is invalid", vm.VerificationMethod.ID)
 			}
+			// set to thumbprint if none is provided
+			if vm.VerificationMethod.ID == "" {
+				vm.VerificationMethod.ID = vm.VerificationMethod.PublicKeyJWK.KID
+			} else {
+				// make sure the verification method ID and KID match
+				vm.VerificationMethod.PublicKeyJWK.KID = vm.VerificationMethod.ID
+			}
 			vm.VerificationMethod.ID = id + "#" + vm.VerificationMethod.ID
+
+			// if there's no controller, set it to the DID itself
 			if vm.VerificationMethod.Controller != "" {
 				vm.VerificationMethod.Controller = id
 			}

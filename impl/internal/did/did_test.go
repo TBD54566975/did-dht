@@ -2,6 +2,7 @@ package did
 
 import (
 	"crypto/ed25519"
+	"encoding/json"
 	"testing"
 
 	"github.com/TBD54566975/ssi-sdk/crypto"
@@ -199,7 +200,13 @@ func TestToDNSPacket(t *testing.T) {
 		require.NotEmpty(t, decodedDoc)
 		require.Empty(t, types)
 
-		assert.EqualValues(t, *doc, *decodedDoc)
+		decodedJSON, err := json.Marshal(decodedDoc)
+		require.NoError(t, err)
+
+		docJSON, err := json.Marshal(doc)
+		require.NoError(t, err)
+
+		assert.JSONEq(t, string(docJSON), string(decodedJSON))
 	})
 }
 
