@@ -7,7 +7,7 @@ The DID DHT Method Specification 1.0
 
 **Registry:** [https://did-dht.com/registry](https://did-dht.com/registry)
 
-**Latest Update:** November 20, 2023
+**Latest Update:** November 22, 2023
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -318,7 +318,7 @@ To create a `did:dht`, the process is as follows:
 2. Construct a compliant JSON representation of a [[ref:DID Document]].
 
     a. The document ****MUST**** include a [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) with
- the _identifier key_ encoded as a `publicKeyJwk` as per [[spec:RFC7517]] with an `id` of ``#0`` and `type` of
+ the _identifier key_ encoded as a `publicKeyJwk` as per [[spec:RFC7517]] with an `id` of `#0` and `type` of
  `JsonWebKey2020` as per [[ref:VC-JWS-2020]].
 
     b. The document can include any number of other [core properties](https://www.w3.org/TR/did-core/#core-properties);
@@ -328,7 +328,7 @@ To create a `did:dht`, the process is as follows:
 
 4. Construct a signed [[ref:BEP44]] put message with the `v` value as a [[ref:bencode]]d DNS packet from the prior step.
 
-5. Submit the result of to the [[ref:DHT]] via a [[ref:Pkarr]] relay, or a [[ref:Gateway]].
+5. Submit the result of to the [[ref:DHT]] via a [[ref:Pkarr]] relay, or a [[ref:Gateway]], with the identifier created in step 1.
  
 #### Read
 
@@ -384,9 +384,22 @@ An example type record is as follows:
 
 Types can be found and registered in the [DID DHT Registry](registry/index.html#indexed-types).
 
+## Interoperability With Other DID Methods
+
+As an **OPTIONAL** extension, some existing DID methods can leverage `did:dht` to broaden their feature set. This enhancement is most useful for DID 
+methods that operated based on a single key, compatable with an [[ref:Ed25519]] key format. By adopting this optional extension, users can maintain 
+their current DIDs without any changes. Additionally, they gain the ability to add extra information to their DIDs. This is achieved by either publishing
+or retrieving data from [[ref:Mainline]].
+
+Interoperable DID methods ****MUST**** be registered in [the corresponding registry](registry/index.html#interoperable-did-methods).
+
 ## Gateways
 
 Gateways serve as specialized nodes within the network, providing a range of DID-centric functionalities that extend beyond the capabilities of a standard [[ref:Mainline DHT]] node. This section elaborates on these unique features, outlines the operational prerequisites for managing a gateway, and discusses various other facets, including the optional integration of these gateways into a registry system.
+
+::: note
+[[ref:Gateways]] may choose to support `did:key` and `did:jwk` in addition to `did:dht` as outlined in the [section on interoperability](#interoperability-with-other-did-methods).
+:::
 
 ### Discovering Gateways
 
@@ -400,7 +413,7 @@ A [[ref:Retained DID Set]] refers to the set of DIDs a [[ref:Gateway]] retains a
 
 A [[ref:Retention Proof]] is a form of [Proof of Work](https://en.bitcoin.it/wiki/Proof_of_work) performed over a DID's identifier concatenated with the `retention` value of a given DID operation. The `retention` value is composed of a hash value specified [in the gateway registry](registry/index.html#gateways), and a random [nonce](https://en.wikipedia.org/wiki/Cryptographic_nonce) using the [SHA-256 hashing algorithm](https://en.wikipedia.org/wiki/SHA-2). The resulting _Retention Proof Hash_ is used to determine the retention duration based on the number of leading zeros of the hash, referred to as the _difficulty_, which ****MUST**** be no less than 26 bits of the 256-bit hash value. The algorithm, in detail, is as follows:
 
-1. Obtain a `did:dht` identifier and set it to `DID`.
+1. Obtain a did identifier and set it to `DID`.
 2. Get the difficulty and recent hash from the server set to `DIFFICULTY` and `HASH`, respectively.
 2. Generate a random 32-bit integer nonce value set to `NONCE`.
 3. Compute the [SHA-256](https://en.wikipedia.org/wiki/SHA-2) hash over `ATTEMPT` where `ATTEMPT` = (`DID` + `HASH` + `NONCE`).
@@ -408,7 +421,6 @@ A [[ref:Retention Proof]] is a form of [Proof of Work](https://en.bitcoin.it/wik
   a. If so, `ATTEMPT` = `RENTION_PROOF`.
   b. Else, regenerate `NONCE` and go to step 3.
 5. Submit the `RETENTION_PROOF` to the [Gateway API](#register=or-update-a-did).
-
 
 #### Managing the Retained DID Set
 
@@ -520,7 +532,6 @@ This API is not required to return the complete DNS packet but rather the DID Do
 packet, with its signature data, is required it is ****RECOMMENDED**** to use the
 [Relay API](https://github.com/Nuhvi/pkarr/blob/main/design/relays.md) directly.
 :::
-
 
 ##### Historical Resolution
 
