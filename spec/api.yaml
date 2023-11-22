@@ -150,7 +150,6 @@ paths:
           required: true
           schema:
             type: string
-            format: did:dht:*
         - name: seq
           in: query
           description: Sequence number of the DID to resolve.
@@ -229,7 +228,6 @@ paths:
                 type: array
                 items:
                  type: string
-                 format: did:dht:*
   /difficulty:
     get:
       tags:

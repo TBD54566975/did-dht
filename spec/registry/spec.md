@@ -5,7 +5,7 @@ The DID DHT Method Specification Registry 1.0
 
 **Latest Draft:** [tbd54566975.github.io/did-dht-method](https://tbd54566975.github.io/did-dht-method)
 
-**Latest Update:** November 20, 2023
+**Latest Update:** November 22, 2023
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -62,6 +62,58 @@ themselves discoverable via a [[ref:Gateway]]'s API.
 | Web App                 | https://schema.org/WebApplication         | 6            |
 | Financial Institution   | https://schema.org/FinancialService       | 7            |
 
+### Interoperable DID Methods
+
+As an **OPTIONAL** extension, some existing DID methods can leverage `did:dht` to broaden their feature set. This registry serves
+to define such DID methods that are interoperable with `did:dht`. To enter into the registry each DID method ****MUST**** define
+sections on _publishing_ and _resolving_ interoperable DIDs.
+
+#### did:key
+
+DID DHT is interoperable with the [[ref:DID Key method]] when using [[ref:Ed25519]] keys represented as JWKs [[spec:RFC7517]].
+
+##### Publishing
+
+To publish a [[ref:DID Key]] to the DHT, the process is as follows:
+
+1. Verify the `did:key` value begins with the prefix `z6Mk`.
+2. Decode the [[ref:Ed25519]] key in the `did:key` identifier, and re-encode it using [[ref:z-base-32]].
+3. Expand the `did:key` using the [process outlined in the did:key spec](https://w3c-ccg.github.io/did-method-key/#read), 
+with `options.publicKeyFormat` set to `JsonWebKey2020`.
+4. Optionally, amend the [[ref:DID Document]] with additional properties (Verification Methods, Services, etc.).
+5. Follow steps 3 onward in as outlined in the [create section of the spec](../index.html#create), using the identifier from step 2.
+
+##### Resolving
+
+To resolve a DID Key, the process is as follows:
+
+1. Verify the `did:key` value begins with the prefix `z6Mk`.
+2. Decode the [[ref:Ed25519]] key in the `did:key` identifier, and re-encode it using [[ref:z-base-32]].
+3. Follow the process outlined in the [read section of the spec](../index.html#read) using the identifier from the prior step.
+4. If lookup fails, fallback to the [guidance provided in the did:key spec](https://w3c-ccg.github.io/did-method-key/#read).
+
+#### did:jwk
+
+DID DHT is interoperable with the [[ref:DID JWK method]] when using JWKS [[spec:RFC7517]] representing [[ref:Ed25519]] keys.
+
+##### Publishing
+
+To publish a [[ref:DID JWK]] to the DHT, the process is as follows:
+
+1. Expand the `did:jwk` using the [process outlined in the did:jwk spec](https://github.com/quartzjer/did-jwk/blob/main/spec.md#read).
+2. Verify that the JWK represents an [[ref:Ed25519]] key.
+3. Transform the [[ref:Ed25519]] key to its bytes representation and re-encode it using [[ref:z-base-32]].
+4. Optionally, amend the [[ref:DID Document]] with additional properties (Verification Methods, Services, etc.).
+5. Follow steps 3 onward in as outlined in the [create section](#create) above, using the identifier from step 3.
+
+##### Resolving
+
+1. Expand the `did:jwk` using the [process outlined in the did:jwk spec](https://github.com/quartzjer/did-jwk/blob/main/spec.md#read).
+2. Verify that the JWK represents an [[ref:Ed25519]] key.
+3. Transform the [[ref:Ed25519]] key to its bytes representation and re-encode it using [[ref:z-base-32]].
+4. Follow the process outlined in the [Read section](#read) above using the identifier from the prior step.
+5. If lookup fails, fallback to the [guidance provided in the did:jwk spec](https://github.com/quartzjer/did-jwk/blob/main/spec.md#read).
+
 ### Gateways
 
 As an **OPTIONAL** feature of the DID DHT Method, Gateway operators have the opportunity to make their [gateways](../index.html#gateways) discoverable. This serves as a registry for such gateways.
@@ -99,3 +151,21 @@ To discover Bitcoin Anchored Gateways one must follow the following steps:
 [[def:Timelock]]
 ~ [Timelock](https://github.com/bitcoin/bips/blob/master/bip-0065.mediawiki). P. Todd. 01 October 2014.
 [Bitcoin](https://github.com/bitcoin).
+
+[[def:DID Key, DID Key Method]]
+~ [The did:key Method v0.7](https://w3c-ccg.github.io/did-method-key/). A DID Method for Static Cryptograhpic Keys.
+D. Longley, D. Zagidulin, M. Sporny. [W3C CCG](https://w3c-ccg.github.io/).
+
+[[def:DID JWK, DID JWK Method]]
+~ [did:jwk](https://github.com/quartzjer/did-jwk/blob/main/spec.md). did:jwk is a deterministic transformation of a
+JWK into a DID Document. J. Miller.
+
+[[def:Ed25519]]
+~ [Ed25519](https://ed25519.cr.yp.to/). D. J. Bernstein, N. Duif, T. Lange, P. Schwabe, B.-Y. Yang; 26 September 2011.
+[ed25519.cr.yp.to](https://ed25519.cr.yp.to/).
+
+[[def:z-base-32]]
+~ [z-base-32](https://philzimmermann.com/docs/human-oriented-base-32-encoding.txt). Human-oriented base-32 encoding.
+Z. O'Whielacronx; November 2002.
+
+[[spec]]
