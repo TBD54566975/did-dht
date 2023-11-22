@@ -398,7 +398,8 @@ Interoperable DID methods ****MUST**** be registered in [the corresponding regis
 Gateways serve as specialized nodes within the network, providing a range of DID-centric functionalities that extend beyond the capabilities of a standard [[ref:Mainline DHT]] node. This section elaborates on these unique features, outlines the operational prerequisites for managing a gateway, and discusses various other facets, including the optional integration of these gateways into a registry system.
 
 ::: note
-[[ref:Gateways]] may choose to support `did:key` and `did:jwk` in addition to `did:dht` as outlined in the [section on interoperability](#interoperability-with-other-did-methods).
+[[ref:Gateways]] may choose to support interoperable methods in addition to `did:dht` as outlined in the 
+[section on interoperability](#interoperability-with-other-did-methods).
 :::
 
 ### Discovering Gateways
