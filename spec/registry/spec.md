@@ -35,7 +35,7 @@ Corresponds to the mapping, for a DID Document's DNS packet representation, of a
 | 2     | [secp256r1](https://neuromancer.sk/std/secg/secp256r1) |
 
 
-An example [Verification Method]((https://www.w3.org/TR/did-core/#verification-methods)) record represented as a DNS TXT
+An example [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) record represented as a DNS TXT
 record is as follows:
 
 | Name      | Type | TTL  | Rdata                                                     |

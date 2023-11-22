@@ -175,8 +175,11 @@ The following section describes mapping a [[ref:DID Document]] to a DNS packet. 
 long identifiers in resource name fields, resource names are aliased with zero-indexed values (e.g. `k0`, `k1`, `s0`, `s1`).
 The complete identifier is stored in the resource data field (e.g. `id=abcd,t=0,k=...`).
 
-* The _root record_, `_did.` or `_did.TLD.` if a [TLD](https://en.wikipedia.org/wiki/Top-level_domain) is being utilized
+* The _root record_, `_did.` or `_did.TLD.` if a [TLD](https://en.wikipedia.org/wiki/Top-level_domain) is used,
 contains a list of IDs of the keys and service endpoints used in different sections of the [[ref:DID Document]].
+
+* Verification Methods, Verification Relationships, and Services are separated by a `;`, while 
+values within each property are separatred by a `,`.
 
 An example is as follows:
 
