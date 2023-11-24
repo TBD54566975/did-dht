@@ -1,11 +1,11 @@
 # did-dht-method
 
-The `did:dht` method. Home to the [DID DHT Method Specification](./spec.md), and a reference implementation of a server
-in Go.
+The `did:dht` method. Home to the [DID DHT Method Specification](https://did-dht.com), and a reference implementation of a 
+gateway server in Go.
 
 ## Build & Run
 
-From the `impl` directory run:
+To build and run the gateway server, from the `impl` directory run:
 
 ```
 docker build . -t did-dht -f build/Dockerfile
@@ -23,8 +23,9 @@ docker run -p8305:8305 did-dht
 | ---------- | ------ | ------ | ---- |
 | Go         | Yes    | Yes    | [did-dht-go](./impl) |
 | Typescript | Yes    | No     | [did-dht-ts](https://github.com/TBD54566975/web5-js/blob/main/packages/dids/src/did-dht.ts) |
-| Kotlin     | Yes    | No     | Coming soon |
-| Swift      | Yes    | No     | Coming soon |
+| Kotlin     | Yes    | No     | [did-dht-kotlin](https://github.com/TBD54566975/web5-kt/tree/main/dids/src/main/kotlin/web5/sdk/dids/methods/dht) |
+| Swift      | Yes    | No     | Coming soon! |
+| Rust       | Yes    | No     | Coming soon! |
 
 ## Project Resources
 
