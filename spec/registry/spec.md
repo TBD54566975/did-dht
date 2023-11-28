@@ -5,7 +5,7 @@ The DID DHT Method Specification Registry 1.0
 
 **Latest Draft:** [tbd54566975.github.io/did-dht-method](https://tbd54566975.github.io/did-dht-method)
 
-**Latest Update:** November 22, 2023
+**Latest Update:** November 28, 2023
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
