@@ -83,6 +83,14 @@ with `options.publicKeyFormat` set to `JsonWebKey2020`.
 4. Optionally, amend the [[ref:DID Document]] with additional properties (Verification Methods, Services, etc.).
 5. Follow steps 3 onward in as outlined in the [create section of the spec](../index.html#create), using the identifier from step 2.
 
+::: todo
+[](https://github.com/w3c-ccg/did-method-key/issues/66)
+
+[](https://github.com/TBD54566975/did-dht-method/issues/57)
+
+Update this algorithm after the `did:key` spec is updated to support `did:dht`.
+::: 
+
 ##### Resolving
 
 To resolve a DID Key, the process is as follows:
