@@ -7,7 +7,7 @@ The DID DHT Method Specification 1.0
 
 **Registry:** [https://did-dht.com/registry](https://did-dht.com/registry)
 
-**Latest Update:** November 22, 2023
+**Latest Update:** November 28, 2023
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -315,7 +315,7 @@ To create a `did:dht`, the process is as follows:
 
 1. Generate an [[ref:Ed25519]] keypair and encode the public key using the format provided in the [format section](#format).
 
-2. Construct a compliant JSON representation of a [[ref:DID Document]].
+2. Construct a conformant JSON representation of a [[ref:DID Document]].
 
     a. The document ****MUST**** include a [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) with
  the _identifier key_ encoded as a `publicKeyJwk` as per [[spec:RFC7517]] with an `id` of `#0` and `type` of
@@ -334,9 +334,14 @@ To create a `did:dht`, the process is as follows:
 
 To read a `did:dht`, the process is as follows:
 
-1. Take the suffix of the DID, that is, the _encoded identifier key_, and pass it to a [[ref:Pkarr]] relay or a [[ref:Gateway]].
+1. Take the suffix of the DID, that is, the _[[ref:z-base-32]] encoded identifier key_, and pass it to a [[ref:Pkarr]] relay or a [[ref:Gateway]].
 2. Decode the resulting [[ref:BEP44]] response's `v` value using [[ref:bencode]].
-3. Reverse the DNS [property mapping](#property-mapping) process and re-construct a compliant [[ref:DID Document]].
+3. Reverse the DNS [property mapping](#property-mapping) process and re-construct a conformant [[ref:DID Document]].
+
+::: note
+As a fallback, if a `did:dht` value cannot be resolved via the network, it can be expanded to a conformant [[ref:DID Document]]
+containing just the [[ref:Identity Key]].
+:::
 
 #### Update
 
@@ -383,6 +388,12 @@ An example type record is as follows:
 
 
 Types can be found and registered in the [DID DHT Registry](registry/index.html#indexed-types).
+
+::: note
+Identifying entities through type-based indexing is a preliminary and relatively unreliable method. It serves merely
+as an initial phase in recognizing the identity linked to a [[ref:DID]]. To validate identity claims more robustly,
+it is essential to delve deeper, employing tools like verifiable credentials and examining related data.
+:::
 
 ## Interoperability With Other DID Methods
 
