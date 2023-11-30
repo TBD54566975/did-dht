@@ -148,7 +148,8 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrRespon
 	// first do a cache lookup
 	if s.cache.Has(id) {
 		cacheItem := s.cache.Get(id)
-		logrus.Debugf("resolved pkarr record<%s> from cache, with ttl<%s>", id, cacheItem.TTL().String())
+		until := cacheItem.ExpiresAt().Sub(time.Now())
+		logrus.Debugf("resolved pkarr record<%s> from cache, with remaining TTL: %s", id, until)
 		return fromPkarrRecord(cacheItem.Value())
 	}
 

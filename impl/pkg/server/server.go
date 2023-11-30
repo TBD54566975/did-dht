@@ -57,7 +57,7 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	handler.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler, ginswagger.URL("/swagger.yaml")))
 
 	// root relay API
-	if err = PKARRAPI(&handler.RouterGroup, pkarrService); err != nil {
+	if err = PkarrAPI(&handler.RouterGroup, pkarrService); err != nil {
 		return nil, util.LoggingErrorMsg(err, "could not setup pkarr API")
 	}
 	return &Server{
@@ -112,8 +112,8 @@ func setupHandler(env config.Environment) *gin.Engine {
 	return handler
 }
 
-// PKARRAPI sets up the relay API routes according to https://github.com/Nuhvi/pkarr/blob/main/design/relays.md
-func PKARRAPI(rg *gin.RouterGroup, service *service.PkarrService) error {
+// PkarrAPI sets up the relay API routes according to https://github.com/Nuhvi/pkarr/blob/main/design/relays.md
+func PkarrAPI(rg *gin.RouterGroup, service *service.PkarrService) error {
 	relayRouter, err := NewPKARRRouter(service)
 	if err != nil {
 		return util.LoggingErrorMsg(err, "could not instantiate relay router")
