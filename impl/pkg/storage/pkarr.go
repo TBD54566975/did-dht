@@ -8,7 +8,7 @@ const (
 	pkarrNamespace = "pkarr"
 )
 
-type PKARRRecord struct {
+type PkarrRecord struct {
 	// Up to an 1000 byte base64URL encoded string
 	V string `json:"v" validate:"required"`
 	// 32 byte base64URL encoded string
@@ -19,14 +19,14 @@ type PKARRRecord struct {
 }
 
 type PKARRStorage interface {
-	WriteRecord(record PKARRRecord) error
-	ReadRecord(id string) (*PKARRRecord, error)
-	ListRecords() ([]PKARRRecord, error)
+	WriteRecord(record PkarrRecord) error
+	ReadRecord(id string) (*PkarrRecord, error)
+	ListRecords() ([]PkarrRecord, error)
 }
 
 // WriteRecord writes the given record to the storage
 // TODO: don't overwrite existing records, store unique seq numbers
-func (s *Storage) WriteRecord(record PKARRRecord) error {
+func (s *Storage) WriteRecord(record PkarrRecord) error {
 	recordBytes, err := json.Marshal(record)
 	if err != nil {
 		return err
@@ -35,7 +35,7 @@ func (s *Storage) WriteRecord(record PKARRRecord) error {
 }
 
 // ReadRecord reads the record with the given id from the storage
-func (s *Storage) ReadRecord(id string) (*PKARRRecord, error) {
+func (s *Storage) ReadRecord(id string) (*PkarrRecord, error) {
 	recordBytes, err := s.Read(pkarrNamespace, id)
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func (s *Storage) ReadRecord(id string) (*PKARRRecord, error) {
 	if len(recordBytes) == 0 {
 		return nil, nil
 	}
-	var record PKARRRecord
+	var record PkarrRecord
 	if err = json.Unmarshal(recordBytes, &record); err != nil {
 		return nil, err
 	}
@@ -51,14 +51,14 @@ func (s *Storage) ReadRecord(id string) (*PKARRRecord, error) {
 }
 
 // ListRecords lists all records in the storage
-func (s *Storage) ListRecords() ([]PKARRRecord, error) {
+func (s *Storage) ListRecords() ([]PkarrRecord, error) {
 	recordsMap, err := s.ReadAll(pkarrNamespace)
 	if err != nil {
 		return nil, err
 	}
-	var records []PKARRRecord
+	var records []PkarrRecord
 	for _, recordBytes := range recordsMap {
-		var record PKARRRecord
+		var record PkarrRecord
 		if err = json.Unmarshal(recordBytes, &record); err != nil {
 			return nil, err
 		}

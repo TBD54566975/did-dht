@@ -31,7 +31,7 @@ func TestPKARRStorage(t *testing.T) {
 
 	// create record
 	encoding := base64.RawURLEncoding
-	record := PKARRRecord{
+	record := PkarrRecord{
 		V:   encoding.EncodeToString(putMsg.V.([]byte)),
 		K:   encoding.EncodeToString(putMsg.K[:]),
 		Sig: encoding.EncodeToString(putMsg.Sig[:]),

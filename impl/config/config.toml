@@ -12,3 +12,4 @@ bootstrap_peers = ["router.magnets.im:6881", "router.bittorrent.com:6881", "dht.
 
 [pkarr]
 republish_cron = "0 */2 * * *" # every 2 hours
+cache_ttl_minutes = 10

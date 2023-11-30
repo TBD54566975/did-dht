@@ -14,11 +14,11 @@ import (
 
 // PKARRRouter is the router for the PKARR API
 type PKARRRouter struct {
-	service *service.PKARRService
+	service *service.PkarrService
 }
 
 // NewPKARRRouter returns a new instance of the Relay router
-func NewPKARRRouter(service *service.PKARRService) (*PKARRRouter, error) {
+func NewPKARRRouter(service *service.PkarrService) (*PKARRRouter, error) {
 	return &PKARRRouter{service: service}, nil
 }
 
@@ -42,7 +42,7 @@ func (r *PKARRRouter) GetRecord(c *gin.Context) {
 		return
 	}
 
-	resp, err := r.service.GetPKARR(c, *id)
+	resp, err := r.service.GetPkarr(c, *id)
 	if err != nil {
 		LoggingRespondErrWithMsg(c, err, "failed to get pkarr record", http.StatusInternalServerError)
 		return
@@ -109,13 +109,13 @@ func (r *PKARRRouter) PutRecord(c *gin.Context) {
 	bytes := body[:64]
 	sigBytes := [64]byte(bytes)
 	seq := int64(binary.BigEndian.Uint64(body[64:72]))
-	request := service.PublishPKARRRequest{
+	request := service.PublishPkarrRequest{
 		V:   vBytes,
 		K:   keyBytes,
 		Sig: sigBytes,
 		Seq: seq,
 	}
-	if err = r.service.PublishPKARR(c, request); err != nil {
+	if err = r.service.PublishPkarr(c, *id, request); err != nil {
 		LoggingRespondErrWithMsg(c, err, "failed to publish pkarr record", http.StatusInternalServerError)
 		return
 	}

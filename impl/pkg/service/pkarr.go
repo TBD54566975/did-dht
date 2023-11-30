@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"time"
 
 	"github.com/TBD54566975/ssi-sdk/util"
 	"github.com/anacrolix/dht/v2/bep44"
 	"github.com/anacrolix/torrent/bencode"
+	"github.com/jellydator/ttlcache/v3"
 	"github.com/sirupsen/logrus"
 
 	"github.com/TBD54566975/did-dht-method/config"
@@ -16,16 +18,17 @@ import (
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
 )
 
-// PKARRService is the PKARR service responsible for managing the PKARR DHT and reading/writing records
-type PKARRService struct {
+// PkarrService is the Pkarr service responsible for managing the Pkarr DHT and reading/writing records
+type PkarrService struct {
 	cfg       *config.Config
 	db        *storage.Storage
 	dht       *dht.DHT
+	cache     *ttlcache.Cache[string, storage.PkarrRecord]
 	scheduler *dhtint.Scheduler
 }
 
-// NewPKARRService returns a new instance of the PKARR service
-func NewPKARRService(cfg *config.Config, db *storage.Storage) (*PKARRService, error) {
+// NewPkarrService returns a new instance of the Pkarr service
+func NewPkarrService(cfg *config.Config, db *storage.Storage) (*PkarrService, error) {
 	if cfg == nil {
 		return nil, util.LoggingNewError("config is required")
 	}
@@ -36,30 +39,37 @@ func NewPKARRService(cfg *config.Config, db *storage.Storage) (*PKARRService, er
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to instantiate dht")
 	}
+
+	// create and start cache and scheduler
+	ttl := time.Duration(cfg.PkarrConfig.CacheTTLMinutes) * time.Minute
+	cache := ttlcache.New[string, storage.PkarrRecord](
+		ttlcache.WithTTL[string, storage.PkarrRecord](ttl),
+	)
 	scheduler := dhtint.NewScheduler()
-	service := PKARRService{
+	service := PkarrService{
 		cfg:       cfg,
 		db:        db,
 		dht:       d,
+		cache:     cache,
 		scheduler: &scheduler,
 	}
-	if err = scheduler.Schedule(cfg.PKARRConfig.RepublishCRON, service.republish); err != nil {
+	go cache.Start()
+	if err = scheduler.Schedule(cfg.PkarrConfig.RepublishCRON, service.republish); err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to start republisher")
 	}
 	return &service, nil
 }
 
-// PublishPKARRRequest is the request to publish a PKARR record
-type PublishPKARRRequest struct {
+// PublishPkarrRequest is the request to publish a Pkarr record
+type PublishPkarrRequest struct {
 	V   []byte   `validate:"required"`
 	K   [32]byte `validate:"required"`
 	Sig [64]byte `validate:"required"`
 	Seq int64    `validate:"required"`
 }
 
-// isValid returns an error if the request is invalid
-// also validates the signature
-func (p PublishPKARRRequest) isValid() error {
+// isValid returns an error if the request is invalid; also validates the signature
+func (p PublishPkarrRequest) isValid() error {
 	if err := util.IsValidStruct(p); err != nil {
 		return err
 	}
@@ -74,9 +84,9 @@ func (p PublishPKARRRequest) isValid() error {
 	return nil
 }
 
-func (p PublishPKARRRequest) toRecord() storage.PKARRRecord {
+func (p PublishPkarrRequest) toRecord() storage.PkarrRecord {
 	encoding := base64.RawURLEncoding
-	return storage.PKARRRecord{
+	return storage.PkarrRecord{
 		V:   encoding.EncodeToString(p.V),
 		K:   encoding.EncodeToString(p.K[:]),
 		Sig: encoding.EncodeToString(p.Sig[:]),
@@ -84,16 +94,19 @@ func (p PublishPKARRRequest) toRecord() storage.PKARRRecord {
 	}
 }
 
-// PublishPKARR stores the record in the db, publishes the given PKARR to the DHT, and returns the z-base-32 encoded ID
-func (s *PKARRService) PublishPKARR(ctx context.Context, request PublishPKARRRequest) error {
+// PublishPkarr stores the record in the db, publishes the given Pkarr record to the DHT, and returns the z-base-32 encoded ID
+func (s *PkarrService) PublishPkarr(ctx context.Context, id string, request PublishPkarrRequest) error {
 	if err := request.isValid(); err != nil {
 		return err
 	}
 
+	// write to db and cache
 	// TODO(gabe): if putting to the DHT fails we should note that in the db and retry later
-	if err := s.db.WriteRecord(request.toRecord()); err != nil {
+	record := request.toRecord()
+	if err := s.db.WriteRecord(record); err != nil {
 		return err
 	}
+	s.cache.Set(id, record, ttlcache.DefaultTTL)
 
 	// return here and put it in the DHT asynchronously
 	go s.dht.Put(ctx, bep44.Put{
@@ -106,14 +119,14 @@ func (s *PKARRService) PublishPKARR(ctx context.Context, request PublishPKARRReq
 	return nil
 }
 
-// GetPKARRResponse is the response to a get PKARR request
-type GetPKARRResponse struct {
+// GetPkarrResponse is the response to a get Pkarr request
+type GetPkarrResponse struct {
 	V   []byte   `validate:"required"`
 	Seq int64    `validate:"required"`
 	Sig [64]byte `validate:"required"`
 }
 
-func fromPKARRRecord(record storage.PKARRRecord) (*GetPKARRResponse, error) {
+func fromPkarrRecord(record storage.PkarrRecord) (*GetPkarrResponse, error) {
 	encoding := base64.RawURLEncoding
 	vBytes, err := encoding.DecodeString(record.V)
 	if err != nil {
@@ -123,15 +136,23 @@ func fromPKARRRecord(record storage.PKARRRecord) (*GetPKARRResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &GetPKARRResponse{
+	return &GetPkarrResponse{
 		V:   vBytes,
 		Seq: record.Seq,
 		Sig: [64]byte(sigBytes),
 	}, nil
 }
 
-// GetPKARR returns the full PKARR (including sig data) for the given z-base-32 encoded ID
-func (s *PKARRService) GetPKARR(ctx context.Context, id string) (*GetPKARRResponse, error) {
+// GetPkarr returns the full Pkarr record (including sig data) for the given z-base-32 encoded ID
+func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrResponse, error) {
+	// first do a cache lookup
+	if s.cache.Has(id) {
+		cacheItem := s.cache.Get(id)
+		logrus.Debugf("resolved pkarr record<%s> from cache, with ttl<%s>", id, cacheItem.TTL().String())
+		return fromPkarrRecord(cacheItem.Value())
+	}
+
+	// next do a dht lookup
 	got, err := s.dht.GetFull(ctx, id)
 	if err != nil {
 		// try to resolve from storage before returning and error
@@ -143,7 +164,7 @@ func (s *PKARRService) GetPKARR(ctx context.Context, id string) (*GetPKARRRespon
 			return nil, err
 		}
 		logrus.Debugf("resolved pkarr<%s> from storage", id)
-		return fromPKARRRecord(*record)
+		return fromPkarrRecord(*record)
 	}
 	bBytes, err := got.V.MarshalBencode()
 	if err != nil {
@@ -153,7 +174,7 @@ func (s *PKARRService) GetPKARR(ctx context.Context, id string) (*GetPKARRRespon
 	if err = bencode.Unmarshal(bBytes, &payload); err != nil {
 		return nil, err
 	}
-	return &GetPKARRResponse{
+	return &GetPkarrResponse{
 		V:   []byte(payload),
 		Seq: got.Seq,
 		Sig: got.Sig,
@@ -161,7 +182,7 @@ func (s *PKARRService) GetPKARR(ctx context.Context, id string) (*GetPKARRRespon
 }
 
 // TODO(gabe) make this more efficient. create a publish schedule based on each individual record, not all records
-func (s *PKARRService) republish() {
+func (s *PkarrService) republish() {
 	allRecords, err := s.db.ListRecords()
 	if err != nil {
 		logrus.WithError(err).Error("failed to list record(s) for republishing")
@@ -189,7 +210,7 @@ func (s *PKARRService) republish() {
 	logrus.Infof("Republishing complete. Successfully republished %d out of %d record(s)", len(allRecords)-errCnt, len(allRecords))
 }
 
-func recordToBEP44Put(record storage.PKARRRecord) (*bep44.Put, error) {
+func recordToBEP44Put(record storage.PkarrRecord) (*bep44.Put, error) {
 	encoding := base64.RawURLEncoding
 	vBytes, err := encoding.DecodeString(record.V)
 	if err != nil {
