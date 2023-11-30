@@ -29,7 +29,7 @@ type Server struct {
 	shutdown chan os.Signal
 
 	cfg *config.Config
-	svc *service.PKARRService
+	svc *service.PkarrService
 }
 
 // NewServer returns a new instance of Server with the given db and host.
@@ -43,7 +43,7 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 		return nil, util.LoggingErrorMsg(err, "failed to instantiate storage")
 	}
 
-	pkarrService, err := service.NewPKARRService(cfg, db)
+	pkarrService, err := service.NewPkarrService(cfg, db)
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "could not instantiate pkarr service")
 	}
@@ -57,7 +57,7 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	handler.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler, ginswagger.URL("/swagger.yaml")))
 
 	// root relay API
-	if err = PKARRAPI(&handler.RouterGroup, pkarrService); err != nil {
+	if err = PkarrAPI(&handler.RouterGroup, pkarrService); err != nil {
 		return nil, util.LoggingErrorMsg(err, "could not setup pkarr API")
 	}
 	return &Server{
@@ -112,8 +112,8 @@ func setupHandler(env config.Environment) *gin.Engine {
 	return handler
 }
 
-// PKARRAPI sets up the relay API routes according to https://github.com/Nuhvi/pkarr/blob/main/design/relays.md
-func PKARRAPI(rg *gin.RouterGroup, service *service.PKARRService) error {
+// PkarrAPI sets up the relay API routes according to https://github.com/Nuhvi/pkarr/blob/main/design/relays.md
+func PkarrAPI(rg *gin.RouterGroup, service *service.PkarrService) error {
 	relayRouter, err := NewPKARRRouter(service)
 	if err != nil {
 		return util.LoggingErrorMsg(err, "could not instantiate relay router")
@@ -123,3 +123,13 @@ func PKARRAPI(rg *gin.RouterGroup, service *service.PKARRService) error {
 	rg.GET("/:id", relayRouter.GetRecord)
 	return nil
 }
+
+// func GatewayAPI(rg *gin.RouterGroup, service *service.PkarrService) error {
+// 	gatewayRouter, err := NewGatewayRouter(service)
+// 	if err != nil {
+// 		return util.LoggingErrorMsg(err, "could not instantiate gateway router")
+// 	}
+//
+// 	rg.GET("/did", gatewayRouter.GetRecord)
+// 	return nil
+// }

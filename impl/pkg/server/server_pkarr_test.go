@@ -68,12 +68,12 @@ func TestPKARRRouter(t *testing.T) {
 	})
 }
 
-func testPKARRService(t *testing.T) service.PKARRService {
+func testPKARRService(t *testing.T) service.PkarrService {
 	defaultConfig := config.GetDefaultConfig()
 	db, err := storage.NewStorage(defaultConfig.ServerConfig.DBFile)
 	require.NoError(t, err)
 	require.NotEmpty(t, db)
-	pkarrService, err := service.NewPKARRService(&defaultConfig, db)
+	pkarrService, err := service.NewPkarrService(&defaultConfig, db)
 	require.NoError(t, err)
 	require.NotEmpty(t, pkarrService)
 	return *pkarrService

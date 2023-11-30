@@ -9,8 +9,8 @@
 # The format is described: https://github.blog/2017-07-06-introducing-code-owners/
 
 # These owners will be the default owners for everything in the repo.
-*       @decentralgabe @csuwildcat
-
+*       @decentralgabe
+spec    @csuwildcat
 
 # -----------------------------------------------
 # BELOW THIS LINE ARE TEMPLATES, UNUSED

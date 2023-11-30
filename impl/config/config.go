@@ -38,7 +38,7 @@ func (e EnvironmentVariable) String() string {
 type Config struct {
 	ServerConfig ServerConfig       `toml:"server"`
 	DHTConfig    DHTServiceConfig   `toml:"dht"`
-	PKARRConfig  PKARRServiceConfig `toml:"pkarr"`
+	PkarrConfig  PKARRServiceConfig `toml:"pkarr"`
 }
 
 type ServerConfig struct {
@@ -56,7 +56,8 @@ type DHTServiceConfig struct {
 }
 
 type PKARRServiceConfig struct {
-	RepublishCRON string `toml:"republish_cron"`
+	RepublishCRON   string `toml:"republish_cron"`
+	CacheTTLMinutes int64  `toml:"cache_ttl_minutes"`
 }
 
 func GetDefaultConfig() Config {
@@ -73,8 +74,9 @@ func GetDefaultConfig() Config {
 		DHTConfig: DHTServiceConfig{
 			BootstrapPeers: GetDefaultBootstrapPeers(),
 		},
-		PKARRConfig: PKARRServiceConfig{
-			RepublishCRON: "0 */2 * * *",
+		PkarrConfig: PKARRServiceConfig{
+			RepublishCRON:   "0 */2 * * *",
+			CacheTTLMinutes: 10,
 		},
 	}
 }

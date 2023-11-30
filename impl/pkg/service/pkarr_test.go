@@ -19,13 +19,13 @@ func TestPKARRService(t *testing.T) {
 	require.NotEmpty(t, svc)
 
 	t.Run("test put bad record", func(t *testing.T) {
-		err := svc.PublishPKARR(context.Background(), PublishPKARRRequest{})
+		err := svc.PublishPkarr(context.Background(), "", PublishPkarrRequest{})
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "validation for 'V' failed on the 'required' tag")
 	})
 
 	t.Run("test get non existent record", func(t *testing.T) {
-		got, err := svc.GetPKARR(context.Background(), "test")
+		got, err := svc.GetPkarr(context.Background(), "test")
 		assert.NoError(t, err)
 		assert.Nil(t, got)
 	})
@@ -45,7 +45,9 @@ func TestPKARRService(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, putMsg)
 
-		err = svc.PublishPKARR(context.Background(), PublishPKARRRequest{
+		suffix, err := d.Suffix()
+		require.NoError(t, err)
+		err = svc.PublishPkarr(context.Background(), suffix, PublishPkarrRequest{
 			V:   putMsg.V.([]byte),
 			K:   *putMsg.K,
 			Sig: putMsg.Sig,
@@ -55,7 +57,7 @@ func TestPKARRService(t *testing.T) {
 
 		// invalidate the signature
 		putMsg.Sig[0] = 0
-		err = svc.PublishPKARR(context.Background(), PublishPKARRRequest{
+		err = svc.PublishPkarr(context.Background(), suffix, PublishPkarrRequest{
 			V:   putMsg.V.([]byte),
 			K:   *putMsg.K,
 			Sig: putMsg.Sig,
@@ -80,7 +82,9 @@ func TestPKARRService(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, putMsg)
 
-		err = svc.PublishPKARR(context.Background(), PublishPKARRRequest{
+		suffix, err := d.Suffix()
+		require.NoError(t, err)
+		err = svc.PublishPkarr(context.Background(), suffix, PublishPkarrRequest{
 			V:   putMsg.V.([]byte),
 			K:   *putMsg.K,
 			Sig: putMsg.Sig,
@@ -88,13 +92,10 @@ func TestPKARRService(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		suffix, err := d.Suffix()
-		assert.NoError(t, err)
-
 		// wait for the record to be published
 		time.Sleep(10 * time.Second)
 
-		got, err := svc.GetPKARR(context.Background(), suffix)
+		got, err := svc.GetPkarr(context.Background(), suffix)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, got)
 		assert.Equal(t, putMsg.V, got.V)
@@ -103,12 +104,12 @@ func TestPKARRService(t *testing.T) {
 	})
 }
 
-func newPKARRService(t *testing.T) PKARRService {
+func newPKARRService(t *testing.T) PkarrService {
 	defaultConfig := config.GetDefaultConfig()
 	db, err := storage.NewStorage(defaultConfig.ServerConfig.DBFile)
 	require.NoError(t, err)
 	require.NotEmpty(t, db)
-	pkarrService, err := NewPKARRService(&defaultConfig, db)
+	pkarrService, err := NewPkarrService(&defaultConfig, db)
 	require.NoError(t, err)
 	require.NotEmpty(t, pkarrService)
 	return *pkarrService
