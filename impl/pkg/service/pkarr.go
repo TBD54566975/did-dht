@@ -186,7 +186,8 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrRespon
 		logrus.WithError(err).Warnf("failed to get pkarr<%s> from dht, attempting to resolve from storage", id)
 		record, err := s.db.ReadRecord(id)
 		if err != nil || record == nil {
-			return nil, util.LoggingErrorMsgf(err, "failed to resolve pkarr record<%s> from storage", id)
+			logrus.WithError(err).Errorf("failed to resolve pkarr<%s> from storage", id)
+			return nil, err
 		}
 		logrus.Debugf("resolved pkarr<%s> from storage", id)
 		return fromPkarrRecord(*record)
