@@ -11,7 +11,7 @@ import (
 )
 
 func TestClient(t *testing.T) {
-	client, err := NewGatewayClient("https://diddht.tbddev.org") // NewGatewayClient("http://0.0.0.0:8305")
+	client, err := NewGatewayClient("https://diddht.tbddev.org")
 	require.NoError(t, err)
 
 	sk, doc, err := GenerateDIDDHT(CreateDIDDHTOpts{})
