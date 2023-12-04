@@ -11,7 +11,7 @@ import (
 )
 
 func TestClient(t *testing.T) {
-	client, err := NewGatewayClient("https://diddht.tbddev.org")
+	client, err := NewGatewayClient("https://diddht.tbddev.org") // NewGatewayClient("http://0.0.0.0:8305")
 	require.NoError(t, err)
 
 	sk, doc, err := GenerateDIDDHT(CreateDIDDHTOpts{})
@@ -32,6 +32,7 @@ func TestClient(t *testing.T) {
 	// wait for the record to be published
 	time.Sleep(10 * time.Second)
 
+	println(doc.ID)
 	gotDID, _, err := client.GetDIDDocument(doc.ID)
 	assert.NoError(t, err)
 	assert.EqualValues(t, doc, gotDID)

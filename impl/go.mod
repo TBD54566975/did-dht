@@ -34,6 +34,7 @@ require (
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/alecthomas/atomic v0.1.0-alpha2 // indirect
+	github.com/allegro/bigcache/v3 v3.1.0 // indirect
 	github.com/anacrolix/chansync v0.3.0 // indirect
 	github.com/anacrolix/generics v0.0.0-20230428105757-683593396d68 // indirect
 	github.com/anacrolix/missinggo v1.3.0 // indirect

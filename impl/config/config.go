@@ -57,7 +57,7 @@ type DHTServiceConfig struct {
 
 type PKARRServiceConfig struct {
 	RepublishCRON   string `toml:"republish_cron"`
-	CacheTTLMinutes int64  `toml:"cache_ttl_minutes"`
+	CacheTTLSeconds int    `toml:"cache_ttl_seconds"`
 }
 
 func GetDefaultConfig() Config {
@@ -76,7 +76,7 @@ func GetDefaultConfig() Config {
 		},
 		PkarrConfig: PKARRServiceConfig{
 			RepublishCRON:   "0 */2 * * *",
-			CacheTTLMinutes: 10,
+			CacheTTLSeconds: 600,
 		},
 	}
 }
