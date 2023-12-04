@@ -11,6 +11,7 @@ import (
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/jellydator/ttlcache/v3"
 	"github.com/sirupsen/logrus"
+	"github.com/tv42/zbase32"
 
 	"github.com/TBD54566975/did-dht-method/config"
 	dhtint "github.com/TBD54566975/did-dht-method/internal/dht"
@@ -126,6 +127,20 @@ type GetPkarrResponse struct {
 	Sig [64]byte `validate:"required"`
 }
 
+func toPkarrRecord(id string, resp GetPkarrResponse) (*storage.PkarrRecord, error) {
+	keyBytes, err := zbase32.DecodeString(id)
+	if err != nil {
+		return nil, err
+	}
+	encoding := base64.RawURLEncoding
+	return &storage.PkarrRecord{
+		V:   encoding.EncodeToString(resp.V),
+		K:   encoding.EncodeToString(keyBytes),
+		Seq: resp.Seq,
+		Sig: encoding.EncodeToString(resp.Sig[:]),
+	}, nil
+}
+
 func fromPkarrRecord(record storage.PkarrRecord) (*GetPkarrResponse, error) {
 	encoding := base64.RawURLEncoding
 	vBytes, err := encoding.DecodeString(record.V)
@@ -149,7 +164,7 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrRespon
 	if s.cache.Has(id) {
 		cacheItem := s.cache.Get(id)
 		until := time.Until(cacheItem.ExpiresAt())
-		logrus.Debugf("resolved pkarr record<%s> from cache, with remaining TTL: %s", id, until.String())
+		logrus.Debugf("resolved pkarr record[%s] from cache, with remaining TTL: %s", id, until.String())
 		return fromPkarrRecord(cacheItem.Value())
 	}
 
@@ -161,12 +176,13 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrRespon
 		logrus.WithError(err).Warnf("failed to get pkarr<%s> from dht, attempting to resolve from storage", id)
 		record, err := s.db.ReadRecord(id)
 		if err != nil || record == nil {
-			logrus.WithError(err).Errorf("failed to resolve pkarr<%s> from storage", id)
-			return nil, err
+			return nil, util.LoggingErrorMsgf(err, "failed to resolve pkarr record<%s> from storage", id)
 		}
 		logrus.Debugf("resolved pkarr<%s> from storage", id)
 		return fromPkarrRecord(*record)
 	}
+
+	// prepare the record for return
 	bBytes, err := got.V.MarshalBencode()
 	if err != nil {
 		return nil, err
@@ -175,11 +191,20 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrRespon
 	if err = bencode.Unmarshal(bBytes, &payload); err != nil {
 		return nil, err
 	}
-	return &GetPkarrResponse{
+	resp := GetPkarrResponse{
 		V:   []byte(payload),
 		Seq: got.Seq,
 		Sig: got.Sig,
-	}, nil
+	}
+
+	// add the record to cache, do it here to avoid duplicate calculations
+	record, err := toPkarrRecord(id, resp)
+	if err != nil {
+		return nil, util.LoggingErrorMsgf(err, "failed to convert pkarr record<%s> for cache", id)
+	}
+	s.cache.Set(id, *record, ttlcache.DefaultTTL)
+
+	return &resp, nil
 }
 
 // TODO(gabe) make this more efficient. create a publish schedule based on each individual record, not all records
