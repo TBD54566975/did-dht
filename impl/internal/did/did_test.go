@@ -54,7 +54,7 @@ func TestGenerateDIDDHT(t *testing.T) {
 				{
 					VerificationMethod: did.VerificationMethod{
 						ID:           "key1",
-						Type:         "JsonWebKey2020",
+						Type:         JSONWebKeyType,
 						Controller:   "did:dht:123456789abcdefghi",
 						PublicKeyJWK: pubKeyJWK,
 					},
@@ -166,7 +166,7 @@ func TestToDNSPacket(t *testing.T) {
 				{
 					VerificationMethod: did.VerificationMethod{
 						ID:           "key1",
-						Type:         "JsonWebKey2020",
+						Type:         JSONWebKeyType,
 						Controller:   "did:dht:123456789abcdefghi",
 						PublicKeyJWK: pubKeyJWK,
 					},
@@ -268,7 +268,7 @@ func TestVectors(t *testing.T) {
 				{
 					VerificationMethod: did.VerificationMethod{
 						ID:           secpJWK.KID,
-						Type:         "JsonWebKey2020",
+						Type:         JSONWebKeyType,
 						PublicKeyJWK: &secpJWK,
 					},
 					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},

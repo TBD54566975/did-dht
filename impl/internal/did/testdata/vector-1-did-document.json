@@ -3,7 +3,7 @@
   "verificationMethod": [
     {
       "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0",
-      "type": "JsonWebKey2020",
+      "type": "JsonWebKey",
       "controller": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo",
       "publicKeyJwk": {
         "kty": "OKP",
