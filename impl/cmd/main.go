@@ -14,6 +14,8 @@ import (
 	"github.com/TBD54566975/did-dht-method/pkg/server"
 )
 
+var commitHash string
+
 // main godoc
 //
 //	@title			The DID DHT Service
@@ -25,6 +27,10 @@ import (
 //	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
 func main() {
 	logrus.Info("Starting up...")
+
+	if commitHash != "" {
+		logrus.Infof("With commit: %s", commitHash)
+	}
 
 	if err := run(); err != nil {
 		logrus.Fatalf("main: error: %s", err.Error())
