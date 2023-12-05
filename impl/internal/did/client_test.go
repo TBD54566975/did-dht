@@ -2,7 +2,6 @@ package did
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,9 +27,6 @@ func TestClient(t *testing.T) {
 
 	err = client.PutDocument(doc.ID, *bep44Put)
 	assert.NoError(t, err)
-
-	// wait for the record to be published
-	time.Sleep(10 * time.Second)
 
 	gotDID, _, err := client.GetDIDDocument(doc.ID)
 	assert.NoError(t, err)

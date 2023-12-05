@@ -1,8 +1,9 @@
 package cli
 
 import (
-	"encoding/json"
 	"os"
+
+	"github.com/goccy/go-json"
 
 	"github.com/sirupsen/logrus"
 

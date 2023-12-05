@@ -6,10 +6,12 @@ import (
 	"errors"
 	"time"
 
+	"github.com/goccy/go-json"
+
 	"github.com/TBD54566975/ssi-sdk/util"
+	"github.com/allegro/bigcache/v3"
 	"github.com/anacrolix/dht/v2/bep44"
 	"github.com/anacrolix/torrent/bencode"
-	"github.com/jellydator/ttlcache/v3"
 	"github.com/sirupsen/logrus"
 
 	"github.com/TBD54566975/did-dht-method/config"
@@ -23,7 +25,7 @@ type PkarrService struct {
 	cfg       *config.Config
 	db        *storage.Storage
 	dht       *dht.DHT
-	cache     *ttlcache.Cache[string, storage.PkarrRecord]
+	cache     *bigcache.BigCache
 	scheduler *dhtint.Scheduler
 }
 
@@ -41,10 +43,12 @@ func NewPkarrService(cfg *config.Config, db *storage.Storage) (*PkarrService, er
 	}
 
 	// create and start cache and scheduler
-	ttl := time.Duration(cfg.PkarrConfig.CacheTTLMinutes) * time.Minute
-	cache := ttlcache.New[string, storage.PkarrRecord](
-		ttlcache.WithTTL[string, storage.PkarrRecord](ttl),
-	)
+	ttl := time.Duration(cfg.PkarrConfig.CacheTTLSeconds) * time.Second
+	// TODO(gabe): consider setting size limits on the cache
+	cache, err := bigcache.New(context.Background(), bigcache.DefaultConfig(ttl))
+	if err != nil {
+		return nil, util.LoggingErrorMsg(err, "failed to instantiate cache")
+	}
 	scheduler := dhtint.NewScheduler()
 	service := PkarrService{
 		cfg:       cfg,
@@ -53,7 +57,6 @@ func NewPkarrService(cfg *config.Config, db *storage.Storage) (*PkarrService, er
 		cache:     cache,
 		scheduler: &scheduler,
 	}
-	go cache.Start()
 	if err = scheduler.Schedule(cfg.PkarrConfig.RepublishCRON, service.republish); err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to start republisher")
 	}
@@ -106,7 +109,17 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, request Publ
 	if err := s.db.WriteRecord(record); err != nil {
 		return err
 	}
-	s.cache.Set(id, record, ttlcache.DefaultTTL)
+	recordBytes, err := json.Marshal(GetPkarrResponse{
+		V:   request.V,
+		Seq: request.Seq,
+		Sig: request.Sig,
+	})
+	if err != nil {
+		return err
+	}
+	if err = s.cache.Set(id, recordBytes); err != nil {
+		return err
+	}
 
 	// return here and put it in the DHT asynchronously
 	go s.dht.Put(ctx, bep44.Put{
@@ -146,11 +159,13 @@ func fromPkarrRecord(record storage.PkarrRecord) (*GetPkarrResponse, error) {
 // GetPkarr returns the full Pkarr record (including sig data) for the given z-base-32 encoded ID
 func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrResponse, error) {
 	// first do a cache lookup
-	if s.cache.Has(id) {
-		cacheItem := s.cache.Get(id)
-		until := time.Until(cacheItem.ExpiresAt())
-		logrus.Debugf("resolved pkarr record<%s> from cache, with remaining TTL: %s", id, until.String())
-		return fromPkarrRecord(cacheItem.Value())
+	if got, err := s.cache.Get(id); err == nil {
+		var resp GetPkarrResponse
+		if err = json.Unmarshal(got, &resp); err != nil {
+			return nil, err
+		}
+		logrus.Debugf("resolved pkarr record[%s] from cache", id)
+		return &resp, nil
 	}
 
 	// next do a dht lookup
@@ -167,6 +182,8 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrRespon
 		logrus.Debugf("resolved pkarr<%s> from storage", id)
 		return fromPkarrRecord(*record)
 	}
+
+	// prepare the record for return
 	bBytes, err := got.V.MarshalBencode()
 	if err != nil {
 		return nil, err
@@ -175,11 +192,22 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrRespon
 	if err = bencode.Unmarshal(bBytes, &payload); err != nil {
 		return nil, err
 	}
-	return &GetPkarrResponse{
+	resp := GetPkarrResponse{
 		V:   []byte(payload),
 		Seq: got.Seq,
 		Sig: got.Sig,
-	}, nil
+	}
+
+	// add the record to cache, do it here to avoid duplicate calculations
+	recordBytes, err := json.Marshal(resp)
+	if err != nil {
+		return nil, util.LoggingErrorMsgf(err, "failed to marshal pkarr record<%s> for cache", id)
+	}
+	if err = s.cache.Set(id, recordBytes); err != nil {
+		return nil, util.LoggingErrorMsgf(err, "failed to set pkarr record<%s> in cache", id)
+	}
+
+	return &resp, nil
 }
 
 // TODO(gabe) make this more efficient. create a publish schedule based on each individual record, not all records

@@ -2,8 +2,9 @@ package did
 
 import (
 	"crypto/ed25519"
-	"encoding/json"
 	"testing"
+
+	"github.com/goccy/go-json"
 
 	"github.com/TBD54566975/ssi-sdk/crypto"
 	"github.com/TBD54566975/ssi-sdk/crypto/jwx"

@@ -2,8 +2,9 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+
+	"github.com/goccy/go-json"
 
 	"github.com/miekg/dns"
 	"github.com/mr-tron/base58"
