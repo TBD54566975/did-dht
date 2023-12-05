@@ -118,7 +118,7 @@ func Spec() error {
 		return err
 	}
 
-	return sh.Run(swagCommand, "init", "-g", "cmd/main.go", "--overridesFile", "docs/overrides.swaggo", "--pd", "--parseInternal", "-ot", "go,yaml")
+	return sh.Run(swagCommand, "init", "-g", "cmd/main.go", "--overridesFile", "docs/overrides.swaggo", "--pd", "--parseInternal", "-ot", "yaml")
 }
 
 func ColorizeTestOutput(w io.Writer) io.Writer {

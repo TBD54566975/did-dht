@@ -14,7 +14,6 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	"github.com/TBD54566975/did-dht-method/config"
-	"github.com/TBD54566975/did-dht-method/docs"
 	"github.com/TBD54566975/did-dht-method/pkg/service"
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
 )
@@ -52,8 +51,6 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	handler.GET("/health", Health)
 
 	// set up swagger
-	docs.SwaggerInfo.Host = fmt.Sprintf("%s:%d", cfg.ServerConfig.APIHost, cfg.ServerConfig.APIPort)
-	docs.SwaggerInfo.Version = "0.0.1"
 	handler.StaticFile("swagger.yaml", "./docs/swagger.yaml")
 	handler.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler, ginswagger.URL("/swagger.yaml")))
 
