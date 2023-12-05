@@ -11,8 +11,14 @@ RUN go mod download
 # Copy code /to the container image.
 COPY . ./
 
-# Build the binary and call it "docker-ssi-service"
-RUN go build -tags jwx_es256k -o /did-dht ./cmd
+# Use ARG to declare the variable
+ARG GIT_COMMIT_HASH
+
+# Use ENV to set the environment variable
+ENV GIT_COMMIT_HASH=$GIT_COMMIT_HASH
+
+# Build using the environment variable
+RUN go build -ldflags="-X main.commitHash=$GIT_COMMIT_HASH" -tags jwx_es256k -o /did-dht ./cmd
 
 EXPOSE 8305
 

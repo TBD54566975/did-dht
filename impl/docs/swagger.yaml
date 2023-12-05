@@ -19,16 +19,16 @@ paths:
   /{id}:
     get:
       consumes:
-      - application/octet-stream
+        - application/octet-stream
       description: GetRecord a Pkarr record from the DHT
       parameters:
-      - description: ID to get
-        in: path
-        name: id
-        required: true
-        type: string
+        - description: ID to get
+          in: path
+          name: id
+          required: true
+          type: string
       produces:
-      - application/octet-stream
+        - application/octet-stream
       responses:
         "200":
           description: 64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v.
@@ -50,25 +50,25 @@ paths:
             type: string
       summary: GetRecord a Pkarr record from the DHT
       tags:
-      - Pkarr
+        - Pkarr
     put:
       consumes:
-      - application/octet-stream
+        - application/octet-stream
       description: PutRecord a Pkarr record into the DHT
       parameters:
-      - description: ID of the record to put
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: 64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v.
-        in: body
-        name: request
-        required: true
-        schema:
-          items:
-            type: integer
-          type: array
+        - description: ID of the record to put
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: 64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v.
+          in: body
+          name: request
+          required: true
+          schema:
+            items:
+              type: integer
+            type: array
       responses:
         "200":
           description: OK
@@ -82,14 +82,14 @@ paths:
             type: string
       summary: PutRecord a Pkarr record into the DHT
       tags:
-      - Pkarr
+        - Pkarr
   /health:
     get:
       consumes:
-      - application/json
+        - application/json
       description: Health is a simple handler that always responds with a 200 OK
       produces:
-      - application/json
+        - application/json
       responses:
         "200":
           description: OK
@@ -97,5 +97,5 @@ paths:
             $ref: '#/definitions/pkg_server.GetHealthCheckResponse'
       summary: Health Check
       tags:
-      - Health
+        - Health
 swagger: "2.0"

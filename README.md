@@ -8,7 +8,7 @@ gateway server in Go.
 To build and run the gateway server, from the `impl` directory run:
 
 ```
-docker build . -t did-dht -f build/Dockerfile
+docker build --build-arg GIT_COMMIT_HASH=$(git rev-parse HEAD) . -t did-dht -f build/Dockerfile
 ```
 
 and then

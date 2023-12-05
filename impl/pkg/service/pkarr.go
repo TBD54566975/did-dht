@@ -173,7 +173,6 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrRespon
 	got, err := s.dht.GetFull(ctx, id)
 	if err != nil {
 		// try to resolve from storage before returning and error
-		// if we detect this and have the record we should republish to the DHT
 		logrus.WithError(err).Warnf("failed to get pkarr record[%s] from dht, attempting to resolve from storage", id)
 		record, err := s.db.ReadRecord(id)
 		if err != nil || record == nil {
@@ -181,7 +180,13 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrRespon
 			return nil, err
 		}
 		logrus.Debugf("resolved pkarr record[%s] from storage", id)
-		return fromPkarrRecord(*record)
+		resp, err := fromPkarrRecord(*record)
+		if err == nil {
+			if err = s.addRecordToCache(id, *resp); err != nil {
+				logrus.WithError(err).Errorf("failed to set pkarr record[%s] in cache", id)
+			}
+		}
+		return resp, nil
 	}
 
 	// prepare the record for return
@@ -200,15 +205,22 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrRespon
 	}
 
 	// add the record to cache, do it here to avoid duplicate calculations
-	recordBytes, err := json.Marshal(resp)
-	if err != nil {
-		return nil, util.LoggingErrorMsgf(err, "failed to marshal pkarr record[%s] for cache", id)
-	}
-	if err = s.cache.Set(id, recordBytes); err != nil {
-		return nil, util.LoggingErrorMsgf(err, "failed to set pkarr record[%s] in cache", id)
+	if err = s.addRecordToCache(id, resp); err != nil {
+		logrus.WithError(err).Errorf("failed to set pkarr record[%s] in cache", id)
 	}
 
 	return &resp, nil
+}
+
+func (s *PkarrService) addRecordToCache(id string, resp GetPkarrResponse) error {
+	recordBytes, err := json.Marshal(resp)
+	if err != nil {
+		return err
+	}
+	if err = s.cache.Set(id, recordBytes); err != nil {
+		return err
+	}
+	return nil
 }
 
 // TODO(gabe) make this more efficient. create a publish schedule based on each individual record, not all records
