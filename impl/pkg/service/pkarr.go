@@ -20,6 +20,8 @@ import (
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
 )
 
+const recordSizeLimit = 1000
+
 // PkarrService is the Pkarr service responsible for managing the Pkarr DHT and reading/writing records
 type PkarrService struct {
 	cfg       *config.Config
@@ -45,6 +47,7 @@ func NewPkarrService(cfg *config.Config, db *storage.Storage) (*PkarrService, er
 	// create and start cache and scheduler
 	cacheTTL := time.Duration(cfg.PkarrConfig.CacheTTLSeconds) * time.Second
 	cacheConfig := bigcache.DefaultConfig(cacheTTL)
+	cacheConfig.MaxEntrySize = recordSizeLimit
 	cacheConfig.HardMaxCacheSize = cfg.PkarrConfig.CacheSizeLimitMB
 	cache, err := bigcache.New(context.Background(), cacheConfig)
 	if err != nil {

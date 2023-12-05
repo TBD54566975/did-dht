@@ -37,13 +37,3 @@ func TestClient(t *testing.T) {
 	since := time.Since(start)
 	t.Logf("time to put and get: %s", since)
 }
-
-func TestGet(t *testing.T) {
-	client, err := NewGatewayClient("https://diddht.tbddev.org")
-	require.NoError(t, err)
-
-	didID := "did:dht:nak9x7gzy9cgj3st6cppjyb5pgj55us1xerix7ty7h993qu1kz5o"
-	gotDID, _, err := client.GetDIDDocument(didID)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, gotDID)
-}
