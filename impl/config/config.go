@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	ServiceName       = "did-dht"
 	DefaultConfigPath = "config/config.toml"
 	DefaultEnvPath    = "config/config.env"
 	Extension         = ".toml"

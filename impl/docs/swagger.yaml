@@ -5,18 +5,16 @@ definitions:
         description: Status is always equal to `OK`.
         type: string
     type: object
-host: '{{.Server.APIHost}}'
 info:
   contact:
     email: tbd-developer@squareup.com
     name: TBD
-    url: https://github.com/TBD54566975/did-dht-method/issues
+    url: https://github.com/TBD54566975/did-dht-method
   description: The DID DHT Service
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
-  title: DID DHT Service API
-  version: '{{.SVN}}'
+  title: The DID DHT Service
 paths:
   /{id}:
     get:
