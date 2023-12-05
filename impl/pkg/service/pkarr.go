@@ -49,6 +49,7 @@ func NewPkarrService(cfg *config.Config, db *storage.Storage) (*PkarrService, er
 	cacheConfig := bigcache.DefaultConfig(cacheTTL)
 	cacheConfig.MaxEntrySize = recordSizeLimit
 	cacheConfig.HardMaxCacheSize = cfg.PkarrConfig.CacheSizeLimitMB
+	cacheConfig.CleanWindow = cacheTTL / 2
 	cache, err := bigcache.New(context.Background(), cacheConfig)
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to instantiate cache")
