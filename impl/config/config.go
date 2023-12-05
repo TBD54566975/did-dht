@@ -56,8 +56,9 @@ type DHTServiceConfig struct {
 }
 
 type PKARRServiceConfig struct {
-	RepublishCRON   string `toml:"republish_cron"`
-	CacheTTLSeconds int    `toml:"cache_ttl_seconds"`
+	RepublishCRON    string `toml:"republish_cron"`
+	CacheTTLSeconds  int    `toml:"cache_ttl_seconds"`
+	CacheSizeLimitMB int    `toml:"cache_size_limit_mb"`
 }
 
 func GetDefaultConfig() Config {
@@ -75,8 +76,9 @@ func GetDefaultConfig() Config {
 			BootstrapPeers: GetDefaultBootstrapPeers(),
 		},
 		PkarrConfig: PKARRServiceConfig{
-			RepublishCRON:   "0 */2 * * *",
-			CacheTTLSeconds: 600,
+			RepublishCRON:    "0 */2 * * *",
+			CacheTTLSeconds:  600,
+			CacheSizeLimitMB: 2000,
 		},
 	}
 }

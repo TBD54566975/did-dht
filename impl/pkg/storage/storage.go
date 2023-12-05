@@ -82,7 +82,7 @@ func (s *Storage) Read(namespace, key string) ([]byte, error) {
 	err := s.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
 		if bucket == nil {
-			logrus.Infof("namespace<%s> does not exist", namespace)
+			logrus.Infof("namespace[%s] does not exist", namespace)
 			return nil
 		}
 		result = bucket.Get([]byte(key))
@@ -97,7 +97,7 @@ func (s *Storage) ReadPrefix(namespace, prefix string) (map[string][]byte, error
 	err := s.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
 		if bucket == nil {
-			errMsg := fmt.Sprintf("namespace<%s> does not exist", namespace)
+			errMsg := fmt.Sprintf("namespace[%s] does not exist", namespace)
 			logrus.Error(errMsg)
 			return errors.New(errMsg)
 		}
@@ -115,7 +115,7 @@ func (s *Storage) ReadAll(namespace string) (map[string][]byte, error) {
 	err := s.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
 		if bucket == nil {
-			logrus.Warnf("namespace<%s> does not exist", namespace)
+			logrus.Warnf("namespace[%s] does not exist", namespace)
 			return nil
 		}
 		cursor := bucket.Cursor()
@@ -132,7 +132,7 @@ func (s *Storage) ReadAllKeys(namespace string) ([]string, error) {
 	err := s.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
 		if bucket == nil {
-			logrus.Warnf("namespace<%s> does not exist", namespace)
+			logrus.Warnf("namespace[%s] does not exist", namespace)
 			return nil
 		}
 		cursor := bucket.Cursor()
@@ -148,10 +148,10 @@ func (s *Storage) Update(namespace string, key string, value []byte) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
 		if bucket == nil {
-			return fmt.Errorf("namespace<%s> does not exist", namespace)
+			return fmt.Errorf("namespace[%s] does not exist", namespace)
 		}
 		if bucket.Get([]byte(key)) == nil {
-			return fmt.Errorf("key<%s> does not exist", key)
+			return fmt.Errorf("key[%s] does not exist", key)
 		}
 		if err := bucket.Put([]byte(key), value); err != nil {
 			return err
@@ -164,7 +164,7 @@ func (s *Storage) Delete(namespace, key string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
 		if bucket == nil {
-			return fmt.Errorf("namespace<%s> does not exist", namespace)
+			return fmt.Errorf("namespace[%s] does not exist", namespace)
 		}
 		return bucket.Delete([]byte(key))
 	})
@@ -173,7 +173,7 @@ func (s *Storage) Delete(namespace, key string) error {
 func (s *Storage) DeleteNamespace(namespace string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		if err := tx.DeleteBucket([]byte(namespace)); err != nil {
-			return errors.Wrapf(err, "could not delete namespace<%s>, n", namespace)
+			return errors.Wrapf(err, "could not delete namespace[%s], n", namespace)
 		}
 		return nil
 	})

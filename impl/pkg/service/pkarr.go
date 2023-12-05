@@ -43,9 +43,10 @@ func NewPkarrService(cfg *config.Config, db *storage.Storage) (*PkarrService, er
 	}
 
 	// create and start cache and scheduler
-	ttl := time.Duration(cfg.PkarrConfig.CacheTTLSeconds) * time.Second
-	// TODO(gabe): consider setting size limits on the cache
-	cache, err := bigcache.New(context.Background(), bigcache.DefaultConfig(ttl))
+	cacheTTL := time.Duration(cfg.PkarrConfig.CacheTTLSeconds) * time.Second
+	cacheConfig := bigcache.DefaultConfig(cacheTTL)
+	cacheConfig.HardMaxCacheSize = cfg.PkarrConfig.CacheSizeLimitMB
+	cache, err := bigcache.New(context.Background(), cacheConfig)
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to instantiate cache")
 	}
@@ -104,7 +105,6 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, request Publ
 	}
 
 	// write to db and cache
-	// TODO(gabe): if putting to the DHT fails we should note that in the db and retry later
 	record := request.toRecord()
 	if err := s.db.WriteRecord(record); err != nil {
 		return err
@@ -122,6 +122,7 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, request Publ
 	}
 
 	// return here and put it in the DHT asynchronously
+	// TODO(gabe): consider a background process to monitor failures
 	go s.dht.Put(ctx, bep44.Put{
 		V:   request.V,
 		K:   &request.K,
@@ -173,13 +174,13 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrRespon
 	if err != nil {
 		// try to resolve from storage before returning and error
 		// if we detect this and have the record we should republish to the DHT
-		logrus.WithError(err).Warnf("failed to get pkarr<%s> from dht, attempting to resolve from storage", id)
+		logrus.WithError(err).Warnf("failed to get pkarr record[%s] from dht, attempting to resolve from storage", id)
 		record, err := s.db.ReadRecord(id)
 		if err != nil || record == nil {
-			logrus.WithError(err).Errorf("failed to resolve pkarr<%s> from storage", id)
+			logrus.WithError(err).Errorf("failed to resolve pkarr record[%s] from storage", id)
 			return nil, err
 		}
-		logrus.Debugf("resolved pkarr<%s> from storage", id)
+		logrus.Debugf("resolved pkarr record[%s] from storage", id)
 		return fromPkarrRecord(*record)
 	}
 
@@ -201,10 +202,10 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrRespon
 	// add the record to cache, do it here to avoid duplicate calculations
 	recordBytes, err := json.Marshal(resp)
 	if err != nil {
-		return nil, util.LoggingErrorMsgf(err, "failed to marshal pkarr record<%s> for cache", id)
+		return nil, util.LoggingErrorMsgf(err, "failed to marshal pkarr record[%s] for cache", id)
 	}
 	if err = s.cache.Set(id, recordBytes); err != nil {
-		return nil, util.LoggingErrorMsgf(err, "failed to set pkarr record<%s> in cache", id)
+		return nil, util.LoggingErrorMsgf(err, "failed to set pkarr record[%s] in cache", id)
 	}
 
 	return &resp, nil
@@ -221,7 +222,7 @@ func (s *PkarrService) republish() {
 		logrus.Info("No records to republish")
 		return
 	}
-	logrus.Infof("Republishing %d record(s)", len(allRecords))
+	logrus.Infof("Republishing [%d] record(s)", len(allRecords))
 	errCnt := 0
 	for _, record := range allRecords {
 		put, err := recordToBEP44Put(record)

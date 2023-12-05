@@ -84,7 +84,7 @@ func setupLogger(level string) {
 
 	logLevel, err := logrus.ParseLevel(level)
 	if err != nil {
-		logrus.WithError(err).Errorf("could not parse log level<%s>, setting to info", level)
+		logrus.WithError(err).Errorf("could not parse log level[%s], setting to info", level)
 		logrus.SetLevel(logrus.InfoLevel)
 	} else {
 		logrus.SetLevel(logLevel)
@@ -114,7 +114,7 @@ func setupHandler(env config.Environment) *gin.Engine {
 
 // PkarrAPI sets up the relay API routes according to https://github.com/Nuhvi/pkarr/blob/main/design/relays.md
 func PkarrAPI(rg *gin.RouterGroup, service *service.PkarrService) error {
-	relayRouter, err := NewPKARRRouter(service)
+	relayRouter, err := NewPkarrRouter(service)
 	if err != nil {
 		return util.LoggingErrorMsg(err, "could not instantiate relay router")
 	}

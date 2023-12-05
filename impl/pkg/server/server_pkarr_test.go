@@ -21,7 +21,7 @@ import (
 
 func TestPKARRRouter(t *testing.T) {
 	pkarrSvc := testPKARRService(t)
-	pkarrRouter, err := NewPKARRRouter(&pkarrSvc)
+	pkarrRouter, err := NewPkarrRouter(&pkarrSvc)
 	require.NoError(t, err)
 	require.NotEmpty(t, pkarrRouter)
 
