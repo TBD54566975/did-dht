@@ -105,7 +105,6 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, request Publ
 	}
 
 	// write to db and cache
-	// TODO(gabe): if putting to the DHT fails we should note that in the db and retry later
 	record := request.toRecord()
 	if err := s.db.WriteRecord(record); err != nil {
 		return err
@@ -123,6 +122,7 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, request Publ
 	}
 
 	// return here and put it in the DHT asynchronously
+	// TODO(gabe): consider a background process to monitor failures
 	go s.dht.Put(ctx, bep44.Put{
 		V:   request.V,
 		K:   &request.K,
@@ -222,7 +222,7 @@ func (s *PkarrService) republish() {
 		logrus.Info("No records to republish")
 		return
 	}
-	logrus.Infof("Republishing %d record(s)", len(allRecords))
+	logrus.Infof("Republishing [%d] record(s)", len(allRecords))
 	errCnt := 0
 	for _, record := range allRecords {
 		put, err := recordToBEP44Put(record)
