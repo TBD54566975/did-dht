@@ -13,6 +13,7 @@ import (
 func TestClient(t *testing.T) {
 	client, err := NewGatewayClient("https://diddht.tbddev.org")
 	require.NoError(t, err)
+	start := time.Now()
 
 	sk, doc, err := GenerateDIDDHT(CreateDIDDHTOpts{})
 	require.NoError(t, err)
@@ -22,7 +23,6 @@ func TestClient(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, packet)
 
-	start := time.Now()
 	bep44Put, err := dht.CreatePKARRPublishRequest(sk, *packet)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, bep44Put)
