@@ -131,7 +131,7 @@ Alternatively, one can interpret the encoding rules as a series of transformatio
 did-dht-format := did:dht:Z-BASE-32(raw-public-key-bytes)
 ```
 
-### DIDs as a DNS Packet
+### DIDs as DNS Records
 
 In this scheme, we encode the [[ref:DID Document]] as multiple [DNS TXT records](https://en.wikipedia.org/wiki/TXT_record).
 Comprising a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then stored in the [[ref:DHT]].
@@ -157,8 +157,7 @@ attributes.
 * All records ****MUST**** end in `_did.` or `_did.TLD.` if a TLD is associated with the record.
 
 ::: note
-It might look like repeating `_did` is an overhead, but is compressed away using normal DNS standard
-[packet compression](https://courses.cs.duke.edu/fall16/compsci356/DNS/DNS-primer.pdf) techniques.
+It might look like repeating `_did` is an overhead, but is compressed away using [DNS packet compression](https://courses.cs.duke.edu/fall16/compsci356/DNS/DNS-primer.pdf) techniques.
 :::
 
 * The DNS packet ****MUST**** set the _Authoritative Answer_ flag, since this is always an _Authoritative_ packet.
@@ -256,7 +255,7 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
   "verificationMethod": [
     {
       "id": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y#0",
-      "type": "JsonWebKey2020",
+      "type": "JsonWebKey",
       "controller": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
       "publicKeyJwk": {
         "kid": "0",
@@ -268,7 +267,7 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
     },
     {
       "id": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y#HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ",
-      "type": "JsonWebKey2020",
+      "type": "JsonWebKey",
       "controller": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
       "publicKeyJwk": {
         "kid": "HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ",
@@ -319,7 +318,7 @@ To create a `did:dht`, the process is as follows:
 
     a. The document ****MUST**** include a [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) with
  the _identifier key_ encoded as a `publicKeyJwk` as per [[spec:RFC7517]] with an `id` of `#0` and `type` of
- `JsonWebKey2020` as per [[ref:VC-JWS-2020]].
+ `JsonWebKey` as per [[ref:VC-JOSE-COSE]].
 
     b. The document can include any number of other [core properties](https://www.w3.org/TR/did-core/#core-properties);
  always representing key material as a `JWK` as per [[spec:RFC7517]].
@@ -516,7 +515,7 @@ DID by its type.
         "verificationMethod": [
             {
                 "id": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y#0",
-                "type": "JsonWebKey2020",
+                "type": "JsonWebKey",
                 "controller": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
                 "publicKeyJwk": {
                     "kid": "0",
@@ -624,7 +623,7 @@ returned. If no DIDs match the type, an empty array is returned.
 
 According to [[ref:BEP44]] [[ref:Nodes]] can leverage the `seq` sequence number to handle conflicts:
 
-> Storing nodes receiving a put request where seq is lower than or equal to what's already stored on the node, MUST reject the request. If the sequence number is equal, and the value is also the same, the node SHOULD reset its timeout counter.
+> Storing nodes receiving a put request where seq is lower than or equal to what's already stored on the node, ****MUST**** reject the request. If the sequence number is equal, and the value is also the same, the node ****SHOULD**** reset its timeout counter.
 
 When the sequence number is equal, but the value is different, nodes need to decide which value to accept and which to reject. To make this determination nodes ****MUST**** compare the payloads lexicographically to determine a [lexicographical order](https://en.wikipedia.org/wiki/Lexicographic_order), and reject the payload with a **lower** lexicographical order.
 
@@ -634,7 +633,7 @@ When the sequence number is equal, but the value is different, nodes need to dec
 
 #### Representing Keys
 
-Outside of the encoding of a cryptographic key itself, whose size cannot be further minimized, we ****RECOMMEND**** the following representations of keys and their identifiers with usage of `JsonWebKey2020`:
+Outside of the encoding of a cryptographic key itself, whose size cannot be further minimized, we ****RECOMMEND**** the following representations of keys and their identifiers with usage of `JsonWebKey`:
 
 * The [[ref:Identity Key]]'s identifier ****MUST**** always be `#0`.
 * Key identifiers (`kid`s) ****MAY**** be omitted. If omitted, upon reconstruction of a DID Document, the JWK's key ID is set to its JWK Thumbprint [[spec:RFC7638]].
@@ -659,7 +658,7 @@ When implementing and using the `did:dht` method, there are several security and
 
 Malicious actors may try to force [[ref:Nodes]] into uncertain states by manipulating the sequence number associated with a record set. There are three such cases to be aware of:
 
-- **Low Sequence Number** - If a [[ref:Node]] has yet to see sequence numbers for a given record it ****MUST**** make a query to its peers to see if they have encountered the record. If another peer who has encountered the record before is found, the record with the latest sequence number must be selected. If the node has encountered greater sequence numbers before, the node ****MAY**** reject the record set. If the node supports [historical resolution](#historical-resolution) it ****MAY**** choose to accept the request and insert the record into its historical ordered state.
+- **Low Sequence Number** - If a [[ref:Node]] has yet to see sequence numbers for a given record it ****MUST**** query its peers to see if they have encountered the record. If a peer is found who has encountered the record, the record with the latest sequence number must be selected. If the node has encountered greater sequence numbers before, the node ****MAY**** reject the record set. If the node supports [historical resolution](#historical-resolution) it ****MAY**** choose to accept the request and insert the record into its historical ordered state.
 
 - **Conflicting Sequence Number** - When a malicious actor publishes _valid but conflicting_ records to two different [[ref:Mainline Nodes]] or [[ref:Gateways]]. Implementers are encouraged to follow the guidance outlined in [conflict resolution](#conflict-resolution). 
 
@@ -717,7 +716,7 @@ A minimal DID Document.
   "verificationMethod": [
     {
       "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0",
-      "type": "JsonWebKey2020",
+      "type": "JsonWebKey",
       "controller": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo",
       "publicKeyJwk": {
         "kty": "OKP",
@@ -794,7 +793,7 @@ A DID Document with two keys ([[ref:Identity Key]] and a secp256k1 key), a servi
   "verificationMethod": [
     {
       "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0",
-      "type": "JsonWebKey2020",
+      "type": "JsonWebKey",
       "controller": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo",
       "publicKeyJwk": {
         "kty": "OKP",
@@ -806,7 +805,7 @@ A DID Document with two keys ([[ref:Identity Key]] and a secp256k1 key), a servi
     },
     {
       "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw",
-      "type": "JsonWebKey2020",
+      "type": "JsonWebKey",
       "controller": "",
       "publicKeyJwk": {
         "kty": "EC",
@@ -866,8 +865,8 @@ format. [Bittorrent.org](https://www.bittorrent.org/).
 ~ [z-base-32](https://philzimmermann.com/docs/human-oriented-base-32-encoding.txt). Human-oriented base-32 encoding.
 Z. O'Whielacronx; November 2002.
 
-[[def:VC-JWS-2020]]
-~ [Verifiable Credentials JSON Web Signature Suite 2020](https://www.w3.org/TR/vc-jws-2020/). O. Steele, M. Jones; 29
-June 2023. [W3C](https://www.w3.org/).
+[[def:VC-JOSE-COSE]]
+~ [Securing Verifiable Credentials using JOSE and COSE](https://www.w3.org/TR/vc-jose-cose/). O. Steele, M. Jones, M. Prorock, G. Cohen; 04
+December 2023. [W3C](https://www.w3.org/).
 
 [[spec]]
