@@ -79,7 +79,7 @@ func GetDefaultConfig() Config {
 		PkarrConfig: PKARRServiceConfig{
 			RepublishCRON:    "0 */2 * * *",
 			CacheTTLSeconds:  600,
-			CacheSizeLimitMB: 2000,
+			CacheSizeLimitMB: 500,
 		},
 	}
 }

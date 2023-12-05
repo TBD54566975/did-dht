@@ -117,6 +117,7 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, request Publ
 	if err != nil {
 		return err
 	}
+
 	if err = s.cache.Set(id, recordBytes); err != nil {
 		return err
 	}
@@ -186,7 +187,7 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrRespon
 				logrus.WithError(err).Errorf("failed to set pkarr record[%s] in cache", id)
 			}
 		}
-		return resp, nil
+		return resp, err
 	}
 
 	// prepare the record for return
