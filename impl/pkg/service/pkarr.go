@@ -12,7 +12,6 @@ import (
 	"github.com/anacrolix/dht/v2/bep44"
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/sirupsen/logrus"
-	"github.com/tv42/zbase32"
 
 	"github.com/TBD54566975/did-dht-method/config"
 	dhtint "github.com/TBD54566975/did-dht-method/internal/dht"
@@ -109,7 +108,11 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, request Publ
 	if err := s.db.WriteRecord(record); err != nil {
 		return err
 	}
-	recordBytes, err := json.Marshal(record)
+	recordBytes, err := json.Marshal(GetPkarrResponse{
+		V:   request.V,
+		Seq: request.Seq,
+		Sig: request.Sig,
+	})
 	if err != nil {
 		return err
 	}
@@ -135,20 +138,6 @@ type GetPkarrResponse struct {
 	Sig [64]byte `validate:"required"`
 }
 
-func toPkarrRecord(id string, resp GetPkarrResponse) (*storage.PkarrRecord, error) {
-	keyBytes, err := zbase32.DecodeString(id)
-	if err != nil {
-		return nil, err
-	}
-	encoding := base64.RawURLEncoding
-	return &storage.PkarrRecord{
-		V:   encoding.EncodeToString(resp.V),
-		K:   encoding.EncodeToString(keyBytes),
-		Seq: resp.Seq,
-		Sig: encoding.EncodeToString(resp.Sig[:]),
-	}, nil
-}
-
 func fromPkarrRecord(record storage.PkarrRecord) (*GetPkarrResponse, error) {
 	encoding := base64.RawURLEncoding
 	vBytes, err := encoding.DecodeString(record.V)
@@ -170,12 +159,12 @@ func fromPkarrRecord(record storage.PkarrRecord) (*GetPkarrResponse, error) {
 func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrResponse, error) {
 	// first do a cache lookup
 	if got, err := s.cache.Get(id); err == nil {
-		var record storage.PkarrRecord
-		if err = json.Unmarshal(got, &record); err != nil {
+		var resp GetPkarrResponse
+		if err = json.Unmarshal(got, &resp); err != nil {
 			return nil, err
 		}
 		logrus.Debugf("resolved pkarr record[%s] from cache", id)
-		return fromPkarrRecord(record)
+		return &resp, nil
 	}
 
 	// next do a dht lookup
@@ -209,11 +198,7 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrRespon
 	}
 
 	// add the record to cache, do it here to avoid duplicate calculations
-	record, err := toPkarrRecord(id, resp)
-	if err != nil {
-		return nil, util.LoggingErrorMsgf(err, "failed to convert pkarr record<%s> for cache", id)
-	}
-	recordBytes, err := json.Marshal(record)
+	recordBytes, err := json.Marshal(resp)
 	if err != nil {
 		return nil, util.LoggingErrorMsgf(err, "failed to marshal pkarr record<%s> for cache", id)
 	}
