@@ -1,9 +1,10 @@
 package storage
 
 import (
-	"encoding/json"
 	"os"
 	"testing"
+
+	"github.com/goccy/go-json"
 
 	"github.com/stretchr/testify/assert"
 )

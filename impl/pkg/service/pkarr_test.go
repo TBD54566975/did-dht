@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -91,9 +90,6 @@ func TestPKARRService(t *testing.T) {
 			Seq: putMsg.Seq,
 		})
 		assert.NoError(t, err)
-
-		// wait for the record to be published
-		time.Sleep(10 * time.Second)
 
 		got, err := svc.GetPkarr(context.Background(), suffix)
 		assert.NoError(t, err)

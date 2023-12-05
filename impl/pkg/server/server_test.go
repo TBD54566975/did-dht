@@ -2,12 +2,13 @@ package server
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/goccy/go-json"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"

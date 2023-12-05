@@ -3,9 +3,10 @@ package service
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"time"
+
+	"github.com/goccy/go-json"
 
 	"github.com/TBD54566975/ssi-sdk/util"
 	"github.com/allegro/bigcache/v3"
