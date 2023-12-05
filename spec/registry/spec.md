@@ -79,7 +79,7 @@ To publish a [[ref:DID Key]] to the DHT, the process is as follows:
 1. Verify the `did:key` value begins with the prefix `z6Mk`.
 2. Decode the [[ref:Ed25519]] key in the `did:key` identifier, and re-encode it using [[ref:z-base-32]].
 3. Expand the `did:key` using the [process outlined in the did:key spec](https://w3c-ccg.github.io/did-method-key/#read), 
-with `options.publicKeyFormat` set to `JsonWebKey2020`.
+with `options.publicKeyFormat` set to `JsonWebKey`.
 4. Optionally, amend the [[ref:DID Document]] with additional properties (Verification Methods, Services, etc.).
 5. Follow steps 3 onward in as outlined in the [create section of the spec](../index.html#create), using the identifier from step 2.
 

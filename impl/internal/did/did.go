@@ -22,8 +22,9 @@ type (
 
 const (
 	// Prefix did:dht prefix
-	Prefix               = "did:dht"
-	DHTMethod did.Method = "dht"
+	Prefix                               = "did:dht"
+	DHTMethod      did.Method            = "dht"
+	JSONWebKeyType cryptosuite.LDKeyType = "JsonWebKey"
 
 	Organization           TypeIndex = 1
 	GovernmentOrganization TypeIndex = 2
@@ -105,7 +106,7 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 			if seenIDs[vm.VerificationMethod.ID] {
 				return nil, fmt.Errorf("verification method id %s is not unique", vm.VerificationMethod.ID)
 			}
-			if vm.VerificationMethod.Type != cryptosuite.JSONWebKey2020Type {
+			if vm.VerificationMethod.Type != JSONWebKeyType {
 				return nil, fmt.Errorf("verification method type %s is not supported", vm.VerificationMethod.Type)
 			}
 			if vm.VerificationMethod.PublicKeyJWK == nil {
@@ -177,7 +178,7 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 	}
 	vm0 := did.VerificationMethod{
 		ID:           id + "#0",
-		Type:         cryptosuite.JSONWebKey2020Type,
+		Type:         JSONWebKeyType,
 		Controller:   id,
 		PublicKeyJWK: key0JWK,
 	}
@@ -392,7 +393,7 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 
 				vm := did.VerificationMethod{
 					ID:           d.String() + "#" + vmID,
-					Type:         cryptosuite.JSONWebKey2020Type,
+					Type:         JSONWebKeyType,
 					Controller:   d.String(),
 					PublicKeyJWK: pubKeyJWK,
 				}

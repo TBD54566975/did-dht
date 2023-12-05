@@ -74,7 +74,7 @@ func TestGetPutDIDDHT(t *testing.T) {
 			{
 				VerificationMethod: didsdk.VerificationMethod{
 					ID:           "key1",
-					Type:         "JsonWebKey2020",
+					Type:         did.JSONWebKeyType,
 					Controller:   "did:dht:123456789abcdefghi",
 					PublicKeyJWK: pubKeyJWK,
 				},
