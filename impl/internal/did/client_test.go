@@ -2,6 +2,7 @@ package did
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,6 +22,7 @@ func TestClient(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, packet)
 
+	start := time.Now()
 	bep44Put, err := dht.CreatePKARRPublishRequest(sk, *packet)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, bep44Put)
@@ -31,4 +33,7 @@ func TestClient(t *testing.T) {
 	gotDID, _, err := client.GetDIDDocument(doc.ID)
 	assert.NoError(t, err)
 	assert.EqualValues(t, doc, gotDID)
+
+	since := time.Since(start)
+	t.Logf("time to put and get: %s", since)
 }
