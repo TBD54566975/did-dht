@@ -9,7 +9,7 @@
     "url": "git://github.com/TBD54566975/did-dht-method"
   },
   "dependencies": {
-    "spec-up": "^0.10.6"
+    "spec-up": "^0.9.76"
   },
   "devDependencies": {
     "del-cli": "^4.0.1"
