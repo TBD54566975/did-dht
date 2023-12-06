@@ -7,7 +7,8 @@ The DID DHT Method Specification 1.0
 
 **Registry:** [https://did-dht.com/registry](https://did-dht.com/registry)
 
-**Latest Update:** November 28, 2023
+**Draft Created:** October 20, 2023
+**Latest Update:** December 6, 2023
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -419,6 +420,8 @@ As an **OPTIONAL** feature of the DID DHT Method, operators of a [[ref:Gateway]]
 ### Retained DID Set
 
 A [[ref:Retained DID Set]] refers to the set of DIDs a [[ref:Gateway]] retains and republishes to the DHT. A [[ref:Gateway]] may choose to surface additional [APIs](#gateway-api) based on this set, such as providing a [type index](#type-indexing).
+
+To safeguard equitable access to the resources of [[ref:Gateways]], which are publicly accessible and potentially subject to [a high volume of requests](#rate-limiting), we suggest an ****OPTIONAL**** mechanism aimed at upholding fairness in the retention and republishing of record sets by [[ref:Gateways]]. This mechanism, referred to as a [[ref:Retention Proof]], requires clients to generate a proof value for write requests. This process guarantees that the amount of work done by a client is proportional to the duration of data retention and republishing a [[ref:Gateway]] performs. This mechanism enhances the overall reliability and effectiveness of [[ref:Gateways]] in managing requests.
 
 #### Generating a Retention Proof
 
