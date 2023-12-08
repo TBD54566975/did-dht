@@ -5,6 +5,9 @@ definitions:
         description: Status is always equal to `OK`.
         type: string
     type: object
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
 info:
   contact:
     email: tbd-developer@squareup.com
@@ -15,6 +18,7 @@ info:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   title: The DID DHT Service
+  version: "0.1"
 paths:
   /{id}:
     get:

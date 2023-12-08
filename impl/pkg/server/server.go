@@ -33,6 +33,17 @@ type Server struct {
 }
 
 // NewServer returns a new instance of Server with the given db and host.
+//
+//	@title						The DID DHT Service
+//	@version					0.1
+//	@description				The DID DHT Service
+//	@contact.name				TBD
+//	@contact.url				https://github.com/TBD54566975/did-dht-method
+//	@contact.email				tbd-developer@squareup.com
+//	@license.name				Apache 2.0
+//	@license.url				http://www.apache.org/licenses/LICENSE-2.0.html
+//	@externalDocs.description	OpenAPI
+//	@externalDocs.url			https://swagger.io/resources/open-api/
 func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	// set up server prerequisites
 	setupLogger(cfg.ServerConfig.LogLevel)
