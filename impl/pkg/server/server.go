@@ -58,6 +58,10 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "could not instantiate pkarr service")
 	}
+	gatewayService, err := service.NewGatewayService(cfg, db, pkarrService)
+	if err != nil {
+		return nil, util.LoggingErrorMsg(err, "could not instantiate gateway service")
+	}
 
 	handler.GET("/health", Health)
 
@@ -69,6 +73,12 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	if err = PkarrAPI(&handler.RouterGroup, pkarrService); err != nil {
 		return nil, util.LoggingErrorMsg(err, "could not setup pkarr API")
 	}
+
+	// gateway API
+	if err = GatewayAPI(&handler.RouterGroup, gatewayService); err != nil {
+		return nil, util.LoggingErrorMsg(err, "could not setup gateway API")
+	}
+
 	return &Server{
 		Server: &http.Server{
 			Addr:              fmt.Sprintf("%s:%d", cfg.ServerConfig.APIHost, cfg.ServerConfig.APIPort),
@@ -134,12 +144,19 @@ func PkarrAPI(rg *gin.RouterGroup, service *service.PkarrService) error {
 	return nil
 }
 
-// func GatewayAPI(rg *gin.RouterGroup, service *service.PkarrService) error {
-// 	gatewayRouter, err := NewGatewayRouter(service)
-// 	if err != nil {
-// 		return util.LoggingErrorMsg(err, "could not instantiate gateway router")
-// 	}
-//
-// 	rg.GET("/did", gatewayRouter.GetRecord)
-// 	return nil
-// }
+// GatewayAPI sets up the gateway API routes according to the spec https://did-dht.com/#gateway-api
+func GatewayAPI(rg *gin.RouterGroup, service *service.GatewayService) error {
+	gatewayRouter, err := NewGatewayRouter(service)
+	if err != nil {
+		return util.LoggingErrorMsg(err, "could not instantiate gateway router")
+	}
+
+	rg.GET("/difficulty", gatewayRouter.GetDifficulty)
+
+	didsAPI := rg.Group("/dids")
+	didsAPI.PUT("", gatewayRouter.PublishDID)
+	didsAPI.GET("/:id", gatewayRouter.GetDID)
+	didsAPI.GET("/types", gatewayRouter.GetDIDsForType)
+	didsAPI.GET("/types/:id", gatewayRouter.GetDIDsForType)
+	return nil
+}

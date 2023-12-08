@@ -5,7 +5,7 @@ info:
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
-  version: Working Draft
+  version: v0.1
 paths:
   /{id}:
     get:
@@ -83,12 +83,12 @@ paths:
             application/json:
               schema:
                 type: string
-  /did:
+  /dids:
     put:
       tags:
       - DID
-      summary: Register or Update a DID
-      description: Register or Updte a DID in the DHT
+      summary: Publish a DID
+      description: Register or Update a DID in the DHT
       requestBody:
         description: A deconstructed Pkarr request object
         content:
@@ -101,13 +101,13 @@ paths:
                   description: The DID to register or update.
                 sig:
                   type: string
-                  descrption: A base64URL-encoded signature of the BEP44 payload.
+                  description: A base64URL-encoded signature of the BEP44 payload.
                 seq:
                   type: integer
                   description: A sequence number for the request, recommended to be a unix timestamp in seconds.
                 v:
                   type: string
-                  descrption: A base64URL-encoded bencoded DNS packet containing the DID Document.
+                  description: A base64URL-encoded bencoded DNS packet containing the DID Document.
                 retention_proof:
                   type: string
                   description: A retention proof calculated according to the spec-defined retention proof algorithm.
@@ -137,7 +137,7 @@ paths:
             application/json:
               schema:
                 type: string
-  /did/{id}:
+  /dids/{id}:
     get:
       tags:
       - DID
@@ -169,7 +169,7 @@ paths:
             application/json:
               schema:
                 type: string
-  /did/types:
+  /dids/types:
     get:
       tags:
       - DID
@@ -177,7 +177,7 @@ paths:
       description: Retrieve a list of supported indexing types, according to the spec-defined type list.
       responses:
         "200":
-          description: A list of types support, alongisde their human-readable description.
+          description: A list of types support, alongside their human-readable description.
           content:
             application/json:
               schema:
@@ -196,7 +196,7 @@ paths:
             application/json:
               schema:
                 type: string                  
-  /did/types/{id}:
+  /dids/types/{id}:
     get:
       tags:
       - DID
@@ -216,7 +216,7 @@ paths:
             type: integer
         - name: limit
           in: query
-          description: Specifies the maximum number of type records to retrieve. Deafult is 100.
+          description: Specifies the maximum number of type records to retrieve. Default is 100.
           schema:
             type: integer
       responses:
