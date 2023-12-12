@@ -31,9 +31,14 @@ func NewGatewayService(cfg *config.Config, db *storage.Storage, pkarrService *Pk
 }
 
 type PublishDIDRequest struct {
+	DID            string `json:"did" validate:"required"`
+	Sig            string `json:"sig" validate:"required"`
+	Seq            int    `json:"seq" validate:"required"`
+	V              string `json:"v" validate:"required"`
+	RetentionProof int    `json:"retention_proof,omitempty"`
 }
 
-func (s *GatewayService) PublishDID(req *PublishDIDRequest) error {
+func (s *GatewayService) PublishDID(req PublishDIDRequest) error {
 	return nil
 }
 

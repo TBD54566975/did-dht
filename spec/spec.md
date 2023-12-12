@@ -499,7 +499,7 @@ Difficulty is exposed as an **OPTIONAL** endpoint based on support of [retention
   - `200` - Success.
     - `hash` - **string** - The current hash.
     - `difficulty` - **integer** - The current difficulty.
-  - `404` - Not found. Difficulty not supported by this gateway.
+  - `404` - Retention proofs not supported by this gateway.
 
 ```json
 {
@@ -521,7 +521,7 @@ Difficulty is exposed as an **OPTIONAL** endpoint based on support of [retention
     - `retention_proof` - **string** –  **OPTIONAL** - A retention proof calculated according to the [retention proof algorithm](#generating-a-retention-proof).
 - **Returns:**
     - `202` - Accepted. The server has accepted the request as valid and will publish to the DHT.
-    - `400` - Invalid request body.
+    - `400` - Invalid request.
     - `401` - Invalid signature.
     - `409` - DID already exists with a higher sequence number. DID may be accepted if the [[ref:Gateway]] supports [historical resolution](#historical-resolution).
 
@@ -548,6 +548,7 @@ DID by its type.
         - `did` - **object** - A JSON object representing the DID Document.
         - `types` - **array** - An array of [type strings](#type-indexing) for the DID.
         - `sequence_numbers` - **array** - An sorted array of seen sequence numbers, used with [historical resolution](#historical-resolution).
+    - `400` - Invalid request.
     - `404` - DID not found.
 
 ```json
@@ -602,6 +603,7 @@ historical state for a given [[ref:DID]]. The following API can be used with spe
     - `200` - Success.
         - `did` - **object** - A JSON object representing the DID Document.
         - `types` - **array** - An array of [type strings](#type-indexing) for the DID.
+    - `400` - Invalid request.
     - `404` - DID not found for the given sequence number.
 
 #### Deactivating a DID
