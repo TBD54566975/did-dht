@@ -83,10 +83,10 @@ paths:
             application/json:
               schema:
                 type: string
-  /dids:
+  /dids/{id}:
     put:
       tags:
-      - DID
+        - DID
       summary: Publish a DID
       description: Register or Update a DID in the DHT
       requestBody:
@@ -111,7 +111,7 @@ paths:
                 retention_proof:
                   type: string
                   description: A retention proof calculated according to the spec-defined retention proof algorithm.
-              required: [did, sig, seq, v]
+              required: [ did, sig, seq, v ]
       responses:
         "202":
           description: Accepted. The server has accepted the request as valid and will publish it to the
@@ -137,7 +137,6 @@ paths:
             application/json:
               schema:
                 type: string
-  /dids/{id}:
     get:
       tags:
       - DID
