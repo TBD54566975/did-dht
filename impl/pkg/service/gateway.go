@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/TBD54566975/ssi-sdk/did"
 	"github.com/TBD54566975/ssi-sdk/util"
 
 	"github.com/TBD54566975/did-dht-method/config"
@@ -43,6 +44,9 @@ func (s *GatewayService) PublishDID(req PublishDIDRequest) error {
 }
 
 type GetDIDResponse struct {
+	DID             did.Document `json:"did" validate:"required"`
+	Types           []int        `json:"types,omitempty"`
+	SequenceNumbers []int        `json:"sequence_numbers,omitempty"`
 }
 
 func (s *GatewayService) GetDID(id string) (*GetDIDResponse, error) {
@@ -50,6 +54,12 @@ func (s *GatewayService) GetDID(id string) (*GetDIDResponse, error) {
 }
 
 type GetTypesResponse struct {
+	Types []TypeMapping `json:"types,omitempty"`
+}
+
+type TypeMapping struct {
+	TypeIndex int    `json:"type_index" validate:"required"`
+	Type      string `json:"type" validate:"required"`
 }
 
 func (s *GatewayService) GetTypes() (*GetTypesResponse, error) {
@@ -57,18 +67,22 @@ func (s *GatewayService) GetTypes() (*GetTypesResponse, error) {
 }
 
 type GetDIDsForTypeRequest struct {
+	Type string `json:"type" validate:"required"`
 }
 
 type GetDIDsForTypeResponse struct {
+	DIDs []string `json:"dids,omitempty"`
 }
 
-func (s *GatewayService) GetDIDsForType(req *GetDIDsForTypeRequest) (*GetDIDsForTypeResponse, error) {
+func (s *GatewayService) GetDIDsForType(req GetDIDsForTypeRequest) (*GetDIDsForTypeResponse, error) {
 	return nil, nil
 }
 
-type GetDIDsForTypesResponse struct {
+type GetDifficultyResponse struct {
+	Hash       string `json:"hash" validate:"required"`
+	Difficulty int    `json:"difficulty" validate:"required"`
 }
 
-func (s *GatewayService) GetDifficulty() {
-
+func (s *GatewayService) GetDifficulty() (*GetDifficultyResponse, error) {
+	return nil, nil
 }
