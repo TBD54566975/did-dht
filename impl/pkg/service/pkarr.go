@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"encoding/base64"
-	"errors"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -17,6 +16,7 @@ import (
 	"github.com/TBD54566975/did-dht-method/config"
 	dhtint "github.com/TBD54566975/did-dht-method/internal/dht"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
+	"github.com/TBD54566975/did-dht-method/pkg/server"
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
 )
 
@@ -87,7 +87,7 @@ func (p PublishPkarrRequest) isValid() error {
 		return err
 	}
 	if !bep44.Verify(p.K[:], nil, p.Seq, bv, p.Sig[:]) {
-		return errors.New("signature is invalid")
+		return &server.InvalidSignatureError{}
 	}
 	return nil
 }

@@ -21,9 +21,9 @@ func NewGatewayRouter(service *service.GatewayService) (*GatewayRouter, error) {
 // PublishDIDRequest represents a request to publish a DID
 type PublishDIDRequest struct {
 	Sig            string `json:"sig" validate:"required"`
-	Seq            int    `json:"seq" validate:"required"`
+	Seq            int64  `json:"seq" validate:"required"`
 	V              string `json:"v" validate:"required"`
-	RetentionProof int    `json:"retention_proof,omitempty"`
+	RetentionProof string `json:"retention_proof,omitempty"`
 }
 
 func (p PublishDIDRequest) toServiceRequest(did string) service.PublishDIDRequest {
@@ -66,7 +66,7 @@ func (r *GatewayRouter) PublishDID(c *gin.Context) {
 	// 1. invalid signature
 	// 2. did already exists with a higher sequence number
 	// 3. internal service error
-	if err := r.service.PublishDID(req.toServiceRequest(*id)); err != nil {
+	if err := r.service.PublishDID(c, req.toServiceRequest(*id)); err != nil {
 		if errors.Is(err, &InvalidSignatureError{}) {
 			Respond(c, nil, http.StatusUnauthorized)
 			return
@@ -186,6 +186,7 @@ func (r *GatewayRouter) GetDIDsForType(c *gin.Context) {
 	Respond(c, GetDIDsForTypeResponse(*resp), http.StatusOK)
 }
 
+// GetDifficultyResponse represents a response containing the current difficulty for the gateway's retention proof feature.
 type GetDifficultyResponse struct {
 	Hash       string `json:"hash" validate:"required"`
 	Difficulty int    `json:"difficulty" validate:"required"`

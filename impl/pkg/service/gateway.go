@@ -1,10 +1,18 @@
 package service
 
 import (
+	"context"
+	"crypto/ed25519"
+	"encoding/base64"
+
 	"github.com/TBD54566975/ssi-sdk/did"
 	"github.com/TBD54566975/ssi-sdk/util"
+	"github.com/pkg/errors"
+	"github.com/tv42/zbase32"
 
 	"github.com/TBD54566975/did-dht-method/config"
+	didint "github.com/TBD54566975/did-dht-method/internal/did"
+	"github.com/TBD54566975/did-dht-method/pkg/server"
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
 )
 
@@ -34,12 +42,60 @@ func NewGatewayService(cfg *config.Config, db *storage.Storage, pkarrService *Pk
 type PublishDIDRequest struct {
 	DID            string `json:"did" validate:"required"`
 	Sig            string `json:"sig" validate:"required"`
-	Seq            int    `json:"seq" validate:"required"`
+	Seq            int64  `json:"seq" validate:"required"`
 	V              string `json:"v" validate:"required"`
-	RetentionProof int    `json:"retention_proof,omitempty"`
+	RetentionProof string `json:"retention_proof,omitempty"`
 }
 
-func (s *GatewayService) PublishDID(req PublishDIDRequest) error {
+func (p PublishDIDRequest) toPkarrRequest(suffix string) (*PublishPkarrRequest, error) {
+	keyBytes, err := zbase32.DecodeString(suffix)
+	if err != nil {
+		return nil, err
+	}
+	if len(keyBytes) != ed25519.PublicKeySize {
+		return nil, errors.New("invalid key length")
+	}
+	encoding := base64.RawURLEncoding
+	sigBytes, err := encoding.DecodeString(p.Sig)
+	if err != nil {
+		return nil, err
+	}
+	if len(sigBytes) != ed25519.SignatureSize {
+		return nil, &server.InvalidSignatureError{}
+	}
+	vBytes, err := encoding.DecodeString(p.V)
+	if err != nil {
+		return nil, err
+	}
+	if len(vBytes) > 1000 {
+		return nil, errors.New("v exceeds 1000 bytes")
+	}
+	return &PublishPkarrRequest{
+		V:   vBytes,
+		K:   [32]byte(keyBytes),
+		Sig: [64]byte(sigBytes),
+		Seq: p.Seq,
+	}, nil
+}
+
+func (s *GatewayService) PublishDID(ctx context.Context, req PublishDIDRequest) error {
+	suffix, err := didint.DHT(req.DID).Suffix()
+	if err != nil {
+		return err
+	}
+	pkarrRequest, err := req.toPkarrRequest(suffix)
+	if err != nil {
+		return err
+	}
+
+	// unpack as a DID Document and store metadata
+
+	// publish to the network
+	// TODO(gabe): check for conflicts with existing record sequence numbers https://github.com/TBD54566975/did-dht-method/issues/16
+	if err = s.pkarr.PublishPkarr(ctx, suffix, *pkarrRequest); err != nil {
+		return err
+	}
+
 	return nil
 }
 

@@ -154,7 +154,7 @@ func GatewayAPI(rg *gin.RouterGroup, service *service.GatewayService) error {
 	rg.GET("/difficulty", gatewayRouter.GetDifficulty)
 
 	didsAPI := rg.Group("/dids")
-	didsAPI.PUT("", gatewayRouter.PublishDID)
+	didsAPI.PUT("/:id", gatewayRouter.PublishDID)
 	didsAPI.GET("/:id", gatewayRouter.GetDID)
 	didsAPI.GET("/types", gatewayRouter.GetDIDsForType)
 	didsAPI.GET("/types/:id", gatewayRouter.GetDIDsForType)
