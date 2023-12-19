@@ -237,6 +237,12 @@ paths:
                 type: array
                 items:
                   type: string
+        "400":
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                type: string
         "404":
           description: Type not found.
           content:

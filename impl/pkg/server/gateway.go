@@ -2,11 +2,13 @@ package server
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/TBD54566975/ssi-sdk/did"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 
+	didint "github.com/TBD54566975/did-dht-method/internal/did"
 	"github.com/TBD54566975/did-dht-method/internal/util"
 	"github.com/TBD54566975/did-dht-method/pkg/service"
 )
@@ -86,9 +88,9 @@ func (r *GatewayRouter) PublishDID(c *gin.Context) {
 
 // GetDIDResponse represents a response containing a DID document, types, and sequence numbers.
 type GetDIDResponse struct {
-	DID             did.Document `json:"did" validate:"required"`
-	Types           []int        `json:"types,omitempty"`
-	SequenceNumbers []int        `json:"sequence_numbers,omitempty"`
+	DID             did.Document       `json:"did" validate:"required"`
+	Types           []didint.TypeIndex `json:"types,omitempty"`
+	SequenceNumbers []int              `json:"sequence_numbers,omitempty"`
 }
 
 // GetDID godoc
@@ -138,18 +140,13 @@ type GetTypesResponse struct {
 // @Failure		404	{string}	string	"Type indexing is not supported by this gateway"
 // @Router		/dids/types [get]
 func (r *GatewayRouter) GetTypes(c *gin.Context) {
-	resp, err := r.service.GetTypes()
-	if err != nil {
-		LoggingRespondErrWithMsg(c, err, "failed to get types", http.StatusInternalServerError)
-		return
-	}
-
-	if resp == nil {
+	resp := r.service.GetTypes()
+	if len(resp.Types) == 0 {
 		LoggingRespondErrMsg(c, "types not supported", http.StatusNotFound)
 		return
 	}
 
-	Respond(c, GetTypesResponse(*resp), http.StatusOK)
+	Respond(c, GetTypesResponse{Types: resp.Types}, http.StatusOK)
 }
 
 // GetDIDsForTypeResponse represents a response containing a list of DIDs for a given type.
@@ -163,6 +160,7 @@ type GetDIDsForTypeResponse struct {
 // @Tags		DID
 // @Accept		json
 // @Success		200 {object}    GetDIDsForTypeResponse
+// @Failure     400 {string}    string  "Invalid request"
 // @Failure		404	{string}	string	"Type not found"
 // @Failure		500	{string}	string	"Internal server error"
 // @Router		/dids/types/{id} [get]
@@ -172,8 +170,13 @@ func (r *GatewayRouter) GetDIDsForType(c *gin.Context) {
 		LoggingRespondErrMsg(c, "missing id param", http.StatusBadRequest)
 		return
 	}
+	typeIndex, err := strconv.Atoi(*id)
+	if err != nil {
+		LoggingRespondErrWithMsg(c, err, "failed to convert type index to int", http.StatusBadRequest)
+		return
+	}
 
-	resp, err := r.service.GetDIDsForType(service.GetDIDsForTypeRequest{Type: *id})
+	resp, err := r.service.ListDIDsForType(service.ListDIDsForTypeRequest{Type: didint.TypeIndex(typeIndex)})
 	if err != nil {
 		if errors.Is(err, &util.TypeNotFoundError{}) {
 			LoggingRespondErrMsg(c, "type not found", http.StatusNotFound)

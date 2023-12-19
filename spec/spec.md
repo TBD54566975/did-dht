@@ -649,6 +649,7 @@ stop republishing the DHT. If the DNS Packets contains a `_typ._did.` record, th
 - **Returns:**
     - `200` - Success.
         - **array** - An array of DID Identifiers matching the associated type.
+    - `400` - Invalid request.
     - `404` - Type not found.
 
 ```json

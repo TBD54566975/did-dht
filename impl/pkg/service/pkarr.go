@@ -15,7 +15,7 @@ import (
 
 	"github.com/TBD54566975/did-dht-method/config"
 	dhtint "github.com/TBD54566975/did-dht-method/internal/dht"
-	util2 "github.com/TBD54566975/did-dht-method/internal/util"
+	intutil "github.com/TBD54566975/did-dht-method/internal/util"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
 )
@@ -87,7 +87,7 @@ func (p PublishPkarrRequest) isValid() error {
 		return err
 	}
 	if !bep44.Verify(p.K[:], nil, p.Seq, bv, p.Sig[:]) {
-		return &util2.InvalidSignatureError{}
+		return &intutil.InvalidSignatureError{}
 	}
 	return nil
 }

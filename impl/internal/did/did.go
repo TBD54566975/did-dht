@@ -26,6 +26,7 @@ const (
 	DHTMethod      did.Method            = "dht"
 	JSONWebKeyType cryptosuite.LDKeyType = "JsonWebKey"
 
+	Discoverable           TypeIndex = 0
 	Organization           TypeIndex = 1
 	GovernmentOrganization TypeIndex = 2
 	Corporation            TypeIndex = 3

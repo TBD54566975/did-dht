@@ -101,6 +101,15 @@ func (s *GatewayService) PublishDID(ctx context.Context, req PublishDIDRequest) 
 	if err != nil {
 		return errors.Wrap(err, "failed to parse DID document from DNS packet")
 	}
+
+	// check to see if the DID already exists with a higher sequence number
+	gotDID, err := s.db.ReadDID(req.DID)
+	if err == nil && gotDID != nil {
+		if gotDID.SequenceNumber > req.Seq {
+			return &intutil.HigherSequenceNumberError{}
+		}
+	}
+
 	if err = s.db.WriteDID(storage.GatewayRecord{
 		Document:       *doc,
 		Types:          types,
@@ -120,13 +129,26 @@ func (s *GatewayService) PublishDID(ctx context.Context, req PublishDIDRequest) 
 }
 
 type GetDIDResponse struct {
-	DID             did.Document `json:"did" validate:"required"`
-	Types           []int        `json:"types,omitempty"`
-	SequenceNumbers []int        `json:"sequence_numbers,omitempty"`
+	DID             did.Document       `json:"did" validate:"required"`
+	Types           []didint.TypeIndex `json:"types,omitempty"`
+	SequenceNumbers []int              `json:"sequence_numbers,omitempty"`
 }
 
 func (s *GatewayService) GetDID(id string) (*GetDIDResponse, error) {
-	return nil, nil
+	gotDID, err := s.db.ReadDID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if gotDID == nil {
+		return nil, nil
+	}
+
+	return &GetDIDResponse{
+		DID:             gotDID.Document,
+		Types:           gotDID.Types,
+		SequenceNumbers: []int{int(gotDID.SequenceNumber)},
+	}, nil
 }
 
 type GetTypesResponse struct {
@@ -134,24 +156,39 @@ type GetTypesResponse struct {
 }
 
 type TypeMapping struct {
-	TypeIndex int    `json:"type_index" validate:"required"`
-	Type      string `json:"type" validate:"required"`
+	TypeIndex didint.TypeIndex `json:"type_index" validate:"required"`
+	Type      string           `json:"type" validate:"required"`
 }
 
-func (s *GatewayService) GetTypes() (*GetTypesResponse, error) {
-	return nil, nil
+// GetTypes returns a list of supported types and their names.
+// As defined by the spec's registry https://did-dht.com/registry/index.html#indexed-types
+func (s *GatewayService) GetTypes() GetTypesResponse {
+	return GetTypesResponse{
+		Types: knownTypes,
+	}
 }
 
-type GetDIDsForTypeRequest struct {
-	Type string `json:"type" validate:"required"`
+type ListDIDsForTypeRequest struct {
+	Type didint.TypeIndex `json:"type" validate:"required"`
 }
 
-type GetDIDsForTypeResponse struct {
+type ListDIDsForTypeResponse struct {
 	DIDs []string `json:"dids,omitempty"`
 }
 
-func (s *GatewayService) GetDIDsForType(req GetDIDsForTypeRequest) (*GetDIDsForTypeResponse, error) {
-	return nil, nil
+// ListDIDsForType returns a list of DIDs for a given type.
+func (s *GatewayService) ListDIDsForType(req ListDIDsForTypeRequest) (*ListDIDsForTypeResponse, error) {
+	if !isKnownType(req.Type) {
+		return nil, &intutil.TypeNotFoundError{}
+	}
+	dids, err := s.db.ListDIDsForType(req.Type)
+	if err != nil {
+		return nil, err
+	}
+	if len(dids) == 0 {
+		return nil, nil
+	}
+	return &ListDIDsForTypeResponse{DIDs: dids}, nil
 }
 
 type GetDifficultyResponse struct {
@@ -159,6 +196,54 @@ type GetDifficultyResponse struct {
 	Difficulty int    `json:"difficulty" validate:"required"`
 }
 
+// GetDifficulty returns the current difficulty for the gateway's retention proof feature.
+// TODO(gabe): retention proof support https://github.com/TBD54566975/did-dht-method/issues/73
 func (s *GatewayService) GetDifficulty() (*GetDifficultyResponse, error) {
-	return nil, nil
+	return nil, errors.New("not yet implemented")
 }
+
+func isKnownType(t didint.TypeIndex) bool {
+	for _, knownType := range knownTypes {
+		if knownType.TypeIndex == t {
+			return true
+		}
+	}
+	return false
+}
+
+var (
+	knownTypes = []TypeMapping{
+		{
+			TypeIndex: didint.Discoverable,
+			Type:      "Discoverable",
+		},
+		{
+			TypeIndex: didint.Organization,
+			Type:      "Organization",
+		},
+		{
+			TypeIndex: didint.GovernmentOrganization,
+			Type:      "Government Organization",
+		},
+		{
+			TypeIndex: didint.Corporation,
+			Type:      "Corporation",
+		},
+		{
+			TypeIndex: didint.LocalBusiness,
+			Type:      "Local Business",
+		},
+		{
+			TypeIndex: didint.SoftwarePackage,
+			Type:      "Software Package",
+		},
+		{
+			TypeIndex: didint.WebApplication,
+			Type:      "Web Application",
+		},
+		{
+			TypeIndex: didint.FinancialInstitution,
+			Type:      "Financial Institution",
+		},
+	}
+)
