@@ -298,6 +298,10 @@ paths:
           description: Internal server error
           schema:
             type: string
+        "501":
+          description: Historical resolution not supported by this gateway
+          schema:
+            type: string
       summary: Get a DID document
       tags:
       - DID
@@ -345,7 +349,7 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/pkg_server.GetTypesResponse'
-        "404":
+        "501":
           description: Type indexing is not supported by this gateway
           schema:
             type: string
@@ -374,6 +378,10 @@ paths:
           description: Internal server error
           schema:
             type: string
+        "501":
+          description: Type indexing is not supported by this gateway
+          schema:
+            type: string
       summary: Get a list of DIDs for a given type
       tags:
       - DID
@@ -387,12 +395,12 @@ paths:
           description: OK
           schema:
             type: integer
-        "404":
-          description: Retention proofs are not supported by this gateway
-          schema:
-            type: string
         "500":
           description: Internal server error
+          schema:
+            type: string
+        "501":
+          description: Retention proofs are not supported by this gateway
           schema:
             type: string
       summary: Get the current difficulty for the gateway's retention proof feature

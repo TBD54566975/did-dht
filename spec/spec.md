@@ -499,7 +499,7 @@ Difficulty is exposed as an **OPTIONAL** endpoint based on support of [retention
   - `200` - Success.
     - `hash` - **string** - The current hash.
     - `difficulty` - **integer** - The current difficulty.
-  - `404` - Retention proofs not supported by this gateway.
+  - `501` - Retention proofs not supported by this gateway.
 
 ```json
 {
@@ -605,6 +605,7 @@ historical state for a given [[ref:DID]]. The following API can be used with spe
         - `types` - **array** - An array of [type strings](#type-indexing) for the DID.
     - `400` - Invalid request.
     - `404` - DID not found for the given sequence number.
+    - `501` - Historical resolution not supported by this gateway.
 
 #### Deactivating a DID
 
@@ -651,6 +652,7 @@ stop republishing the DHT. If the DNS Packets contains a `_typ._did.` record, th
         - **array** - An array of DID Identifiers matching the associated type.
     - `400` - Invalid request.
     - `404` - Type not found.
+    - `501` - Types not supported by this gateway.
 
 ```json
 [

@@ -178,6 +178,12 @@ paths:
             application/json:
               schema:
                 type: string
+        "501":
+            description: Historical resolution not supported by this gateway.
+            content:
+              application/json:
+                schema:
+                  type: string
   /dids/types:
     get:
       tags:
@@ -199,7 +205,7 @@ paths:
                     description:
                       type: string
                   required: [ type, description ]
-        "404":
+        "501":
           description: Type indexing not supported by this gateway.
           content:
             application/json:
@@ -249,6 +255,12 @@ paths:
             application/json:
               schema:
                 type: string
+        "501":
+          description: Type indexing not supported by this gateway.
+          content:
+            application/json:
+              schema:
+                type: string
   /difficulty:
     get:
       tags:
@@ -268,7 +280,7 @@ paths:
                   difficulty:
                     type: integer
                 required: [ hash, difficulty ]
-        "404":
+        "501":
           description: Retention proofs not supported by this gateway.
           content:
             application/json:
