@@ -7,12 +7,13 @@ import (
 
 	"github.com/TBD54566975/ssi-sdk/did"
 	"github.com/TBD54566975/ssi-sdk/util"
+	"github.com/miekg/dns"
 	"github.com/pkg/errors"
 	"github.com/tv42/zbase32"
 
 	"github.com/TBD54566975/did-dht-method/config"
 	didint "github.com/TBD54566975/did-dht-method/internal/did"
-	"github.com/TBD54566975/did-dht-method/pkg/server"
+	intutil "github.com/TBD54566975/did-dht-method/internal/util"
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
 )
 
@@ -61,7 +62,7 @@ func (p PublishDIDRequest) toPkarrRequest(suffix string) (*PublishPkarrRequest, 
 		return nil, err
 	}
 	if len(sigBytes) != ed25519.SignatureSize {
-		return nil, &server.InvalidSignatureError{}
+		return nil, &intutil.InvalidSignatureError{}
 	}
 	vBytes, err := encoding.DecodeString(p.V)
 	if err != nil {
@@ -79,7 +80,8 @@ func (p PublishDIDRequest) toPkarrRequest(suffix string) (*PublishPkarrRequest, 
 }
 
 func (s *GatewayService) PublishDID(ctx context.Context, req PublishDIDRequest) error {
-	suffix, err := didint.DHT(req.DID).Suffix()
+	id := didint.DHT(req.DID)
+	suffix, err := id.Suffix()
 	if err != nil {
 		return err
 	}
@@ -88,7 +90,25 @@ func (s *GatewayService) PublishDID(ctx context.Context, req PublishDIDRequest) 
 		return err
 	}
 
+	// TODO(gabe): retention proof support https://github.com/TBD54566975/did-dht-method/issues/73
+
 	// unpack as a DID Document and store metadata
+	msg := new(dns.Msg)
+	if err = msg.Unpack(pkarrRequest.V); err != nil {
+		return errors.Wrap(err, "failed to unpack records")
+	}
+	doc, types, err := id.FromDNSPacket(msg)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse DID document from DNS packet")
+	}
+	if err = s.db.WriteDID(storage.GatewayRecord{
+		Document:       *doc,
+		Types:          types,
+		SequenceNumber: req.Seq,
+		RetentionProof: req.RetentionProof,
+	}); err != nil {
+		return errors.Wrap(err, "failed to write DID document to db")
+	}
 
 	// publish to the network
 	// TODO(gabe): check for conflicts with existing record sequence numbers https://github.com/TBD54566975/did-dht-method/issues/16

@@ -15,8 +15,8 @@ import (
 
 	"github.com/TBD54566975/did-dht-method/config"
 	dhtint "github.com/TBD54566975/did-dht-method/internal/dht"
+	util2 "github.com/TBD54566975/did-dht-method/internal/util"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
-	"github.com/TBD54566975/did-dht-method/pkg/server"
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
 )
 
@@ -87,7 +87,7 @@ func (p PublishPkarrRequest) isValid() error {
 		return err
 	}
 	if !bep44.Verify(p.K[:], nil, p.Seq, bv, p.Sig[:]) {
-		return &server.InvalidSignatureError{}
+		return &util2.InvalidSignatureError{}
 	}
 	return nil
 }
@@ -229,6 +229,7 @@ func (s *PkarrService) addRecordToCache(id string, resp GetPkarrResponse) error 
 }
 
 // TODO(gabe) make this more efficient. create a publish schedule based on each individual record, not all records
+// TODO(gabe) consider a get before put to avoid writing outdated records https://github.com/TBD54566975/did-dht-method/issues/12
 func (s *PkarrService) republish() {
 	allRecords, err := s.db.ListRecords()
 	if err != nil {

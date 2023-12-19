@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 
+	"github.com/TBD54566975/did-dht-method/internal/util"
 	"github.com/TBD54566975/did-dht-method/pkg/service"
 )
 
@@ -67,12 +68,12 @@ func (r *GatewayRouter) PublishDID(c *gin.Context) {
 	// 2. did already exists with a higher sequence number
 	// 3. internal service error
 	if err := r.service.PublishDID(c, req.toServiceRequest(*id)); err != nil {
-		if errors.Is(err, &InvalidSignatureError{}) {
+		if errors.Is(err, &util.InvalidSignatureError{}) {
 			Respond(c, nil, http.StatusUnauthorized)
 			return
 		}
 
-		if errors.Is(err, &HigherSequenceNumberError{}) {
+		if errors.Is(err, &util.HigherSequenceNumberError{}) {
 			Respond(c, nil, http.StatusConflict)
 			return
 		}
@@ -174,7 +175,7 @@ func (r *GatewayRouter) GetDIDsForType(c *gin.Context) {
 
 	resp, err := r.service.GetDIDsForType(service.GetDIDsForTypeRequest{Type: *id})
 	if err != nil {
-		if errors.Is(err, &TypeNotFoundError{}) {
+		if errors.Is(err, &util.TypeNotFoundError{}) {
 			LoggingRespondErrMsg(c, "type not found", http.StatusNotFound)
 			return
 		}
