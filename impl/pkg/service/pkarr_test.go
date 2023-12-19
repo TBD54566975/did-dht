@@ -63,7 +63,7 @@ func TestPKARRService(t *testing.T) {
 			Seq: putMsg.Seq,
 		})
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "signature is invalid")
+		assert.Contains(t, err.Error(), "invalid signature")
 	})
 
 	t.Run("test put and get record", func(t *testing.T) {

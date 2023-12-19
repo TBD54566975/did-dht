@@ -10,11 +10,11 @@ import (
 )
 
 func TestGatewayStorage(t *testing.T) {
-	db := setupBoltDB(t)
-	defer db.Close()
-	require.NotEmpty(t, db)
-
 	t.Run("Read and Write DID", func(t *testing.T) {
+		db := setupBoltDB(t)
+		defer db.Close()
+		require.NotEmpty(t, db)
+
 		// create a did doc to store
 		_, doc, err := did.GenerateDIDDHT(did.CreateDIDDHTOpts{})
 		require.NoError(t, err)
@@ -37,6 +37,10 @@ func TestGatewayStorage(t *testing.T) {
 	})
 
 	t.Run("Update a DID and its type indexes", func(t *testing.T) {
+		db := setupBoltDB(t)
+		defer db.Close()
+		require.NotEmpty(t, db)
+
 		// create a did doc to store
 		_, doc, err := did.GenerateDIDDHT(did.CreateDIDDHTOpts{})
 		require.NoError(t, err)
@@ -103,6 +107,10 @@ func TestGatewayStorage(t *testing.T) {
 	})
 
 	t.Run("Multiple DIDs with Types", func(t *testing.T) {
+		db := setupBoltDB(t)
+		defer db.Close()
+		require.NotEmpty(t, db)
+
 		// create a did doc to store
 		_, doc, err := did.GenerateDIDDHT(did.CreateDIDDHTOpts{})
 		require.NoError(t, err)
