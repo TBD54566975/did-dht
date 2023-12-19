@@ -40,17 +40,17 @@ func (p PublishDIDRequest) toServiceRequest(did string) service.PublishDIDReques
 }
 
 // PublishDID godoc
-// @Summary		Publish a DID document
-// @Description	Publish a DID document to the DHT
-// @Tags		DID
-// @Accept		json
-// @Param		id		path	string	true	"ID of the record to get"
-// @Success		202 {object}    PublishDIDRequest
-// @Failure		400	{string}	string	"Invalid request body"
-// @Failure		401	{string}	string	"Invalid signature"
-// @Failure		409	{string}	string	"DID already exists with a higher sequence number"
-// @Failure		500	{string}	string	"Internal server error"
-// @Router		/dids/{id} [put]
+//	@Summary		Publish a DID document
+//	@Description	Publish a DID document to the DHT
+//	@Tags			DID
+//	@Accept			json
+//	@Param			id	path		string	true	"ID of the record to get"
+//	@Success		202	{object}	PublishDIDRequest
+//	@Failure		400	{string}	string	"Invalid request body"
+//	@Failure		401	{string}	string	"Invalid signature"
+//	@Failure		409	{string}	string	"DID already exists with a higher sequence number"
+//	@Failure		500	{string}	string	"Internal server error"
+//	@Router			/dids/{id} [put]
 // TODO(gabe) support historical document storage https://github.com/TBD54566975/did-dht-method/issues/16
 func (r *GatewayRouter) PublishDID(c *gin.Context) {
 	id := GetParam(c, IDParam)
@@ -94,16 +94,16 @@ type GetDIDResponse struct {
 }
 
 // GetDID godoc
-// @Summary		Get a DID document
-// @Description	Get a DID document
-// @Tags		DID
-// @Accept		json
-// @Param		id		path	string	true	"ID of the record to get"
-// @Success		200 {object}    GetDIDResponse
-// @Failure		400	{string}	string	"Invalid request"
-// @Failure		404	{string}	string	"DID not found"
-// @Failure		500	{string}	string	"Internal server error"
-// @Router		/dids/{id} [get]
+//	@Summary		Get a DID document
+//	@Description	Get a DID document
+//	@Tags			DID
+//	@Accept			json
+//	@Param			id	path		string	true	"ID of the record to get"
+//	@Success		200	{object}	GetDIDResponse
+//	@Failure		400	{string}	string	"Invalid request"
+//	@Failure		404	{string}	string	"DID not found"
+//	@Failure		500	{string}	string	"Internal server error"
+//	@Router			/dids/{id} [get]
 // TODO(gabe) support historical queries https://github.com/TBD54566975/did-dht-method/issues/16
 func (r *GatewayRouter) GetDID(c *gin.Context) {
 	id := GetParam(c, IDParam)
@@ -132,13 +132,13 @@ type GetTypesResponse struct {
 }
 
 // GetTypes godoc
-// @Summary		Get a list of supported types
-// @Description	Get a list of supported types
-// @Tags		DID
-// @Accept		json
-// @Success		200 {object}    GetTypesResponse
-// @Failure		404	{string}	string	"Type indexing is not supported by this gateway"
-// @Router		/dids/types [get]
+//	@Summary		Get a list of supported types
+//	@Description	Get a list of supported types
+//	@Tags			DID
+//	@Accept			json
+//	@Success		200	{object}	GetTypesResponse
+//	@Failure		404	{string}	string	"Type indexing is not supported by this gateway"
+//	@Router			/dids/types [get]
 func (r *GatewayRouter) GetTypes(c *gin.Context) {
 	resp := r.service.GetTypes()
 	if len(resp.Types) == 0 {
@@ -155,15 +155,15 @@ type GetDIDsForTypeResponse struct {
 }
 
 // GetDIDsForType godoc
-// @Summary		Get a list of DIDs for a given type
-// @Description	Get a list of DIDs for a given type
-// @Tags		DID
-// @Accept		json
-// @Success		200 {object}    GetDIDsForTypeResponse
-// @Failure     400 {string}    string  "Invalid request"
-// @Failure		404	{string}	string	"Type not found"
-// @Failure		500	{string}	string	"Internal server error"
-// @Router		/dids/types/{id} [get]
+//	@Summary		Get a list of DIDs for a given type
+//	@Description	Get a list of DIDs for a given type
+//	@Tags			DID
+//	@Accept			json
+//	@Success		200	{object}	GetDIDsForTypeResponse
+//	@Failure		400	{string}	string	"Invalid request"
+//	@Failure		404	{string}	string	"Type not found"
+//	@Failure		500	{string}	string	"Internal server error"
+//	@Router			/dids/types/{id} [get]
 func (r *GatewayRouter) GetDIDsForType(c *gin.Context) {
 	id := GetParam(c, IDParam)
 	if id == nil || *id == "" {
@@ -197,14 +197,14 @@ type GetDifficultyResponse struct {
 }
 
 // GetDifficulty godoc
-// @Summary		Get the current difficulty for the gateway's retention proof feature
-// @Description	Get the current difficulty for the gateway's retention proof feature
-// @Tags		DID
-// @Accept		json
-// @Success		200 {object}    int
-// @Failure		404	{string}	string	"Retention proofs are not supported by this gateway"
-// @Failure		500	{string}	string	"Internal server error"
-// @Router		/difficulty [get]
+//	@Summary		Get the current difficulty for the gateway's retention proof feature
+//	@Description	Get the current difficulty for the gateway's retention proof feature
+//	@Tags			DID
+//	@Accept			json
+//	@Success		200	{object}	int
+//	@Failure		404	{string}	string	"Retention proofs are not supported by this gateway"
+//	@Failure		500	{string}	string	"Internal server error"
+//	@Router			/difficulty [get]
 func (r *GatewayRouter) GetDifficulty(c *gin.Context) {
 	resp, err := r.service.GetDifficulty()
 	if err != nil {
