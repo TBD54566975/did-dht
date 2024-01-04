@@ -3,6 +3,7 @@ package did
 import (
 	"crypto/ed25519"
 	"testing"
+	"time"
 
 	"github.com/goccy/go-json"
 
@@ -308,4 +309,17 @@ func TestVectors(t *testing.T) {
 			assert.Contains(t, s, expectedRecord.Record)
 		}
 	})
+}
+
+func TestVanityDID(t *testing.T) {
+	now := time.Now()
+	pk, doc, err := GenerateVanityDIDDHT("gabe", CreateDIDDHTOpts{})
+	require.NoError(t, err)
+	require.NotEmpty(t, pk)
+	require.NotEmpty(t, doc)
+
+	b, _ := json.Marshal(doc)
+	println(string(b))
+
+	println(time.Since(now).String())
 }

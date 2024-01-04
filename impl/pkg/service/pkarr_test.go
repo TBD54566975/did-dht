@@ -13,8 +13,8 @@ import (
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
 )
 
-func TestPKARRService(t *testing.T) {
-	svc := newPKARRService(t)
+func TestPkarrService(t *testing.T) {
+	svc := newPkarrService(t)
 	require.NotEmpty(t, svc)
 
 	t.Run("test put bad record", func(t *testing.T) {
@@ -100,7 +100,7 @@ func TestPKARRService(t *testing.T) {
 	})
 }
 
-func newPKARRService(t *testing.T) PkarrService {
+func newPkarrService(t *testing.T) PkarrService {
 	defaultConfig := config.GetDefaultConfig()
 	db, err := storage.NewStorage(defaultConfig.ServerConfig.DBFile)
 	require.NoError(t, err)
