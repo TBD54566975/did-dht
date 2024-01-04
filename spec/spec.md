@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Latest Update:** December 12, 2023
+**Latest Update:** January 4, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -147,11 +147,11 @@ Comprising a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then stored 
 | Name      | Type | TTL    | Rdata                                     |
 | --------- | ---- | ------ | ----------------------------------------- |
 | _did.     | TXT  |  7200  | vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2 |
-| _k0._did. | TXT  |  7200  | t=0,k=`<b64url>`                          |
-| _k1._did. | TXT  |  7200  | t=1,k=`<b64url>`                          |
-| _k2._did. | TXT  |  7200  | t=1,k=`<b64url>`                          |
-| _s0._did. | TXT  |  7200  | t=LinkedDomains;uri=foo.com;...           |
-| _s1._did. | TXT  |  7200  | t=DWN;uri=https://dwn.tbddev.org/dwn5;... |
+| _k0._did. | TXT  |  7200  | t=0,k=`<unpadded-b64url>`                          |
+| _k1._did. | TXT  |  7200  | t=1,k=`<unpadded-b64url>`                          |
+| _k2._did. | TXT  |  7200  | t=1,k=`<unpadded-b64url>`                          |
+| _s0._did. | TXT  |  7200  | id=domain,t=LinkedDomains,uri=foo.com     |
+| _s1._did. | TXT  |  7200  | id=dwn,t=DecentralizedWebNode,uri=https://dwn.tbddev.org/dwn5 |
 
 ::: note
 The recommended TTL value is 7200 seconds (2 hours), the default TTL for Mainline records.
@@ -204,7 +204,7 @@ a given [Verification Method](https://www.w3.org/TR/did-core/#verification-metho
 
 * Each [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) **rdata** is represented with the form
 `id=M,t=N,k=O` where `M` is the key's ID, `N` is the index of the key's type from [key type index](registry/index.html#key-type-index),
-and `O` is the base64URL [[spec:RFC4648]] representation of the public key.
+and `O` is the unpadded base64URL [[spec:RFC4648]] representation of the public key.
 
 #### Verification Relationships
 
@@ -514,10 +514,10 @@ Difficulty is exposed as an **OPTIONAL** endpoint based on support of [retention
 - **Path:** `/did/:id`
   - `id` - **string** - **REQUIRED** - ID of the DID to publish.
     - `did` - **string** - **REQUIRED** - The DID to register or update.
-    - `sig` - **string** - **REQUIRED** - A base64URL-encoded signature of the [[ref:BEP44]] payload.
+    - `sig` - **string** - **REQUIRED** - An unpadded base64URL-encoded signature of the [[ref:BEP44]] payload.
     - `seq` - **integer** - **REQUIRED** - A sequence number for the request. This number ****MUST**** be unique for each DID operation,
     recommended to be a unix timestamp in seconds.
-    - `v` - **string** -  **REQUIRED** - A base64URL-encoded bencoded DNS packet containing the DID Document.
+    - `v` - **string** -  **REQUIRED** - An unpadded base64URL-encoded bencoded DNS packet containing the DID Document.
     - `retention_proof` - **string** –  **OPTIONAL** - A retention proof calculated according to the [retention proof algorithm](#generating-a-retention-proof).
 - **Returns:**
     - `202` - Accepted. The server has accepted the request as valid and will publish to the DHT.
@@ -528,9 +528,9 @@ Difficulty is exposed as an **OPTIONAL** endpoint based on support of [retention
 ```json
 {
     "did": "did:dht:example",
-    "sig": "<base64URL-encoded-signature>",
+    "sig": "<unpadded-base64URL-encoded-signature>",
     "seq": 1234,
-    "v": "<base64URL-encoded bencoded DNS packet>"
+    "v": "<unpadded-base64URL-encoded bencoded DNS packet>"
 }
 ```
 
@@ -834,7 +834,7 @@ A minimal DID Document.
 
 #### Vector 2
 
-A DID Document with two keys ([[ref:Identity Key]] and a secp256k1 key), a service endpoint, and two types to index.
+A DID Document with two keys ([[ref:Identity Key]] and an uncompressed secp256k1 key), a service endpoint, and two types to index.
 
 **Identity Public Key JWK:**
 

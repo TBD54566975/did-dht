@@ -5,7 +5,9 @@ The DID DHT Method Specification Registry 1.0
 
 **Latest Draft:** [tbd54566975.github.io/did-dht-method](https://tbd54566975.github.io/did-dht-method)
 
-**Latest Update:** November 28, 2023
+**Draft Created:** November 20, 2023
+
+**Latest Update:** January 4, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -31,9 +33,12 @@ Corresponds to the mapping, for a DID Document's DNS packet representation, of a
 | Index | Key Type                                               |
 | ----- | ------------------------------------------------------ |
 | 0     | [Ed25519](https://ed25519.cr.yp.to/)                   |
-| 1     | [secp256k1](https://en.bitcoin.it/wiki/Secp256k1)      |
+| 1     | [secp256k1](https://datatracker.ietf.org/doc/html/rfc8812#section-3.1) |
 | 2     | [secp256r1](https://neuromancer.sk/std/secg/secp256r1) |
 
+::: note
+All keys are represented as JWKs [[spec:RFC7517]] in their **uncompressed** form.
+:::
 
 An example [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) record represented as a DNS TXT
 record is as follows:
