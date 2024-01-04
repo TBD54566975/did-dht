@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Latest Update:** December 12, 2023
+**Latest Update:** January 4, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -147,11 +147,11 @@ Comprising a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then stored 
 | Name      | Type | TTL    | Rdata                                     |
 | --------- | ---- | ------ | ----------------------------------------- |
 | _did.     | TXT  |  7200  | vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2 |
-| _k0._did. | TXT  |  7200  | t=0,k=`<b64url>`                          |
-| _k1._did. | TXT  |  7200  | t=1,k=`<b64url>`                          |
-| _k2._did. | TXT  |  7200  | t=1,k=`<b64url>`                          |
-| _s0._did. | TXT  |  7200  | t=LinkedDomains;uri=foo.com;...           |
-| _s1._did. | TXT  |  7200  | t=DWN;uri=https://dwn.tbddev.org/dwn5;... |
+| _k0._did. | TXT  |  7200  | t=0,k=`<unpadded-b64url>`                          |
+| _k1._did. | TXT  |  7200  | t=1,k=`<unpadded-b64url>`                          |
+| _k2._did. | TXT  |  7200  | t=1,k=`<unpadded-b64url>`                          |
+| _s0._did. | TXT  |  7200  | id=domain,t=LinkedDomains,uri=foo.com     |
+| _s1._did. | TXT  |  7200  | id=dwn,t=DecentralizedWebNode,uri=https://dwn.tbddev.org/dwn5 |
 
 ::: note
 The recommended TTL value is 7200 seconds (2 hours), the default TTL for Mainline records.
@@ -834,7 +834,7 @@ A minimal DID Document.
 
 #### Vector 2
 
-A DID Document with two keys ([[ref:Identity Key]] and a secp256k1 key), a service endpoint, and two types to index.
+A DID Document with two keys ([[ref:Identity Key]] and an uncompressed secp256k1 key), a service endpoint, and two types to index.
 
 **Identity Public Key JWK:**
 
