@@ -9,11 +9,15 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Latest Update:** January 4, 2024
+**Latest Update:** January 5, 2024
 
-**Editors:**
+**Edtiors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
 ~ [Daniel Buchner](https://github.com/csuwildcat)
+
+**Contributors:**
+~ [Moe Jangda](https://github.com/mistermoe)
+~ [Frank Hinek](https://github.com/frankhinek)
 
 **Participate:**
 ~ [GitHub repo](https://github.com/TBD54566975/did-dht-method)
@@ -147,11 +151,11 @@ Comprising a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then stored 
 | Name      | Type | TTL    | Rdata                                     |
 | --------- | ---- | ------ | ----------------------------------------- |
 | _did.     | TXT  |  7200  | vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2 |
-| _k0._did. | TXT  |  7200  | t=0,k=`<unpadded-b64url>`                          |
-| _k1._did. | TXT  |  7200  | t=1,k=`<unpadded-b64url>`                          |
-| _k2._did. | TXT  |  7200  | t=1,k=`<unpadded-b64url>`                          |
-| _s0._did. | TXT  |  7200  | id=domain,t=LinkedDomains,uri=foo.com     |
-| _s1._did. | TXT  |  7200  | id=dwn,t=DecentralizedWebNode,uri=https://dwn.tbddev.org/dwn5 |
+| _k0._did. | TXT  |  7200  | id=#0;t=0;k=`<unpadded-b64url>`           |
+| _k1._did. | TXT  |  7200  | id=#1;t=1;k=`<unpadded-b64url>`           |
+| _k2._did. | TXT  |  7200  | id=#2;t=1;k=`<unpadded-b64url>`           |
+| _s0._did. | TXT  |  7200  | id=#domain;t=LinkedDomains;se=foo.com     |
+| _s1._did. | TXT  |  7200  | id=#dwn;t=DecentralizedWebNode;se=https://dwn.tbddev.org/dwn5 |
 
 ::: note
 The recommended TTL value is 7200 seconds (2 hours), the default TTL for Mainline records.
@@ -181,7 +185,7 @@ It might look like repeating `_did` is an overhead, but is compressed away using
 
 The following section describes mapping a [[ref:DID Document]] to a DNS packet. To avoid repeating potentially
 long identifiers in resource name fields, resource names are aliased with zero-indexed values (e.g. `k0`, `k1`, `s0`, `s1`).
-The complete identifier is stored in the resource data field (e.g. `id=abcd,t=0,k=...`).
+The complete identifier is stored in the resource data field (e.g. `id=abcd;t=0;k=...`).
 
 * The _root record_, `_did.` or `_did.TLD.` if a [TLD](https://en.wikipedia.org/wiki/Top-level_domain) is used,
 contains a list of IDs of the keys and service endpoints used in different sections of the [[ref:DID Document]].
@@ -189,7 +193,9 @@ contains a list of IDs of the keys and service endpoints used in different secti
 * Verification Methods, Verification Relationships, and Services are separated by a `;`, while 
 values within each property are separated by a `,`.
 
-An example is as follows:
+* Across all properties, distinct elements are separated by `;` while array elements are separated by `,`.
+
+An example of a _root record_ is as follows:
 
 | Name       | Type | TTL  | Rdata                                                 |
 | ---------- | ---- | ---- | ----------------------------------------------------- |
@@ -203,7 +209,7 @@ The following instructions serve as a reference of mapping DID Document properti
 a given [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) (e.g. `_k0`, `_k1`).
 
 * Each [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) **rdata** is represented with the form
-`id=M,t=N,k=O` where `M` is the key's ID, `N` is the index of the key's type from [key type index](registry/index.html#key-type-index),
+`id=M;t=N;k=O` where `M` is the key's ID, `N` is the index of the key's type from [key type index](registry/index.html#key-type-index),
 and `O` is the unpadded base64URL [[spec:RFC4648]] representation of the public key.
 
 #### Verification Relationships
@@ -240,17 +246,46 @@ An example is as follows:
 
 * Each [Service](https://www.w3.org/TR/did-core/#services)'s **name** is represented as a `_sN._did.` record where `N` is
 the zero-indexed positional index of the Service (e.g. `_s0`, `_s1`).
-* Each [Service](https://www.w3.org/TR/did-core/#services)'s **data** is represented with the form `id=M,t=N,uri=O`
+* Each [Service](https://www.w3.org/TR/did-core/#services)'s **data** is represented with the form `id=M;t=N;se=O`
 where `M` is the Service's ID, `N` is the Service's Type and `O` is the Service's URI.
+  * Multiple service endpoints can be represented as an array (e.g. `id=#dwn;t=DecentralizedWebNodes;se=https://dwn.org/dwn1,https://dwn.org/dwn2`)
+  * Additional properties ****MAY**** be present (e.g. `id=#dwn;t=DecentralizedWebNode;se=https://dwn.org/dwn1;sig=#1;enc=#2`)
 
 An example is given as follows:
 
 | Name      | Type | TTL  | Rdata                                                     |
 | --------- | ---- | ---- | --------------------------------------------------------- |
-| _s0._did. | TXT  | 7200 | id=dwn,t=DecentralizedWebNode,uri=https://example.com/dwn |
+| _s0._did. | TXT  | 7200 | id=#dwn;t=DecentralizedWebNode;se=https://example.com/dwn |
 
 Each Service is represented as part of the root `_did.TLD.` record as a list under the key `srv=<ids>` where `ids`
 is a comma-separated list of all IDs for each Service.
+
+#### Identifiers
+
+#### Controller
+
+A [DID controller](https://www.w3.org/TR/did-core/#did-controller) ****MAY**** be present in a `did:dht` document. 
+
+If present, a DID controller ****MUST**** be represented as a `_cnt._did` record where the value is the controller's DID identifier.
+
+An example is given as follows:
+
+| Name       | Type | TTL  | Rdata            |
+| ---------- | ---- | ---- | ---------------- |
+| _cnt._did. | TXT  | 7200 | did:example:abcd |
+
+#### Also Known As
+
+A `did:dht` document ****MAY**** have multiple identifiers using the [alsoKnownAs](https://www.w3.org/TR/did-core/#also-known-as) property.
+
+If present, alternate DID identifiers ****MUST**** be represented as `_aka_.did` record as a list under the key `id=<ids>` where `ids`
+is a comma-separated list of DID identifiers.
+
+An example is given as follows:
+
+| Name       | Type | TTL  | Rdata                                  |
+| ---------- | ---- | ---- | -------------------------------------- |
+| _aka._did. | TXT  | 7200 | id=did:example:efgh,did:example:ijkl |
 
 #### Example
 
@@ -261,6 +296,8 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
 ```json
 {
   "id": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
+  "controller": "did:example:abcd",
+  "alsoKnownAs": ["did:example:efgh", "did:example:ijkl"],
   "verificationMethod": [
     {
       "id": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y#0",
@@ -296,7 +333,7 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
     {
       "id": "#dwn",
       "type": "DecentralizedWebNode",
-      "serviceEndpoint": "https://example.com/dwn"
+      "serviceEndpoint": ["https://example.com/dwn1", "https://example/dwn2"]
     }
   ]
 }
@@ -304,12 +341,14 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
 
 **DNS Resource Records**
 
-| Name      | Type | TTL   | Rdata                                                                        |
-| --------- | ---- | ----- | ---------------------------------------------------------------------------- |
-| _did.TLD. | TXT  | 7200  | vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;srv=s1                           |
-| _k0._did. | TXT  | 7200  | id=0,t=0,h=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc  |
-| _k1._did. | TXT  | 7200  | id=HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ,t=1,k=BCiNAz7y-XBr853PBAzgAOU_c0Hyw0Gb69Hr9jTC3MQ80iSbXxZo0jIFLtW8vVnoWd8tEzUV2o22BVc_IjVTIt8 |
-| _s0._did. | TXT  | 7200  | id=dwn,t=DecentralizedWebNode,uri=https://example.com/dwn                    |
+| Name       | Type | TTL   | Rdata                                                                        |
+| ---------- | ---- | ----- | ---------------------------------------------------------------------------- |
+| _did.TLD.  | TXT  | 7200  | vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;srv=s1                           |
+| _cnt.did.  | TXT  | 7200  | did:example:abcd                                                             |
+| _aka.did.  | TXT  | 7200  | id=did:example:efgh,did:example:ijkl                                         |
+| _k0._did.  | TXT  | 7200  | id=#0;t=0;h=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc |
+| _k1._did.  | TXT  | 7200  | id=#HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ;t=1;k=BCiNAz7y-XBr853PBAzgAOU_c0Hyw0Gb69Hr9jTC3MQ80iSbXxZo0jIFLtW8vVnoWd8tEzUV2o22BVc_IjVTIt8 |
+| _s0._did.  | TXT  | 7200  | id=#dwn;t=DecentralizedWebNode;se=https://example.com/dwn1,https://example.com/dwn2                    |
 
 ### Operations
 
@@ -829,12 +868,12 @@ A minimal DID Document.
 | Name      | Type | TTL  | Rdata       |
 | --------- | ---- | ---- | ----------- |
 | _did.     | TXT  | 7200 | vm=k0;auth=k0;asm=k0;inv=k0;del=k0 |
-| _k0._did. | TXT  | 7200 | id=0,t=0,k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE |
+| _k0._did. | TXT  | 7200 | id=#0;t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE |
 
 
 #### Vector 2
 
-A DID Document with two keys ([[ref:Identity Key]] and an uncompressed secp256k1 key), a service endpoint, and two types to index.
+A DID Document with two keys ([[ref:Identity Key]] and an uncompressed secp256k1 key), a service with multiple endpoints, two types to index, an aka, and controller properties.
 
 **Identity Public Key JWK:**
 
@@ -869,7 +908,7 @@ A DID Document with two keys ([[ref:Identity Key]] and an uncompressed secp256k1
 {
   "id": "service-1",
   "type": "TestService",
-  "serviceEndpoint": "https://test-service.com"
+  "serviceEndpoint": ["https://test-service.com/1", "https://test-service.com/2"]
 }
 ```
 
@@ -880,6 +919,8 @@ A DID Document with two keys ([[ref:Identity Key]] and an uncompressed secp256k1
 ```json
 {
   "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo",
+  "controller": "did:example:abcd",
+  "alsoKnownAs": ["did:example:efgh", "did:example:ijkl"],
   "verificationMethod": [
     {
       "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0",
@@ -915,7 +956,7 @@ A DID Document with two keys ([[ref:Identity Key]] and an uncompressed secp256k1
     {
       "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#service-1",
       "type": "TestService",
-      "serviceEndpoint": "https://test-service.com"
+      "serviceEndpoint": ["https://test-service.com/1", "https://test-service.com/2"]
     }
   ]
 }
@@ -925,11 +966,13 @@ A DID Document with two keys ([[ref:Identity Key]] and an uncompressed secp256k1
 
 | Name      | Type | TTL  | Rdata       |
 | --------- | ---- | ---- | ----------- |
-| _did.     | TXT  | 7200 | vm=k0,k1;svc=s0;auth=k0;asm=k0,k1;inv=k0,k1;del=k0 |
-| _k0.did.  | TXT  | 7200 | id=0,t=0,k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE |
-| _k1.did.  | TXT  | 7200 | id=0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw,t=1,k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9 |
-| _s0.did.  | TXT  | 7200 | id=service-1,t=TestService,uri=https://test-service.com |
-| _typ.did. | TXT  | 7200 | id=1,2,3 |
+| _did.     | TXT  | 7200 | vm=k0,k1;svc=s0;auth=k0;asm=k0,k1;inv=k0,k1;del=k0                                                 |
+| _cnt.did. | TXT  | 7200 | did:example:abcd                                                                                   |
+| _aka.did. | TXT  | 7200 | id=did:example:efgh,did:example:ijkl                                                               |
+| _k0.did.  | TXT  | 7200 | id=#0;t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE                                            |
+| _k1.did.  | TXT  | 7200 | id=#0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw;t=1;k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9 |
+| _s0.did.  | TXT  | 7200 | id=#service-1;t=TestService;se=https://test-service.com/1,https://test-service.com/2               |
+| _typ.did. | TXT  | 7200 | id=1,2,3                                                                                           |
 
 ### Open API Definition
 
