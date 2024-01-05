@@ -203,6 +203,33 @@ An example of a _root record_ is as follows:
 
 The following instructions serve as a reference of mapping DID Document properties to [DNS TXT records](https://en.wikipedia.org/wiki/TXT_record):
 
+#### Identifiers
+
+##### Controller
+
+A [DID controller](https://www.w3.org/TR/did-core/#did-controller) ****MAY**** be present in a `did:dht` document. 
+
+If present, a DID controller ****MUST**** be represented as a `_cnt._did` record where the value is the controller's DID identifier.
+
+An example is given as follows:
+
+| Name       | Type | TTL  | Rdata            |
+| ---------- | ---- | ---- | ---------------- |
+| _cnt._did. | TXT  | 7200 | did:example:abcd |
+
+##### Also Known As
+
+A `did:dht` document ****MAY**** have multiple identifiers using the [alsoKnownAs](https://www.w3.org/TR/did-core/#also-known-as) property.
+
+If present, alternate DID identifiers ****MUST**** be represented as `_aka_.did` record as a list under the key `id=<ids>` where `ids`
+is a comma-separated list of DID identifiers.
+
+An example is given as follows:
+
+| Name       | Type | TTL  | Rdata                                  |
+| ---------- | ---- | ---- | -------------------------------------- |
+| _aka._did. | TXT  | 7200 | id=did:example:efgh,did:example:ijkl   |
+
 #### Verification Methods
 
 * Each Verification Method **name** is represented as a `_kN._did` record where `N` is the zero-indexed positional index of
@@ -259,33 +286,6 @@ An example is given as follows:
 
 Each Service is represented as part of the root `_did.TLD.` record as a list under the key `srv=<ids>` where `ids`
 is a comma-separated list of all IDs for each Service.
-
-#### Identifiers
-
-#### Controller
-
-A [DID controller](https://www.w3.org/TR/did-core/#did-controller) ****MAY**** be present in a `did:dht` document. 
-
-If present, a DID controller ****MUST**** be represented as a `_cnt._did` record where the value is the controller's DID identifier.
-
-An example is given as follows:
-
-| Name       | Type | TTL  | Rdata            |
-| ---------- | ---- | ---- | ---------------- |
-| _cnt._did. | TXT  | 7200 | did:example:abcd |
-
-#### Also Known As
-
-A `did:dht` document ****MAY**** have multiple identifiers using the [alsoKnownAs](https://www.w3.org/TR/did-core/#also-known-as) property.
-
-If present, alternate DID identifiers ****MUST**** be represented as `_aka_.did` record as a list under the key `id=<ids>` where `ids`
-is a comma-separated list of DID identifiers.
-
-An example is given as follows:
-
-| Name       | Type | TTL  | Rdata                                  |
-| ---------- | ---- | ---- | -------------------------------------- |
-| _aka._did. | TXT  | 7200 | id=did:example:efgh,did:example:ijkl |
 
 #### Example
 
