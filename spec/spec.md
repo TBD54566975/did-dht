@@ -376,6 +376,10 @@ To create a `did:dht`, the process is as follows:
 4. Construct a signed [[ref:BEP44]] put message with the `v` value as a [[ref:bencode]]d DNS packet from the prior step.
 
 5. Submit the result of to the [[ref:DHT]] via a [[ref:Pkarr]] relay, or a [[ref:Gateway]], with the identifier created in step 1.
+
+::: note
+This specification **does not** make use of JSON-LD. As such it is prohibited to inclue an `@context` property in the DID Document.
+:::
  
 #### Read
 
