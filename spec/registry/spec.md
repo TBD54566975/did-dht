@@ -7,7 +7,7 @@ The DID DHT Method Specification Registry 1.0
 
 **Draft Created:** November 20, 2023
 
-**Latest Update:** January 4, 2024
+**Latest Update:** January 5, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -45,7 +45,7 @@ record is as follows:
 
 | Name      | Type | TTL  | Rdata                                                     |
 | --------- | ---- | ---- | --------------------------------------------------------- |
-| _k0._did. | TXT  | 7200 | id=abcd,t=0,k=r96mnGNgWGOmjt6g_3_0nd4Kls5-kknrd4DdPW8qtfw |
+| _k0._did. | TXT  | 7200 | id=#abcd;t=0;k=r96mnGNgWGOmjt6g_3_0nd4Kls5-kknrd4DdPW8qtfw |
 
 ### Indexed Types
 
