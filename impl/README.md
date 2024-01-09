@@ -26,16 +26,38 @@ How it works:
 
 ## Build & Run
 
-Run:
+### Quickstart
+
+To build and run in a single command `./scripts/quickstart.sh`.
 
 ```
-docker build --build-arg GIT_COMMIT_HASH=$(git rev-parse HEAD) . -t did-dht -f build/Dockerfile
+Usage: ./scripts/quickstart.sh [options]
+
+Builds and runs the did-dht server
+
+Options
+  -h, --help          show this help message and exit
+  -c, --commit=<hash> commit hash for `docker build` (default: HEAD)
+  -t, --tag=<tag>     tag name for `docker build` (default: did-dht:latest)
+  -a, --attach        run the container in the foreground (default: true)
+  -k, --keep          keep the container after it exits (default: false)
+  -n, --name=<name>   name to give the container (default: did-dht-server)
+  -p, --port=<port>   ports to publish the host/container (default: 8305:8305)
+  --skip-run          skip running the container (default: false)
+ ```
+
+### `docker`
+Run:
+
+```sh
+docker build \
+  --build-arg GIT_COMMIT_HASH=$(git rev-parse head) \
+  --tag did-dht \
+  --file build/Dockerfile .
 ```
 
 and then
 
+```sh
+docker run --publish 8305:8305 did-dht
 ```
-docker run -p8305:8305 did-dht
-```
-
-

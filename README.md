@@ -1,20 +1,45 @@
 # did-dht-method
 
-The `did:dht` method. Home to the [DID DHT Method Specification](https://did-dht.com), and a reference implementation of a 
+The `did:dht` method. Home to the [DID DHT Method Specification](https://did-dht.com), and a reference implementation of a
 gateway server in Go.
 
 ## Build & Run
 
-To build and run the gateway server, from the `impl` directory run:
+### Quickstart
+
+To build and run in a single command `./scripts/quickstart.sh`.
 
 ```
-docker build --build-arg GIT_COMMIT_HASH=$(git rev-parse HEAD) . -t did-dht -f build/Dockerfile
+Usage: ./scripts/quickstart.sh [options]
+
+Builds and runs the did-dht server
+
+Options
+  -h, --help          show this help message and exit
+  -c, --commit=<hash> commit hash for `docker build` (default: HEAD)
+  -t, --tag=<tag>     tag name for `docker build` (default: did-dht:latest)
+  -a, --attach        run the container in the foreground (default: true)
+  -k, --keep          keep the container after it exits (default: false)
+  -n, --name=<name>   name to give the container (default: did-dht-server)
+  -p, --port=<port>   ports to publish the host/container (default: 8305:8305)
+  --skip-run          skip running the container (default: false)
+ ```
+
+### `docker`
+
+To build and run the gateway server, from the `impl` directory run:
+
+```sh
+docker build \
+  --build-arg GIT_COMMIT_HASH=$(git rev-parse head) \
+  --tag did-dht \
+  --file build/Dockerfile .
 ```
 
 and then
 
-```
-docker run -p8305:8305 did-dht
+```sh
+docker run --publish 8305:8305 did-dht
 ```
 
 ## Implementations
