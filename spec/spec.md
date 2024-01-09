@@ -734,9 +734,10 @@ encoding format we recommend additional considerations to keep payload sizes min
 Outside of the encoding of a cryptographic key itself, whose size cannot be further minimized, we ****RECOMMEND****
 the following representations of keys and their identifiers with usage of `JsonWebKey`:
 
-* The [[ref:Identity Key]]'s identifier ****MUST**** always be `#0`.
+* The [[ref:Identity Key]]'s identifier ****MUST**** always be `0`.
 * Key identifiers (`kid`s) ****MAY**** be omitted. If omitted, upon reconstruction of a DID Document, the JWK `kid`
 is set to its JWK Thumbprint [[spec:RFC7638]].
+* DID Document representations ****SHOULD**** always use fully qualified identifiers (e.g. `did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#0` as opposed to `0` or `#0`)
 
 #### Historical Key State
 
