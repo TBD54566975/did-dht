@@ -1,5 +1,53 @@
 #!/usr/bin/env bash
 
+DEBUG_FLAG="false"
+log() {
+  if [ "$#" -ge 2 ]; then
+    type="$1"
+    shift
+  else
+    type="debug"
+  fi
+  message="$*"
+  color_start=""
+
+  # check if color is supported (should be > 256 within xterm)
+  if [ "$(tput colors)" -gt 0 ]; then
+    case "$type" in
+      info)
+        color_code=14
+        ;;
+      warn)
+        color_code=11
+        ;;
+      error)
+        color_code=9
+        ;;
+      *)
+        color_code=15
+        ;;
+    esac
+    color_start="$(tput setaf "$color_code")"
+  fi
+
+  printf "%s%s: %s\n" "$color_start" "$type" "$message"
+  if [ -n "$color_start" ]; then
+    tput init
+  fi
+}
+
+info() {
+  log "info" "$@"
+}
+
+error() {
+  log "error" "$@"
+}
+
+warn() {
+  log "warn" "$@"
+}
+
 _commands=(
   "docker"
   "git"
@@ -7,7 +55,7 @@ _commands=(
 
 for cmd in "${_commands[@]}"; do
   if ! command -v "$cmd" &> /dev/null; then
-    echo "error: $cmd could not be found"
+    error "required command '$cmd' not found"
     exit 1
   fi
 done
@@ -16,13 +64,13 @@ repo_path="$(git rev-parse --show-toplevel)"
 impl_path="$repo_path/impl"
 
 if ! pushd "$impl_path" > /dev/null; then
-  echo "error: unable to find '$impl_path'"
+  error "unable to find path '$impl_path'"
   exit 1
 fi
 
 docker_path="$impl_path/build/Dockerfile"
 if [ ! -f "$docker_path" ]; then
-  echo "error: unable to find Dockerfile '$docker_path'"
+  error "unable to find build file '$docker_path'"
   exit 1
 fi
 
@@ -96,7 +144,7 @@ for opt in "$@"; do
       ;;
 
     *)
-      echo "warn: skipping unknown option '$1'"
+      warn "skipping unknown option '$1'"
       opt_erroneous_option="true"
       shift
       ;;
@@ -105,22 +153,20 @@ done
 
 if [ "$opt_erroneous_option" == "true" ]; then
   echo ""
-  echo "warning: one or more options were skipped"
-  echo "         run \`$0 --help\` for more information"
-  echo ""
+  warn "one or more options were skipped"
+  warn "  run \`$0 --help\` for more information"
   exit 1
 fi
 
 if git cat-file -e "$opt_commit_hash"; then
-  echo "info: building from commit $opt_commit_hash"
+  info "building from commit $opt_commit_hash"
 else
-  echo "error: commit $opt_commit_hash does not exist"
+  error "please specify a valid commit hash, $opt_commit_hash is does not exist"
   exit 1
 fi
 
-DEBUG_FLAG="false"
 if [ "$DEBUG_FLAG" == "true" ]; then
-  echo "info: running in debug mode"
+  info "running in debug mode"
   _DEBUG="echo"
 else
   unset _DEBUG
@@ -135,16 +181,16 @@ $_DEBUG docker build \
 
 echo ""
 if [ "$opt_skip_run" == "true" ]; then
-  echo "info: skipping run"
+  info "skipping run"
   exit 0
 fi
 
 if docker ps --all --format '{{.Names}}' | grep --quiet "$opt_name"; then
-  echo "error: container $opt_name already exists"
+  error "container $opt_name already exists"
   exit 1
 fi
 
-printf "info: running container: "
+printf "info: running container "
 $_DEBUG docker run \
   "$opt_detach" \
   "$opt_remove" \
