@@ -132,7 +132,13 @@ func TestToDNSPacket(t *testing.T) {
 		require.NotEmpty(t, decodedDoc)
 		require.Empty(t, types)
 
-		assert.EqualValues(t, *doc, *decodedDoc)
+		jsonDoc, err := json.Marshal(doc)
+		require.NoError(t, err)
+
+		jsonDecodedDoc, err := json.Marshal(decodedDoc)
+		require.NoError(t, err)
+
+		assert.JSONEq(t, string(jsonDoc), string(jsonDecodedDoc))
 	})
 
 	t.Run("doc with types - test to dns packet round trip", func(t *testing.T) {
