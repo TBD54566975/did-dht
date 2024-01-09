@@ -177,8 +177,8 @@ It might look like repeating `_did` is an overhead, but is compressed away using
 
 * The DID identifier [[ref:z-base-32]]-encoded key ****MUST**** be appended as the Origin of all records:
 
-| Name                                                       | Type | TTL    | Rdata                                     |
-| ---------------------------------------------------------- | ---- | ------ | ----------------------------------------- |
+| Name                                                       | Type | TTL    | Rdata                                                 |
+| ---------------------------------------------------------- | ---- | ------ | ----------------------------------------------------- |
 | _did.o4dksfbqk85ogzdb5osziw6befigbuxmuxkuxq8434q89uj56uyy. | TXT  |  7200  | vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2 |
 
 ### Property Mapping
@@ -225,9 +225,9 @@ If present, alternate DID identifiers ****MUST**** be represented as `_aka_.did`
 
 An example is given as follows:
 
-| Name       | Type | TTL  | Rdata                                  |
-| ---------- | ---- | ---- | -------------------------------------- |
-| _aka._did. | TXT  | 7200 | did:example:efgh,did:example:ijkl   |
+| Name       | Type | TTL  | Rdata                              |
+| ---------- | ---- | ---- | ---------------------------------- |
+| _aka._did. | TXT  | 7200 | did:example:efgh,did:example:ijkl  |
 
 #### Verification Methods
 
@@ -247,13 +247,13 @@ The following table acts as a map between Verification Relationship types and th
 
 ##### Verification Relationship Index
 
-| Verification Relationship  | Record Name   |
-| -------------------------- | ------------- |
-| Authentication             | `auth`        |
-| Assertion                  | `asm`         |
-| Key Agreement              | `agm`         |
-| Capability Invocation      | `inv`         |
-| Capability Delegation      | `del`         |
+| Verification Relationship  | Record Name  |
+| -------------------------- | ------------ |
+| Authentication             | `auth`       |
+| Assertion                  | `asm`        |
+| Key Agreement              | `agm`        |
+| Capability Invocation      | `inv`        |
+| Capability Delegation      | `del`        |
 
 The record data is uniform across [Verification Relationships](https://www.w3.org/TR/did-core/#verification-relationships),
 represented as a comma-separated list of key references.
@@ -433,9 +433,9 @@ the [type index](#type-indexing).
 
 An example type record is as follows:
 
-| Name       | Type | TTL  | Rdata       |
-| ---------- | ---- | ---- | ----------- |
-| _typ._did. | TXT  | 7200 | id=0,1,2    |
+| Name       | Type | TTL  | Rdata     |
+| ---------- | ---- | ---- | --------- |
+| _typ._did. | TXT  | 7200 | id=0,1,2  |
 
 
 Types can be found and registered in the [DID DHT Registry](registry/index.html#indexed-types).
