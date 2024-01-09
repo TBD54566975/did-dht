@@ -209,27 +209,25 @@ The following instructions serve as a reference of mapping DID Document properti
 
 A [DID controller](https://www.w3.org/TR/did-core/#did-controller) ****MAY**** be present in a `did:dht` document. 
 
-If present, a DID controller ****MUST**** be represented as a `_cnt._did` record as a list under the key `id=<ids>` where `ids`
-is a comma-separated list of controller DID identifiers.
+If present, a DID controller ****MUST**** be represented as a `_cnt._did` record as a list of comma-separated list of controller DID identifiers.
 
 An example is given as follows:
 
-| Name       | Type | TTL  | Rdata               |
-| ---------- | ---- | ---- | ------------------- |
-| _cnt._did. | TXT  | 7200 | id=did:example:abcd |
+| Name       | Type | TTL  | Rdata            |
+| ---------- | ---- | ---- | ---------------- |
+| _cnt._did. | TXT  | 7200 | did:example:abcd |
 
 ##### Also Known As
 
 A `did:dht` document ****MAY**** have multiple identifiers using the [alsoKnownAs](https://www.w3.org/TR/did-core/#also-known-as) property.
 
-If present, alternate DID identifiers ****MUST**** be represented as `_aka_.did` record as a list under the key `id=<ids>` where `ids`
-is a comma-separated list of DID identifiers.
+If present, alternate DID identifiers ****MUST**** be represented as `_aka_.did` record as a list of comma-separated list of DID identifiers.
 
 An example is given as follows:
 
 | Name       | Type | TTL  | Rdata                                  |
 | ---------- | ---- | ---- | -------------------------------------- |
-| _aka._did. | TXT  | 7200 | id=did:example:efgh,did:example:ijkl   |
+| _aka._did. | TXT  | 7200 | idid:example:efgh,did:example:ijkl   |
 
 #### Verification Methods
 
@@ -345,8 +343,8 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
 | Name       | Type | TTL   | Rdata                                                                       |
 | ---------- | ---- | ----- | --------------------------------------------------------------------------- |
 | _did.TLD.  | TXT  | 7200  | vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;srv=s1                          |
-| _cnt.did.  | TXT  | 7200  | id=did:example:abcd                                                         |
-| _aka.did.  | TXT  | 7200  | id=did:example:efgh,did:example:ijkl                                        |
+| _cnt.did.  | TXT  | 7200  | did:example:abcd                                                            |
+| _aka.did.  | TXT  | 7200  | did:example:efgh,did:example:ijkl                                           |
 | _k0._did.  | TXT  | 7200  | id=0;t=0;h=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc |
 | _k1._did.  | TXT  | 7200  | id=HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ;t=1;k=BCiNAz7y-XBr853PBAzgAOU_c0Hyw0Gb69Hr9jTC3MQ80iSbXxZo0jIFLtW8vVnoWd8tEzUV2o22BVc_IjVTIt8 |
 | _s0._did.  | TXT  | 7200  | id=dwn;t=DecentralizedWebNode;se=https://example.com/dwn1,https://example.com/dwn2 |
@@ -973,8 +971,8 @@ A DID Document with two keys ([[ref:Identity Key]] and an uncompressed secp256k1
 | Name      | Type | TTL  | Rdata       |
 | --------- | ---- | ---- | ----------- |
 | _did.     | TXT  | 7200 | vm=k0,k1;svc=s0;auth=k0;asm=k0,k1;inv=k0,k1;del=k0                                                |
-| _cnt.did. | TXT  | 7200 | id=did:example:abcd                                                                               |
-| _aka.did. | TXT  | 7200 | id=did:example:efgh,did:example:ijkl                                                              |
+| _cnt.did. | TXT  | 7200 | did:example:abcd                                                                                  |
+| _aka.did. | TXT  | 7200 | did:example:efgh,did:example:ijkl                                                                 |
 | _k0.did.  | TXT  | 7200 | id=0;t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE                                            |
 | _k1.did.  | TXT  | 7200 | id=0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw;t=1;k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9 |
 | _s0.did.  | TXT  | 7200 | id=service-1;t=TestService;se=https://test-service.com/1,https://test-service.com/2               |
