@@ -227,7 +227,7 @@ An example is given as follows:
 
 | Name       | Type | TTL  | Rdata                                  |
 | ---------- | ---- | ---- | -------------------------------------- |
-| _aka._did. | TXT  | 7200 | idid:example:efgh,did:example:ijkl   |
+| _aka._did. | TXT  | 7200 | did:example:efgh,did:example:ijkl   |
 
 #### Verification Methods
 
