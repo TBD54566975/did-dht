@@ -275,7 +275,7 @@ the zero-indexed positional index of the Service (e.g. `_s0`, `_s1`).
 * Each [Service](https://www.w3.org/TR/did-core/#services)'s **data** is represented with the form `id=M;t=N;se=O`
 where `M` is the Service's ID, `N` is the Service's Type and `O` is the Service's URI.
   * Multiple service endpoints can be represented as an array (e.g. `id=dwn;t=DecentralizedWebNodes;se=https://dwn.org/dwn1,https://dwn.org/dwn2`)
-  * Additional properties ****MAY**** be present (e.g. `id=#dwn;t=DecentralizedWebNode;se=https://dwn.org/dwn1;sig=1;enc=2`)
+  * Additional properties ****MAY**** be present (e.g. `id=dwn;t=DecentralizedWebNode;se=https://dwn.org/dwn1;sig=1;enc=2`)
 
 An example is given as follows:
 
