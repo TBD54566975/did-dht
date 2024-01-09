@@ -7,12 +7,12 @@
   "_cnt.did.": {
     "type": "TXT",
     "ttl": "7200",
-    "rdata": "id=did:example:abcd"
+    "rdata": "did:example:abcd"
   },
   "_aka.did.": {
     "type": "TXT",
     "ttl": "7200",
-    "rdata": "id=did:example:ijkl"
+    "rdata": "did:example:ijkl"
   },
   "_k0._did.": {
     "type": "TXT",
