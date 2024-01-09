@@ -173,7 +173,6 @@ func TestToDNSPacket(t *testing.T) {
 					VerificationMethod: did.VerificationMethod{
 						ID:           "key1",
 						Type:         JSONWebKeyType,
-						Controller:   "did:dht:123456789abcdefghi",
 						PublicKeyJWK: pubKeyJWK,
 					},
 					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
@@ -184,11 +183,13 @@ func TestToDNSPacket(t *testing.T) {
 					ID:              "vcs",
 					Type:            "VerifiableCredentialService",
 					ServiceEndpoint: "https://example.com/vc/",
+					Sig:             []string{"1", "2"},
+					Enc:             "3",
 				},
 				{
 					ID:              "hub",
 					Type:            "MessagingService",
-					ServiceEndpoint: "https://example.com/hub/",
+					ServiceEndpoint: []string{"https://example.com/hub/", "https://example.com/hub2/"},
 				},
 			},
 		}
@@ -270,6 +271,8 @@ func TestVectors(t *testing.T) {
 		retrieveTestVectorAs(t, vector2PublicKeyJWK2, &secpJWK)
 
 		doc, err := CreateDIDDHTDID(pubKey.(ed25519.PublicKey), CreateDIDDHTOpts{
+			Controller:  []string{"did:example:abcd"},
+			AlsoKnownAs: []string{"did:example:efgh", "did:example:ijkl"},
 			VerificationMethods: []VerificationMethod{
 				{
 					VerificationMethod: did.VerificationMethod{
@@ -284,7 +287,7 @@ func TestVectors(t *testing.T) {
 				{
 					ID:              "service-1",
 					Type:            "TestService",
-					ServiceEndpoint: "https://test-service.com",
+					ServiceEndpoint: []string{"https://test-service.com/1", "https://test-service.com/2"},
 				},
 			},
 		})
@@ -293,7 +296,14 @@ func TestVectors(t *testing.T) {
 
 		var expectedDIDDocument did.Document
 		retrieveTestVectorAs(t, vector2DIDDocument, &expectedDIDDocument)
-		assert.EqualValues(t, expectedDIDDocument, *doc)
+
+		docJSON, err := json.Marshal(doc)
+		require.NoError(t, err)
+
+		expectedDIDDocJSON, err := json.Marshal(expectedDIDDocument)
+		require.NoError(t, err)
+
+		assert.JSONEq(t, string(expectedDIDDocJSON), string(docJSON))
 
 		didID := DHT(doc.ID)
 		packet, err := didID.ToDNSPacket(*doc, []TypeIndex{1, 2, 3})
@@ -303,10 +313,9 @@ func TestVectors(t *testing.T) {
 		var expectedDNSRecords map[string]testVectorDNSRecord
 		retrieveTestVectorAs(t, vector2DNSRecords, &expectedDNSRecords)
 
-		println(packet.String())
 		for _, record := range packet.Answer {
 			expectedRecord, ok := expectedDNSRecords[record.Header().Name]
-			require.True(t, ok)
+			require.True(t, ok, "record not found: %s", record.Header().Name)
 
 			s := record.String()
 			assert.Contains(t, s, expectedRecord.RecordType)

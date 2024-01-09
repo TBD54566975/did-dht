@@ -62,6 +62,10 @@ func (DHT) Method() did.Method {
 }
 
 type CreateDIDDHTOpts struct {
+	// Controller is the DID Controller, can be a list of DIDs
+	Controller []string
+	// AlsoKnownAs is a list of alternative identifiers for the DID Document
+	AlsoKnownAs []string
 	// VerificationMethods is a list of verification methods to include in the DID Document
 	// Cannot contain id #0 which is reserved for the identity key
 	VerificationMethods []VerificationMethod
@@ -91,8 +95,30 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 	// generate the did:dht identifier
 	id := GetDIDDHTIdentifier(pubKey)
 
-	// validate opts and build verification methods, key purposes, and services
+	// validate opts and build controller, aka, verification methods, key purposes, and services
 	identityKeyID := id + "#0"
+
+	var controller any
+	if len(opts.Controller) != 0 {
+		if len(opts.Controller) == 1 {
+			// if there's only one controller, set it to the first controller
+			controller = opts.Controller[0]
+		} else {
+			// if there's more than one controller, set it to the list of controllers
+			controller = opts.Controller
+		}
+	}
+	var aka any
+	if len(opts.AlsoKnownAs) != 0 {
+		if len(opts.AlsoKnownAs) == 1 {
+			// if there's only one aka, set it to the first aka
+			aka = opts.AlsoKnownAs[0]
+		} else {
+			// if there's more than one aka, set it to the list of akas
+			aka = opts.AlsoKnownAs
+		}
+	}
+
 	var vms []did.VerificationMethod
 	var keyAgreement []did.VerificationMethodSet
 	authentication := []did.VerificationMethodSet{identityKeyID}
@@ -103,7 +129,7 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 		seenIDs := make(map[string]bool)
 		for _, vm := range opts.VerificationMethods {
 			if vm.VerificationMethod.ID == identityKeyID || vm.VerificationMethod.ID == "#0" || vm.VerificationMethod.ID == "0" {
-				return nil, fmt.Errorf("verification method id #0 is reserved for the identity key")
+				return nil, fmt.Errorf("verification method id 0 is reserved for the identity key")
 			}
 			if seenIDs[vm.VerificationMethod.ID] {
 				return nil, fmt.Errorf("verification method id %s is not unique", vm.VerificationMethod.ID)
@@ -118,27 +144,34 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 			// mark as seen
 			seenIDs[vm.VerificationMethod.ID] = true
 
-			// update ID and controller in place
-			if strings.Contains(vm.VerificationMethod.ID, "#") {
-				return nil, fmt.Errorf("verification method id %s is invalid", vm.VerificationMethod.ID)
-			}
-			// set to thumbprint if none is provided
+			// update ID and controller in place, setting to thumbprint if none is provided
+
+			// e.g. nothing -> did:dht:123456789abcdefghi#<jwk key id>
 			if vm.VerificationMethod.ID == "" {
 				vm.VerificationMethod.ID = id + "#" + vm.VerificationMethod.PublicKeyJWK.KID
 			} else {
 				// make sure the verification method ID and KID match
 				vm.VerificationMethod.PublicKeyJWK.KID = vm.VerificationMethod.ID
 			}
-			vm.VerificationMethod.ID = id + "#" + vm.VerificationMethod.ID
+
+			// e.g. #key-1 -> did:dht:123456789abcdefghi#key-1
+			if strings.HasPrefix(vm.VerificationMethod.ID, "#") {
+				vm.VerificationMethod.ID = id + vm.VerificationMethod.ID
+			}
+
+			// e.g. key-1 -> did:dht:123456789abcdefghi#key-1
+			if !strings.Contains(vm.VerificationMethod.ID, "#") {
+				vm.VerificationMethod.ID = id + "#" + vm.VerificationMethod.ID
+			}
 
 			// if there's no controller, set it to the DID itself
-			if vm.VerificationMethod.Controller != "" {
+			if vm.VerificationMethod.Controller == "" {
 				vm.VerificationMethod.Controller = id
 			}
 			vms = append(vms, vm.VerificationMethod)
 
 			// add purposes
-			vmID := vm.VerificationMethod.ID[strings.LastIndex(vm.VerificationMethod.ID, "#"):]
+			vmID := vm.VerificationMethod.ID
 			for _, purpose := range vm.Purposes {
 				switch purpose {
 				case did.Authentication:
@@ -186,6 +219,8 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 	}
 	return &did.Document{
 		ID:                   id,
+		Controller:           controller,
+		AlsoKnownAs:          aka,
 		VerificationMethod:   append([]did.VerificationMethod{vm0}, vms...),
 		Services:             opts.Services,
 		Authentication:       authentication,
@@ -206,6 +241,46 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex) (*dns.Msg, error) 
 	var records []dns.RR
 	var rootRecord []string
 	keyLookup := make(map[string]string)
+
+	// build controller and aka records
+	if doc.Controller != nil {
+		var controllerTxt string
+		switch c := doc.Controller.(type) {
+		case string:
+			controllerTxt = c
+		case []string:
+			controllerTxt = strings.Join(c, ",")
+		}
+		controllerAnswer := dns.TXT{
+			Hdr: dns.RR_Header{
+				Name:   "_cnt._did.",
+				Rrtype: dns.TypeTXT,
+				Class:  dns.ClassINET,
+				Ttl:    7200,
+			},
+			Txt: []string{controllerTxt},
+		}
+		records = append(records, &controllerAnswer)
+	}
+	if doc.AlsoKnownAs != nil {
+		var akaTxt string
+		switch a := doc.AlsoKnownAs.(type) {
+		case string:
+			akaTxt = a
+		case []string:
+			akaTxt = strings.Join(a, ",")
+		}
+		akaAnswer := dns.TXT{
+			Hdr: dns.RR_Header{
+				Name:   "_aka._did.",
+				Rrtype: dns.TypeTXT,
+				Class:  dns.ClassINET,
+				Ttl:    7200,
+			},
+			Txt: []string{akaTxt},
+		}
+		records = append(records, &akaAnswer)
+	}
 
 	// build all key records
 	var vmIDs []string
@@ -229,7 +304,7 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex) (*dns.Msg, error) 
 		}
 		keyBase64Url := base64.RawURLEncoding.EncodeToString(pubKeyBytes)
 
-		vmKeyFragment := vm.ID[strings.LastIndex(vm.ID, "#"):]
+		vmKeyFragment := vm.ID[strings.LastIndex(vm.ID, "#")+1:]
 		keyRecord := dns.TXT{
 			Hdr: dns.RR_Header{
 				Name:   fmt.Sprintf("_%s._did.", recordIdentifier),
@@ -254,6 +329,13 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex) (*dns.Msg, error) 
 			sID = sID[strings.LastIndex(service.ID, "#")+1:]
 		}
 
+		svcTxt := fmt.Sprintf("id=%s;t=%s;se=%s", sID, service.Type, parseServiceData(service.ServiceEndpoint))
+		if service.Sig != nil {
+			svcTxt += fmt.Sprintf(";sig=%s", parseServiceData(service.Sig))
+		}
+		if service.Enc != nil {
+			svcTxt += fmt.Sprintf(";enc=%s", parseServiceData(service.Enc))
+		}
 		serviceRecord := dns.TXT{
 			Hdr: dns.RR_Header{
 				Name:   fmt.Sprintf("_%s._did.", recordIdentifier),
@@ -261,7 +343,7 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex) (*dns.Msg, error) 
 				Class:  dns.ClassINET,
 				Ttl:    7200,
 			},
-			Txt: []string{fmt.Sprintf("id=%s;t=%s;se=%s", sID, service.Type, parseServiceEndpoint(service.ServiceEndpoint))},
+			Txt: []string{svcTxt},
 		}
 
 		records = append(records, &serviceRecord)
@@ -354,8 +436,9 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex) (*dns.Msg, error) 
 	}, nil
 }
 
-// make a best-effort to parse a service endpoint which we expect as either a single string value or an array of strings
-func parseServiceEndpoint(serviceEndpoint any) string {
+// make a best-effort to parse a service endpoints and other service data which we expect as either a single string
+// value or an array of strings
+func parseServiceData(serviceEndpoint any) string {
 	switch se := serviceEndpoint.(type) {
 	case string:
 		return se
@@ -388,6 +471,12 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 	for _, rr := range msg.Answer {
 		switch record := rr.(type) {
 		case *dns.TXT:
+			if strings.HasPrefix(record.Hdr.Name, "_cnt") {
+				doc.Controller = strings.Split(record.Txt[0], ",")
+			}
+			if strings.HasPrefix(record.Hdr.Name, "_aka") {
+				doc.AlsoKnownAs = strings.Split(record.Txt[0], ",")
+			}
 			if strings.HasPrefix(record.Hdr.Name, "_k") {
 				data := parseTxtData(strings.Join(record.Txt, ","))
 				vmID := data["id"]
@@ -409,25 +498,44 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 				}
 
 				vm := did.VerificationMethod{
-					ID:           d.String() + vmID,
+					ID:           d.String() + "#" + vmID,
 					Type:         JSONWebKeyType,
 					Controller:   d.String(),
 					PublicKeyJWK: pubKeyJWK,
 				}
 				doc.VerificationMethod = append(doc.VerificationMethod, vm)
 
-				// add to key lookup (e.g.  "#k1" -> "#key1")
+				// add to key lookup (e.g.  "k1" -> "key1")
 				keyLookup[strings.Split(record.Hdr.Name, ".")[0][1:]] = vmID
 			} else if strings.HasPrefix(record.Hdr.Name, "_s") {
 				data := parseTxtData(strings.Join(record.Txt, ","))
 				sID := data["id"]
 				serviceType := data["t"]
-				serviceEndpoint := data["uri"]
-
+				serviceEndpoint := data["se"]
+				var serviceEndpointValue any
+				if strings.Contains(serviceEndpoint, ",") {
+					serviceEndpointValue = strings.Split(serviceEndpoint, ",")
+				} else {
+					serviceEndpointValue = serviceEndpoint
+				}
 				service := did.Service{
-					ID:              d.String() + sID,
+					ID:              d.String() + "#" + sID,
 					Type:            serviceType,
-					ServiceEndpoint: serviceEndpoint,
+					ServiceEndpoint: serviceEndpointValue,
+				}
+				if data["sig"] != "" {
+					if strings.Contains(data["sig"], ",") {
+						service.Sig = strings.Split(data["sig"], ",")
+					} else {
+						service.Sig = data["sig"]
+					}
+				}
+				if data["enc"] != "" {
+					if strings.Contains(data["enc"], ",") {
+						service.Enc = strings.Split(data["enc"], ",")
+					} else {
+						service.Enc = data["enc"]
+					}
 				}
 				doc.Services = append(doc.Services, service)
 
@@ -457,31 +565,25 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 					valueItems := strings.Split(values, ",")
 
 					switch key {
-					case "vm":
-						// These are already processed in the "_k" prefix case
-						continue
-					case "srv":
-						// These are already processed in the "_s" prefix case
-						continue
 					case "auth":
 						for _, valueItem := range valueItems {
-							doc.Authentication = append(doc.Authentication, doc.ID+keyLookup[valueItem])
+							doc.Authentication = append(doc.Authentication, doc.ID+"#"+keyLookup[valueItem])
 						}
 					case "asm":
 						for _, valueItem := range valueItems {
-							doc.AssertionMethod = append(doc.AssertionMethod, doc.ID+keyLookup[valueItem])
+							doc.AssertionMethod = append(doc.AssertionMethod, doc.ID+"#"+keyLookup[valueItem])
 						}
 					case "agm":
 						for _, valueItem := range valueItems {
-							doc.KeyAgreement = append(doc.KeyAgreement, doc.ID+keyLookup[valueItem])
+							doc.KeyAgreement = append(doc.KeyAgreement, doc.ID+"#"+keyLookup[valueItem])
 						}
 					case "inv":
 						for _, valueItem := range valueItems {
-							doc.CapabilityInvocation = append(doc.CapabilityInvocation, doc.ID+keyLookup[valueItem])
+							doc.CapabilityInvocation = append(doc.CapabilityInvocation, doc.ID+"#"+keyLookup[valueItem])
 						}
 					case "del":
 						for _, valueItem := range valueItems {
-							doc.CapabilityDelegation = append(doc.CapabilityDelegation, doc.ID+keyLookup[valueItem])
+							doc.CapabilityDelegation = append(doc.CapabilityDelegation, doc.ID+"#"+keyLookup[valueItem])
 						}
 					}
 				}
