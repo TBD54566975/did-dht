@@ -14,8 +14,8 @@
       }
     }
   ],
-  "authentication": ["#0"],
-  "assertionMethod": ["#0"],
-  "capabilityInvocation": ["#0"],
-  "capabilityDelegation": ["#0"]
+  "authentication": ["did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0"],
+  "assertionMethod": ["did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0"],
+  "capabilityInvocation": ["did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0"],
+  "capabilityDelegation": ["did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0"]
 }
