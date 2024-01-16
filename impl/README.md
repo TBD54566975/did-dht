@@ -39,7 +39,7 @@ Options
   -h, --help          show this help message and exit
   -c, --commit=<hash> commit hash for `docker build` (default: HEAD)
   -t, --tag=<tag>     tag name for `docker build` (default: did-dht:latest)
-  -a, --attach        run the container in the foreground (default: true)
+  -d, --detach        run the container in the background (default: false)
   -k, --keep          keep the container after it exits (default: false)
   -n, --name=<name>   name to give the container (default: did-dht-server)
   -p, --port=<port>   ports to publish the host/container (default: 8305:8305)

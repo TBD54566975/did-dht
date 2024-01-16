@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 DEBUG_FLAG="false"
+
 log() {
   if [ "$#" -ge 2 ]; then
     type="$1"
@@ -80,7 +81,7 @@ opt_commit_hash="$(git rev-parse HEAD)"
 opt_tag="did-dht:latest"
 
 # docker run
-opt_detach="--detach"
+opt_detach=""
 opt_remove="--rm"
 opt_name="did-dht-server"
 opt_port="8305:8305"
@@ -98,7 +99,7 @@ for opt in "$@"; do
       echo "  -h, --help          show this help message and exit"
       echo "  -c, --commit=<hash> commit hash for \`docker build\` (default: HEAD)"
       echo "  -t, --tag=<tag>     tag name for \`docker build\` (default: did-dht:latest)"
-      echo "  -a, --attach        run the container in the foreground (default: true)"
+      echo "  -d, --detach        run the container in the background (default: false)"
       echo "  -k, --keep          keep the container after it exits (default: false)"
       echo "  -n, --name=<name>   name to give the container (default: did-dht-server)"
       echo "  -p, --port=<port>   ports to publish the host/container (default: 8305:8305)"
@@ -118,8 +119,8 @@ for opt in "$@"; do
       ;;
 
     # run options --------------------------------------------------------------
-    -a | --attach)
-      unset opt_detach
+    -d | --detach)
+      opt_detach="--detach"
       shift
       ;;
 
@@ -190,12 +191,17 @@ if docker ps --all --format '{{.Names}}' | grep --quiet "$opt_name"; then
   exit 1
 fi
 
-printf "info: running container "
+if [ -z "$opt_detach" ]; then
+  info "running in foreground"
+  info "use ctrl-p ctrl-q to detach from the container (send to background)"
+  echo ""
+fi
+
 $_DEBUG docker run \
-  "$opt_detach" \
-  "$opt_remove" \
+  $opt_detach \
   --interactive \
   --tty \
   --publish "$opt_port" \
   --name "$opt_name" \
+  "$opt_remove" \
   "$opt_tag"
