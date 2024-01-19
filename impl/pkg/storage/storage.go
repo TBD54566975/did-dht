@@ -31,6 +31,6 @@ func NewStorage(uri string) (Storage, error) {
 	case "postgres":
 		return postgres.NewPostgres(uri)
 	default:
-		return nil, fmt.Errorf("unsupported db type %s", u.Scheme)
+		return nil, fmt.Errorf("unsupported db type %s (from uri %s)", u.Scheme, uri)
 	}
 }

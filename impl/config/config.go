@@ -71,7 +71,7 @@ func GetDefaultConfig() Config {
 			BaseURL:     "http://localhost:8305",
 			LogLocation: "log",
 			LogLevel:    "debug",
-			DBFile:      "diddht.db",
+			DBFile:      "bolt://diddht.db",
 		},
 		DHTConfig: DHTServiceConfig{
 			BootstrapPeers: GetDefaultBootstrapPeers(),
