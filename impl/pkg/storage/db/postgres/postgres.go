@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"embed"
+	"fmt"
 
 	"github.com/TBD54566975/did-dht-method/pkg/storage/pkarr"
 	pgx "github.com/jackc/pgx/v5"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	goose "github.com/pressly/goose/v3"
 )
 
@@ -18,14 +20,14 @@ type postgres string
 func NewPostgres(uri string) (postgres, error) {
 	db := postgres(uri)
 	if err := db.migrate(); err != nil {
-		return db, err
+		return db, fmt.Errorf("error migrating postgres database: %v", err)
 	}
 
 	return db, nil
 }
 
 func (p postgres) migrate() error {
-	db, err := sql.Open("postgres", string(p))
+	db, err := sql.Open("pgx/v5", string(p))
 	if err != nil {
 		return err
 	}
