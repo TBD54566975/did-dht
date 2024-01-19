@@ -28,7 +28,7 @@ All are welcome to propose changes to this registry.
 
 ### Key Type Index
 
-Corresponds to the mapping, for a DID Document's DNS packet representation, of a cryptograhpic key type to its index value.
+Corresponds to the mapping, for a DID Document's DNS packet representation, of a cryptographic key type to its index value.
 
 | Index | Key Type                                               |
 | ----- | ------------------------------------------------------ |
@@ -52,7 +52,7 @@ record is as follows:
 Represents an optional extension to a DID Document's DNS packet representation exposed as a [type index](../index.html#type-indexing).
 
 ::: note
-The type `0` is reserved for DIDs that do not wish to associate themselves with a specific type, but wish to make
+Type `0` is reserved for DIDs that do not wish to associate themselves with a specific type but wish to make
 themselves discoverable via a [[ref:Gateway]]'s API.
 :::
 
@@ -86,7 +86,7 @@ To publish a [[ref:DID Key]] to the DHT, the process is as follows:
 3. Expand the `did:key` using the [process outlined in the did:key spec](https://w3c-ccg.github.io/did-method-key/#read), 
 with `options.publicKeyFormat` set to `JsonWebKey`.
 4. Optionally, amend the [[ref:DID Document]] with additional properties (Verification Methods, Services, etc.).
-5. Follow steps 3 onward in as outlined in the [create section of the spec](../index.html#create), using the identifier from step 2.
+5. Follow steps 3 onward as outlined in the [create section of the spec](../index.html#create), using the identifier from step 2.
 
 ::: todo
 [](https://github.com/w3c-ccg/did-method-key/issues/66)
@@ -117,7 +117,7 @@ To publish a [[ref:DID JWK]] to the DHT, the process is as follows:
 2. Verify that the JWK represents an [[ref:Ed25519]] key.
 3. Transform the [[ref:Ed25519]] key to its bytes representation and re-encode it using [[ref:z-base-32]].
 4. Optionally, amend the [[ref:DID Document]] with additional properties (Verification Methods, Services, etc.).
-5. Follow steps 3 onward in as outlined in the [create section](#create) above, using the identifier from step 3.
+5. Follow steps 3 onward as outlined in the [create section](#create) above, using the identifier from step 3.
 
 ##### Resolving
 
@@ -129,13 +129,16 @@ To publish a [[ref:DID JWK]] to the DHT, the process is as follows:
 
 ### Gateways
 
-As an **OPTIONAL** feature of the DID DHT Method, Gateway operators have the opportunity to make their [gateways](../index.html#gateways) discoverable. This serves as a registry for such gateways.
+As an **OPTIONAL** feature of the DID DHT Method, Gateway operators have the opportunity to make their [gateways](../index.html#gateways)
+discoverable. This serves as a registry for such gateways.
 
-Gateways ****MUST**** specify the source of their `HASH` value, and the mechanism by which their gateway(s) can be discovered.
+Gateways ****MUST**** specify the source of their `HASH` value and the mechanism by which their gateway(s) can be discovered.
 
 #### Bitcoin Anchored Gateways
 
-Bitcoin is used as a gateway discovery mechanism. By crawling the Bitcoin blockchain, one can discover gateways that are considered to be active. To be considered an active gateway, you ****MUST**** follow the steps outlined below, in order to have an active timelock, which acts as a proof-of-legitimacy for the gateway.
+The Bitcoin network serves as a mechanism for discovering gateways. By scanning the Bitcoin blockchain, active gateways
+can be identified. To be considered an active gateway, you ****MUST*** follow the steps outlined below. These steps
+ensure the maintenance of an active timelock, which serves as a proof-of-legitimacy for the gateway.
 
 1. Generate a relative [[ref:timelock]] transaction for the Bitcoin blockchain with the following attributes:
     - Set the lock duration to 1000
@@ -166,7 +169,7 @@ To discover Bitcoin Anchored Gateways one must follow the following steps:
 [Bitcoin](https://github.com/bitcoin).
 
 [[def:DID Key, DID Key Method]]
-~ [The did:key Method v0.7](https://w3c-ccg.github.io/did-method-key/). A DID Method for Static Cryptograhpic Keys.
+~ [The did:key Method v0.7](https://w3c-ccg.github.io/did-method-key/). A DID Method for Static Cryptographic Keys.
 D. Longley, D. Zagidulin, M. Sporny. [W3C CCG](https://w3c-ccg.github.io/).
 
 [[def:DID JWK, DID JWK Method]]
