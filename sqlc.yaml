@@ -1,10 +1,10 @@
 version: "2"
 sql:
   - engine: "postgresql"
-    queries: "impl/pkg/storage/postgres/queries"
-    schema: "impl/pkg/storage/postgres/migrations"
+    queries: "impl/pkg/storage/db/postgres/queries"
+    schema: "impl/pkg/storage/db/postgres/migrations"
     gen:
       go:
         package: "postgres"
-        out: "impl/pkg/storage/postgres"
+        out: "impl/pkg/storage/db/postgres"
         sql_package: "pgx/v5"

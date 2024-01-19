@@ -1,32 +1,19 @@
-package storage
+package bolt
 
 import (
-	"github.com/goccy/go-json"
+	"context"
+	"encoding/json"
+
+	"github.com/TBD54566975/did-dht-method/pkg/storage/pkarr"
 )
 
 const (
 	pkarrNamespace = "pkarr"
 )
 
-type PkarrRecord struct {
-	// Up to an 1000 byte base64URL encoded string
-	V string `json:"v" validate:"required"`
-	// 32 byte base64URL encoded string
-	K string `json:"k" validate:"required"`
-	// 64 byte base64URL encoded string
-	Sig string `json:"sig" validate:"required"`
-	Seq int64  `json:"seq" validate:"required"`
-}
-
-type PKARRStorage interface {
-	WriteRecord(record PkarrRecord) error
-	ReadRecord(id string) (*PkarrRecord, error)
-	ListRecords() ([]PkarrRecord, error)
-}
-
 // WriteRecord writes the given record to the storage
 // TODO: don't overwrite existing records, store unique seq numbers
-func (s *Storage) WriteRecord(record PkarrRecord) error {
+func (s *Storage) WriteRecord(_ context.Context, record pkarr.PkarrRecord) error {
 	recordBytes, err := json.Marshal(record)
 	if err != nil {
 		return err
@@ -35,7 +22,7 @@ func (s *Storage) WriteRecord(record PkarrRecord) error {
 }
 
 // ReadRecord reads the record with the given id from the storage
-func (s *Storage) ReadRecord(id string) (*PkarrRecord, error) {
+func (s *Storage) ReadRecord(_ context.Context, id string) (*pkarr.PkarrRecord, error) {
 	recordBytes, err := s.Read(pkarrNamespace, id)
 	if err != nil {
 		return nil, err
@@ -43,7 +30,7 @@ func (s *Storage) ReadRecord(id string) (*PkarrRecord, error) {
 	if len(recordBytes) == 0 {
 		return nil, nil
 	}
-	var record PkarrRecord
+	var record pkarr.PkarrRecord
 	if err = json.Unmarshal(recordBytes, &record); err != nil {
 		return nil, err
 	}
@@ -51,14 +38,14 @@ func (s *Storage) ReadRecord(id string) (*PkarrRecord, error) {
 }
 
 // ListRecords lists all records in the storage
-func (s *Storage) ListRecords() ([]PkarrRecord, error) {
+func (s *Storage) ListRecords(_ context.Context) ([]pkarr.PkarrRecord, error) {
 	recordsMap, err := s.ReadAll(pkarrNamespace)
 	if err != nil {
 		return nil, err
 	}
-	var records []PkarrRecord
+	var records []pkarr.PkarrRecord
 	for _, recordBytes := range recordsMap {
-		var record PkarrRecord
+		var record pkarr.PkarrRecord
 		if err = json.Unmarshal(recordBytes, &record); err != nil {
 			return nil, err
 		}

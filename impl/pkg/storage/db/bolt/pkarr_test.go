@@ -1,9 +1,8 @@
-package storage_test
+package bolt
 
 import (
 	"context"
 	"encoding/base64"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,21 +10,12 @@ import (
 
 	"github.com/TBD54566975/did-dht-method/internal/did"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
-	"github.com/TBD54566975/did-dht-method/pkg/storage"
 	"github.com/TBD54566975/did-dht-method/pkg/storage/pkarr"
 )
 
 func TestPKARRStorage(t *testing.T) {
-	uri := os.Getenv("TEST_DB")
-	if uri == "" {
-		uri = "bolt://test.db"
-	}
-
-	db, err := storage.NewStorage(uri)
-	if err != nil {
-		panic(err)
-	}
-	// defer db.Close()
+	db := setupBoltDB(t)
+	defer db.Close()
 	require.NotEmpty(t, db)
 
 	// create a did doc as a packet to store

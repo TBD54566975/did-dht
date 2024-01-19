@@ -18,6 +18,7 @@ import (
 	dhtint "github.com/TBD54566975/did-dht-method/internal/dht"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
+	"github.com/TBD54566975/did-dht-method/pkg/storage/pkarr"
 )
 
 const recordSizeLimit = 1000
@@ -25,20 +26,18 @@ const recordSizeLimit = 1000
 // PkarrService is the Pkarr service responsible for managing the Pkarr DHT and reading/writing records
 type PkarrService struct {
 	cfg       *config.Config
-	db        *storage.Storage
+	db        storage.Storage
 	dht       *dht.DHT
 	cache     *bigcache.BigCache
 	scheduler *dhtint.Scheduler
 }
 
 // NewPkarrService returns a new instance of the Pkarr service
-func NewPkarrService(cfg *config.Config, db *storage.Storage) (*PkarrService, error) {
+func NewPkarrService(cfg *config.Config, db storage.Storage) (*PkarrService, error) {
 	if cfg == nil {
 		return nil, util.LoggingNewError("config is required")
 	}
-	if db == nil && !db.IsOpen() {
-		return nil, util.LoggingNewError("storage is required be non-nil and to be open")
-	}
+
 	d, err := dht.NewDHT(cfg.DHTConfig.BootstrapPeers)
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to instantiate dht")
@@ -92,9 +91,9 @@ func (p PublishPkarrRequest) isValid() error {
 	return nil
 }
 
-func (p PublishPkarrRequest) toRecord() storage.PkarrRecord {
+func (p PublishPkarrRequest) toRecord() pkarr.PkarrRecord {
 	encoding := base64.RawURLEncoding
-	return storage.PkarrRecord{
+	return pkarr.PkarrRecord{
 		V:   encoding.EncodeToString(p.V),
 		K:   encoding.EncodeToString(p.K[:]),
 		Sig: encoding.EncodeToString(p.Sig[:]),
@@ -110,7 +109,7 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, request Publ
 
 	// write to db and cache
 	record := request.toRecord()
-	if err := s.db.WriteRecord(record); err != nil {
+	if err := s.db.WriteRecord(ctx, record); err != nil {
 		return err
 	}
 	recordBytes, err := json.Marshal(GetPkarrResponse{
@@ -150,7 +149,7 @@ type GetPkarrResponse struct {
 	Sig [64]byte `validate:"required"`
 }
 
-func fromPkarrRecord(record storage.PkarrRecord) (*GetPkarrResponse, error) {
+func fromPkarrRecord(record pkarr.PkarrRecord) (*GetPkarrResponse, error) {
 	encoding := base64.RawURLEncoding
 	vBytes, err := encoding.DecodeString(record.V)
 	if err != nil {
@@ -184,7 +183,7 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrRespon
 	if err != nil {
 		// try to resolve from storage before returning and error
 		logrus.WithError(err).Warnf("failed to get pkarr record[%s] from dht, attempting to resolve from storage", id)
-		record, err := s.db.ReadRecord(id)
+		record, err := s.db.ReadRecord(ctx, id)
 		if err != nil || record == nil {
 			logrus.WithError(err).Errorf("failed to resolve pkarr record[%s] from storage", id)
 			return nil, err
@@ -235,7 +234,7 @@ func (s *PkarrService) addRecordToCache(id string, resp GetPkarrResponse) error 
 
 // TODO(gabe) make this more efficient. create a publish schedule based on each individual record, not all records
 func (s *PkarrService) republish() {
-	allRecords, err := s.db.ListRecords()
+	allRecords, err := s.db.ListRecords(context.Background())
 	if err != nil {
 		logrus.WithError(err).Error("failed to list record(s) for republishing")
 		return
@@ -262,7 +261,7 @@ func (s *PkarrService) republish() {
 	logrus.Infof("Republishing complete. Successfully republished %d out of %d record(s)", len(allRecords)-errCnt, len(allRecords))
 }
 
-func recordToBEP44Put(record storage.PkarrRecord) (*bep44.Put, error) {
+func recordToBEP44Put(record pkarr.PkarrRecord) (*bep44.Put, error) {
 	encoding := base64.RawURLEncoding
 	vBytes, err := encoding.DecodeString(record.V)
 	if err != nil {

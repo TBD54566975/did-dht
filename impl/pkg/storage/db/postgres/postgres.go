@@ -1,9 +1,12 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"embed"
+	"errors"
 
+	"github.com/TBD54566975/did-dht-method/pkg/storage/pkarr"
 	_ "github.com/jackc/pgx/v5"
 	goose "github.com/pressly/goose/v3"
 )
@@ -39,4 +42,16 @@ func (p postgres) migrate() error {
 	}
 
 	return nil
+}
+
+func (p postgres) WriteRecord(ctx context.Context, record pkarr.PkarrRecord) error {
+	return errors.New("not yet implemented")
+}
+
+func (p postgres) ReadRecord(ctx context.Context, id string) (*pkarr.PkarrRecord, error) {
+	return nil, errors.New("not yet implemented")
+}
+
+func (p postgres) ListRecords(ctx context.Context) ([]pkarr.PkarrRecord, error) {
+	return nil, errors.New("not yet implemented")
 }
