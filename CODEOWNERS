@@ -10,7 +10,8 @@
 
 # These owners will be the default owners for everything in the repo.
 *       @decentralgabe
-spec    @csuwildcat
+spec    @csuwildcat @frankhinek @mistermoe
+impl    @mistermoe @finn-tbd
 
 # -----------------------------------------------
 # BELOW THIS LINE ARE TEMPLATES, UNUSED
