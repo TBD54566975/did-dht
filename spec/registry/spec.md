@@ -169,7 +169,7 @@ To discover Bitcoin Anchored Gateways one must follow the following steps:
 [Bitcoin](https://github.com/bitcoin).
 
 [[def:DID Key, DID Key Method]]
-~ [The did:key Method v0.7](https://w3c-ccg.github.io/did-method-key/). A DID Method for Static Cryptograhpic Keys.
+~ [The did:key Method v0.7](https://w3c-ccg.github.io/did-method-key/). A DID Method for Static Cryptographic Keys.
 D. Longley, D. Zagidulin, M. Sporny. [W3C CCG](https://w3c-ccg.github.io/).
 
 [[def:DID JWK, DID JWK Method]]
