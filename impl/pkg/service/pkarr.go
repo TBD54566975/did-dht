@@ -128,12 +128,17 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, request Publ
 
 	// return here and put it in the DHT asynchronously
 	// TODO(gabe): consider a background process to monitor failures
-	go s.dht.Put(ctx, bep44.Put{
-		V:   request.V,
-		K:   &request.K,
-		Sig: request.Sig,
-		Seq: request.Seq,
-	})
+	go func() {
+		_, err := s.dht.Put(ctx, bep44.Put{
+			V:   request.V,
+			K:   &request.K,
+			Sig: request.Sig,
+			Seq: request.Seq,
+		})
+		if err != nil {
+			logrus.WithError(err).Error("error from dht.Put")
+		}
+	}()
 
 	return nil
 }
