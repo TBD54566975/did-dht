@@ -220,6 +220,8 @@ A [DID controller](https://www.w3.org/TR/did-core/#did-controller) ****MAY**** b
 If present, a DID controller ****MUST**** be represented as a `_cnt._did` record in the form of a comma-separated
 list of controller DID identifiers.
 
+The controller for the [[ref:Identity Key]] Verification Method ****MUST**** match the controller property.
+
 An example is given as follows:
 
 | Name       | Type | TTL  | Rdata            |
@@ -252,6 +254,12 @@ and `O` is the unpadded base64URL [[spec:RFC4648]] representation of the public 
 represented by `c=C` where `C` is the identifier of the verification method's controller (e.g. `id=M;t=N;k=O;c=C`). If omitted,
 it is assumed that the controller of the verification method is the [[ref:Identity Key]].
 
+::: note
+Controllers are not cryptographically verified by [[ref:Gateways]] or this DID method. This means any DID may choose to list
+a controller, even if there is no relationship between the identifiers. As such, DID controllers should be interrogated to 
+assert the veracity of their relations.
+:::
+
 #### Verification Relationships
 
 - Each [Verification Relationship](https://www.w3.org/TR/did-core/#verification-relationships) is represented as a part
@@ -275,7 +283,7 @@ represented as a comma-separated list of key references.
 An example is as follows:
 
 | Verification Relationship            | Rdata in the Root Record                    |
-|-------------------------------------|----------------------------------------------|
+|--------------------------------------|---------------------------------------------|
 | "authentication": ["#0", "#HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ"] | auth=0,HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ |
 | "assertionMethod": ["#0", "#HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ"]| asm=0,HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ  |
 | "keyAgreement": ["#1"]              | agm=1                                        |
