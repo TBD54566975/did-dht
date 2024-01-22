@@ -7,8 +7,8 @@ package postgres
 import ()
 
 type PkarrRecord struct {
-	ID    int32
 	Key   string
 	Value string
 	Sig   string
+	Seq   int64
 }

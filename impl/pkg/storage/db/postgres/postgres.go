@@ -65,6 +65,7 @@ func (p postgres) WriteRecord(ctx context.Context, record pkarr.PkarrRecord) err
 		Key:   record.K,
 		Value: record.V,
 		Sig:   record.Sig,
+		Seq:   record.Seq,
 	})
 	if err != nil {
 		return err
@@ -89,7 +90,7 @@ func (p postgres) ReadRecord(ctx context.Context, id string) (*pkarr.PkarrRecord
 		K:   record.Key,
 		V:   record.Value,
 		Sig: record.Sig,
-		Seq: int64(record.ID),
+		Seq: record.Seq,
 	}, nil
 }
 
@@ -111,7 +112,7 @@ func (p postgres) ListRecords(ctx context.Context) ([]pkarr.PkarrRecord, error) 
 			K:   row.Key,
 			V:   row.Value,
 			Sig: row.Sig,
-			Seq: int64(row.ID),
+			Seq: row.Seq,
 		})
 	}
 

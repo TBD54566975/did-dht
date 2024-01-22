@@ -10,7 +10,7 @@ import (
 )
 
 const listRecords = `-- name: ListRecords :many
-SELECT id, key, value, sig FROM pkarr_records
+SELECT key, value, sig, seq FROM pkarr_records
 `
 
 func (q *Queries) ListRecords(ctx context.Context) ([]PkarrRecord, error) {
@@ -23,10 +23,10 @@ func (q *Queries) ListRecords(ctx context.Context) ([]PkarrRecord, error) {
 	for rows.Next() {
 		var i PkarrRecord
 		if err := rows.Scan(
-			&i.ID,
 			&i.Key,
 			&i.Value,
 			&i.Sig,
+			&i.Seq,
 		); err != nil {
 			return nil, err
 		}
@@ -39,32 +39,38 @@ func (q *Queries) ListRecords(ctx context.Context) ([]PkarrRecord, error) {
 }
 
 const readRecord = `-- name: ReadRecord :one
-SELECT id, key, value, sig FROM pkarr_records WHERE key = $1 LIMIT 1
+SELECT key, value, sig, seq FROM pkarr_records WHERE key = $1 LIMIT 1
 `
 
 func (q *Queries) ReadRecord(ctx context.Context, key string) (PkarrRecord, error) {
 	row := q.db.QueryRow(ctx, readRecord, key)
 	var i PkarrRecord
 	err := row.Scan(
-		&i.ID,
 		&i.Key,
 		&i.Value,
 		&i.Sig,
+		&i.Seq,
 	)
 	return i, err
 }
 
 const writeRecord = `-- name: WriteRecord :exec
-INSERT INTO pkarr_records(key, value, sig) VALUES($1, $2, $3)
+INSERT INTO pkarr_records(key, value, sig, seq) VALUES($1, $2, $3, $4)
 `
 
 type WriteRecordParams struct {
 	Key   string
 	Value string
 	Sig   string
+	Seq   int64
 }
 
 func (q *Queries) WriteRecord(ctx context.Context, arg WriteRecordParams) error {
-	_, err := q.db.Exec(ctx, writeRecord, arg.Key, arg.Value, arg.Sig)
+	_, err := q.db.Exec(ctx, writeRecord,
+		arg.Key,
+		arg.Value,
+		arg.Sig,
+		arg.Seq,
+	)
 	return err
 }
