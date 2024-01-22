@@ -19,6 +19,7 @@ type boltdb struct {
 	db *bolt.DB
 }
 
+// NewBolt creates a BoltDB-based implementation of storage.Storage
 func NewBolt(path string) (*boltdb, error) {
 	if path == "" {
 		return nil, errors.New("path is required")

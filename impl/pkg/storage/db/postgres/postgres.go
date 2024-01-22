@@ -17,7 +17,7 @@ var migrations embed.FS
 
 type postgres string
 
-// NewPostgres creates a PostgresQL-based instance of storage.Storage
+// NewPostgres creates a PostgresQL-based implementation of storage.Storage
 func NewPostgres(uri string) (postgres, error) {
 	db := postgres(uri)
 	if err := db.migrate(); err != nil {
