@@ -60,3 +60,9 @@ jobs:
 
       - name: Test
         run: mage citest
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          working-directory: impl

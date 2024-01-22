@@ -1,8 +1,6 @@
 package server
 
 import (
-	"bytes"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -12,7 +10,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/TBD54566975/did-dht-method/config"
 )
@@ -51,13 +48,6 @@ func TestHealthCheckAPI(t *testing.T) {
 // Is2xxResponse returns true if the given status code is a 2xx response
 func is2xxResponse(statusCode int) bool {
 	return statusCode/100 == 2
-}
-
-func newJSONRequestValue(t *testing.T, data any) io.Reader {
-	dataBytes, err := json.Marshal(data)
-	require.NoError(t, err)
-	require.NotEmpty(t, dataBytes)
-	return bytes.NewReader(dataBytes)
 }
 
 // construct a context value as expected by our handler
