@@ -940,7 +940,7 @@ A DID Document with two keys ([[ref:Identity Key]] and an uncompressed secp256k1
 
 **secp256k1 Public Key JWK:**
 
-With controller: `did:example:abcd`.
+With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
 
 ```json
 {
@@ -990,7 +990,7 @@ With controller: `did:example:abcd`.
     {
       "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw",
       "type": "JsonWebKey",
-      "controller": "did:example:abcd",
+      "controller": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
       "publicKeyJwk": {
         "kty": "EC",
         "crv": "secp256k1",
