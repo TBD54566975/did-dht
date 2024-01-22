@@ -102,7 +102,7 @@ func TestPKARRService(t *testing.T) {
 
 func newPKARRService(t *testing.T) PkarrService {
 	defaultConfig := config.GetDefaultConfig()
-	db, err := storage.NewStorage(defaultConfig.ServerConfig.DBFile)
+	db, err := storage.NewStorage(defaultConfig.ServerConfig.StorageURI)
 	require.NoError(t, err)
 	require.NotEmpty(t, db)
 	pkarrService, err := NewPkarrService(&defaultConfig, db)

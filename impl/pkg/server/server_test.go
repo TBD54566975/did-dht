@@ -25,7 +25,7 @@ func TestMain(t *testing.M) {
 func TestHealthCheckAPI(t *testing.T) {
 	shutdown := make(chan os.Signal, 1)
 	serviceConfig, err := config.LoadConfig("")
-	serviceConfig.ServerConfig.DBFile = "bolt://health-check.db"
+	serviceConfig.ServerConfig.StorageURI = "bolt://health-check.db"
 	serviceConfig.ServerConfig.BaseURL = testServerURL
 	assert.NoError(t, err)
 	server, err := NewServer(serviceConfig, shutdown)
