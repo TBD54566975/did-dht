@@ -11,9 +11,10 @@ import (
 )
 
 type Storage interface {
-	WriteRecord(ctx context.Context, record pkarr.PkarrRecord) error
-	ReadRecord(ctx context.Context, id string) (*pkarr.PkarrRecord, error)
-	ListRecords(ctx context.Context) ([]pkarr.PkarrRecord, error)
+	WriteRecord(ctx context.Context, record pkarr.Record) error
+	ReadRecord(ctx context.Context, id string) (*pkarr.Record, error)
+	ListRecords(ctx context.Context) ([]pkarr.Record, error)
+	Close() error
 }
 
 func NewStorage(uri string) (Storage, error) {
@@ -22,12 +23,12 @@ func NewStorage(uri string) (Storage, error) {
 		return nil, err
 	}
 	switch u.Scheme {
-	case "bolt":
+	case "bolt", "":
 		filename := u.Host
 		if u.Path != "" {
 			filename = fmt.Sprintf("%s/%s", filename, u.Path)
 		}
-		return bolt.NewStorage(filename)
+		return bolt.NewBolt(filename)
 	case "postgres":
 		return postgres.NewPostgres(uri)
 	default:

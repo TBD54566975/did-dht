@@ -23,9 +23,9 @@ func TestPKARRStorage(t *testing.T) {
 
 	db, err := storage.NewStorage(uri)
 	if err != nil {
-		panic(err)
+		require.NoError(t, err)
 	}
-	// defer db.Close()
+	defer db.Close()
 	require.NotEmpty(t, db)
 
 	// create a did doc as a packet to store
@@ -43,7 +43,7 @@ func TestPKARRStorage(t *testing.T) {
 
 	// create record
 	encoding := base64.RawURLEncoding
-	record := pkarr.PkarrRecord{
+	record := pkarr.Record{
 		V:   encoding.EncodeToString(putMsg.V.([]byte)),
 		K:   encoding.EncodeToString(putMsg.K[:]),
 		Sig: encoding.EncodeToString(putMsg.Sig[:]),

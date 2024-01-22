@@ -1,21 +1,25 @@
 package bolt
 
 import (
-	"bytes"
 	"context"
-	"fmt"
+	"encoding/json"
 	"time"
 
+	"github.com/TBD54566975/did-dht-method/pkg/storage/pkarr"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
 )
 
-type Storage struct {
+const (
+	pkarrNamespace = "pkarr"
+)
+
+type boltdb struct {
 	db *bolt.DB
 }
 
-func NewStorage(path string) (*Storage, error) {
+func NewBolt(path string) (*boltdb, error) {
 	if path == "" {
 		return nil, errors.New("path is required")
 	}
@@ -24,40 +28,57 @@ func NewStorage(path string) (*Storage, error) {
 		return nil, err
 	}
 
-	return &Storage{db: db}, nil
+	return &boltdb{db: db}, nil
 }
 
-// URI return filepath of boltDB,
-func (s *Storage) URI() string {
-	return s.db.Path()
+// WriteRecord writes the given record to the storage
+// TODO: don't overwrite existing records, store unique seq numbers
+func (s *boltdb) WriteRecord(_ context.Context, record pkarr.Record) error {
+	recordBytes, err := json.Marshal(record)
+	if err != nil {
+		return err
+	}
+	return s.write(pkarrNamespace, record.K, recordBytes)
 }
 
-func (s *Storage) Close() error {
+// ReadRecord reads the record with the given id from the storage
+func (s *boltdb) ReadRecord(_ context.Context, id string) (*pkarr.Record, error) {
+	recordBytes, err := s.read(pkarrNamespace, id)
+	if err != nil {
+		return nil, err
+	}
+	if len(recordBytes) == 0 {
+		return nil, nil
+	}
+	var record pkarr.Record
+	if err = json.Unmarshal(recordBytes, &record); err != nil {
+		return nil, err
+	}
+	return &record, nil
+}
+
+// ListRecords lists all records in the storage
+func (s *boltdb) ListRecords(_ context.Context) ([]pkarr.Record, error) {
+	recordsMap, err := s.readAll(pkarrNamespace)
+	if err != nil {
+		return nil, err
+	}
+	var records []pkarr.Record
+	for _, recordBytes := range recordsMap {
+		var record pkarr.Record
+		if err = json.Unmarshal(recordBytes, &record); err != nil {
+			return nil, err
+		}
+		records = append(records, record)
+	}
+	return records, nil
+}
+
+func (s *boltdb) Close() error {
 	return s.db.Close()
 }
 
-func (s *Storage) Exists(_ context.Context, namespace, key string) (bool, error) {
-	exists := true
-	var result []byte
-
-	err := s.db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(namespace))
-		if bucket == nil {
-			exists = false
-			return nil
-		}
-		result = bucket.Get([]byte(key))
-		return nil
-	})
-
-	if result == nil {
-		exists = false
-	}
-
-	return exists, err
-}
-
-func (s *Storage) Write(namespace string, key string, value []byte) error {
+func (s *boltdb) write(namespace string, key string, value []byte) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte(namespace))
 		if err != nil {
@@ -70,7 +91,7 @@ func (s *Storage) Write(namespace string, key string, value []byte) error {
 	})
 }
 
-func (s *Storage) Read(namespace, key string) ([]byte, error) {
+func (s *boltdb) read(namespace, key string) ([]byte, error) {
 	var result []byte
 	err := s.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
@@ -84,26 +105,7 @@ func (s *Storage) Read(namespace, key string) ([]byte, error) {
 	return result, err
 }
 
-// ReadPrefix does a prefix query within a dhtNamespace.
-func (s *Storage) ReadPrefix(namespace, prefix string) (map[string][]byte, error) {
-	result := make(map[string][]byte)
-	err := s.db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(namespace))
-		if bucket == nil {
-			errMsg := fmt.Sprintf("namespace[%s] does not exist", namespace)
-			logrus.Error(errMsg)
-			return errors.New(errMsg)
-		}
-		cursor := bucket.Cursor()
-		for k, v := cursor.Seek([]byte(prefix)); k != nil && bytes.HasPrefix(k, []byte(prefix)); k, v = cursor.Next() {
-			result[string(k)] = v
-		}
-		return nil
-	})
-	return result, err
-}
-
-func (s *Storage) ReadAll(namespace string) (map[string][]byte, error) {
+func (s *boltdb) readAll(namespace string) (map[string][]byte, error) {
 	result := make(map[string][]byte)
 	err := s.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
@@ -118,56 +120,4 @@ func (s *Storage) ReadAll(namespace string) (map[string][]byte, error) {
 		return nil
 	})
 	return result, err
-}
-
-func (s *Storage) ReadAllKeys(namespace string) ([]string, error) {
-	var result []string
-	err := s.db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(namespace))
-		if bucket == nil {
-			logrus.Warnf("namespace[%s] does not exist", namespace)
-			return nil
-		}
-		cursor := bucket.Cursor()
-		for k, _ := cursor.First(); k != nil; k, _ = cursor.Next() {
-			result = append(result, string(k))
-		}
-		return nil
-	})
-	return result, err
-}
-
-func (s *Storage) Update(namespace string, key string, value []byte) error {
-	return s.db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(namespace))
-		if bucket == nil {
-			return fmt.Errorf("namespace[%s] does not exist", namespace)
-		}
-		if bucket.Get([]byte(key)) == nil {
-			return fmt.Errorf("key[%s] does not exist", key)
-		}
-		if err := bucket.Put([]byte(key), value); err != nil {
-			return err
-		}
-		return nil
-	})
-}
-
-func (s *Storage) Delete(namespace, key string) error {
-	return s.db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(namespace))
-		if bucket == nil {
-			return fmt.Errorf("namespace[%s] does not exist", namespace)
-		}
-		return bucket.Delete([]byte(key))
-	})
-}
-
-func (s *Storage) DeleteNamespace(namespace string) error {
-	return s.db.Update(func(tx *bolt.Tx) error {
-		if err := tx.DeleteBucket([]byte(namespace)); err != nil {
-			return errors.Wrapf(err, "could not delete namespace[%s], n", namespace)
-		}
-		return nil
-	})
 }

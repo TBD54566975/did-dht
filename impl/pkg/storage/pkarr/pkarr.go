@@ -1,6 +1,6 @@
 package pkarr
 
-type PkarrRecord struct {
+type Record struct {
 	// Up to an 1000 byte base64URL encoded string
 	V string `json:"v" validate:"required"`
 	// 32 byte base64URL encoded string
@@ -8,10 +8,4 @@ type PkarrRecord struct {
 	// 64 byte base64URL encoded string
 	Sig string `json:"sig" validate:"required"`
 	Seq int64  `json:"seq" validate:"required"`
-}
-
-type PKARRStorage interface {
-	WriteRecord(record PkarrRecord) error
-	ReadRecord(id string) (*PkarrRecord, error)
-	ListRecords() ([]PkarrRecord, error)
 }

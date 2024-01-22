@@ -17,6 +17,7 @@ var migrations embed.FS
 
 type postgres string
 
+// NewPostgres creates a PostgresQL-based instance of storage.Storage
 func NewPostgres(uri string) (postgres, error) {
 	db := postgres(uri)
 	if err := db.migrate(); err != nil {
@@ -54,7 +55,7 @@ func (p postgres) connect(ctx context.Context) (*Queries, *pgx.Conn, error) {
 	return New(conn), conn, nil
 }
 
-func (p postgres) WriteRecord(ctx context.Context, record pkarr.PkarrRecord) error {
+func (p postgres) WriteRecord(ctx context.Context, record pkarr.Record) error {
 	queries, db, err := p.connect(ctx)
 	if err != nil {
 		return err
@@ -74,7 +75,7 @@ func (p postgres) WriteRecord(ctx context.Context, record pkarr.PkarrRecord) err
 	return nil
 }
 
-func (p postgres) ReadRecord(ctx context.Context, id string) (*pkarr.PkarrRecord, error) {
+func (p postgres) ReadRecord(ctx context.Context, id string) (*pkarr.Record, error) {
 	queries, db, err := p.connect(ctx)
 	if err != nil {
 		return nil, err
@@ -86,7 +87,7 @@ func (p postgres) ReadRecord(ctx context.Context, id string) (*pkarr.PkarrRecord
 		return nil, err
 	}
 
-	return &pkarr.PkarrRecord{
+	return &pkarr.Record{
 		K:   record.Key,
 		V:   record.Value,
 		Sig: record.Sig,
@@ -94,7 +95,7 @@ func (p postgres) ReadRecord(ctx context.Context, id string) (*pkarr.PkarrRecord
 	}, nil
 }
 
-func (p postgres) ListRecords(ctx context.Context) ([]pkarr.PkarrRecord, error) {
+func (p postgres) ListRecords(ctx context.Context) ([]pkarr.Record, error) {
 	queries, db, err := p.connect(ctx)
 	if err != nil {
 		return nil, err
@@ -106,9 +107,9 @@ func (p postgres) ListRecords(ctx context.Context) ([]pkarr.PkarrRecord, error) 
 		return nil, err
 	}
 
-	var records []pkarr.PkarrRecord
+	var records []pkarr.Record
 	for _, row := range rows {
-		records = append(records, pkarr.PkarrRecord{
+		records = append(records, pkarr.Record{
 			K:   row.Key,
 			V:   row.Value,
 			Sig: row.Sig,
@@ -117,4 +118,9 @@ func (p postgres) ListRecords(ctx context.Context) ([]pkarr.PkarrRecord, error) 
 	}
 
 	return records, nil
+}
+
+func (p postgres) Close() error {
+	// no-op, postgres connection is closed after each request
+	return nil
 }

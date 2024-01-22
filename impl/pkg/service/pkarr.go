@@ -91,9 +91,9 @@ func (p PublishPkarrRequest) isValid() error {
 	return nil
 }
 
-func (p PublishPkarrRequest) toRecord() pkarr.PkarrRecord {
+func (p PublishPkarrRequest) toRecord() pkarr.Record {
 	encoding := base64.RawURLEncoding
-	return pkarr.PkarrRecord{
+	return pkarr.Record{
 		V:   encoding.EncodeToString(p.V),
 		K:   encoding.EncodeToString(p.K[:]),
 		Sig: encoding.EncodeToString(p.Sig[:]),
@@ -149,7 +149,7 @@ type GetPkarrResponse struct {
 	Sig [64]byte `validate:"required"`
 }
 
-func fromPkarrRecord(record pkarr.PkarrRecord) (*GetPkarrResponse, error) {
+func fromPkarrRecord(record pkarr.Record) (*GetPkarrResponse, error) {
 	encoding := base64.RawURLEncoding
 	vBytes, err := encoding.DecodeString(record.V)
 	if err != nil {
@@ -261,7 +261,7 @@ func (s *PkarrService) republish() {
 	logrus.Infof("Republishing complete. Successfully republished %d out of %d record(s)", len(allRecords)-errCnt, len(allRecords))
 }
 
-func recordToBEP44Put(record pkarr.PkarrRecord) (*bep44.Put, error) {
+func recordToBEP44Put(record pkarr.Record) (*bep44.Put, error) {
 	encoding := base64.RawURLEncoding
 	vBytes, err := encoding.DecodeString(record.V)
 	if err != nil {

@@ -1,12 +1,18 @@
 package bolt
 
 import (
+	"context"
+	"encoding/base64"
 	"os"
 	"testing"
 
+	"github.com/TBD54566975/did-dht-method/internal/did"
+	"github.com/TBD54566975/did-dht-method/pkg/dht"
+	"github.com/TBD54566975/did-dht-method/pkg/storage/pkarr"
 	"github.com/goccy/go-json"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBoltDB_ReadWrite(t *testing.T) {
@@ -20,11 +26,11 @@ func TestBoltDB_ReadWrite(t *testing.T) {
 	p1Bytes, err := json.Marshal(players1)
 	assert.NoError(t, err)
 
-	err = db.Write(namespace, team1, p1Bytes)
+	err = db.write(namespace, team1, p1Bytes)
 	assert.NoError(t, err)
 
 	// get it back
-	gotPlayers1, err := db.Read(namespace, team1)
+	gotPlayers1, err := db.read(namespace, team1)
 	assert.NoError(t, err)
 
 	var players1Result []string
@@ -33,12 +39,12 @@ func TestBoltDB_ReadWrite(t *testing.T) {
 	assert.EqualValues(t, players1, players1Result)
 
 	// get a value from a dhtNamespace that doesn't exist
-	res, err := db.Read("bad", "worse")
+	res, err := db.read("bad", "worse")
 	assert.NoError(t, err)
 	assert.Empty(t, res)
 
 	// get a value that doesn't exist in the dhtNamespace
-	noValue, err := db.Read(namespace, "Porsche")
+	noValue, err := db.read(namespace, "Porsche")
 	assert.NoError(t, err)
 	assert.Empty(t, noValue)
 
@@ -48,11 +54,11 @@ func TestBoltDB_ReadWrite(t *testing.T) {
 	p2Bytes, err := json.Marshal(players2)
 	assert.NoError(t, err)
 
-	err = db.Write(namespace, team2, p2Bytes)
+	err = db.write(namespace, team2, p2Bytes)
 	assert.NoError(t, err)
 
 	// get all values from the dhtNamespace
-	gotAll, err := db.ReadAll(namespace)
+	gotAll, err := db.readAll(namespace)
 	assert.NoError(t, err)
 	assert.True(t, len(gotAll) == 2)
 
@@ -61,31 +67,6 @@ func TestBoltDB_ReadWrite(t *testing.T) {
 
 	_, gotMcLaren := gotAll[team2]
 	assert.True(t, gotMcLaren)
-
-	// delete value in the dhtNamespace
-	err = db.Delete(namespace, team2)
-	assert.NoError(t, err)
-
-	gotPlayers2, err := db.Read(namespace, team2)
-	assert.NoError(t, err)
-	assert.Empty(t, gotPlayers2)
-
-	// delete value in a dhtNamespace that doesn't exist
-	err = db.Delete("bad", team2)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "namespace[bad] does not exist")
-
-	// delete a dhtNamespace that doesn't exist
-	err = db.DeleteNamespace("bad")
-	assert.Contains(t, err.Error(), "could not delete namespace[bad]")
-
-	// delete dhtNamespace
-	err = db.DeleteNamespace(namespace)
-	assert.NoError(t, err)
-
-	res, err = db.Read(namespace, team1)
-	assert.NoError(t, err)
-	assert.Empty(t, res)
 }
 
 func TestBoltDB_PrefixAndKeys(t *testing.T) {
@@ -96,42 +77,22 @@ func TestBoltDB_PrefixAndKeys(t *testing.T) {
 	// set up prefix read test
 
 	dummyData := []byte("dummy")
-	err := db.Write(namespace, "bitcoin-testnet", dummyData)
+	err := db.write(namespace, "bitcoin-testnet", dummyData)
 	assert.NoError(t, err)
 
-	err = db.Write(namespace, "bitcoin-mainnet", dummyData)
+	err = db.write(namespace, "bitcoin-mainnet", dummyData)
 	assert.NoError(t, err)
 
-	err = db.Write(namespace, "tezos-testnet", dummyData)
+	err = db.write(namespace, "tezos-testnet", dummyData)
 	assert.NoError(t, err)
 
-	err = db.Write(namespace, "tezos-mainnet", dummyData)
+	err = db.write(namespace, "tezos-mainnet", dummyData)
 	assert.NoError(t, err)
-
-	prefixValues, err := db.ReadPrefix(namespace, "bitcoin")
-	assert.NoError(t, err)
-	assert.Len(t, prefixValues, 2)
-
-	keys := make([]string, 0, len(prefixValues))
-	for k := range prefixValues {
-		keys = append(keys, k)
-	}
-	assert.Contains(t, keys, "bitcoin-testnet")
-	assert.Contains(t, keys, "bitcoin-mainnet")
-
-	// read all keys
-	allKeys, err := db.ReadAllKeys(namespace)
-
-	assert.NoError(t, err)
-	assert.NotEmpty(t, allKeys)
-	assert.Len(t, allKeys, 4)
-	assert.Contains(t, allKeys, "bitcoin-mainnet")
-	assert.Contains(t, allKeys, "tezos-mainnet")
 }
 
-func setupBoltDB(t *testing.T) *Storage {
+func setupBoltDB(t *testing.T) *boltdb {
 	path := "test.db"
-	db, err := NewStorage(path)
+	db, err := NewBolt(path)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, db)
 
@@ -140,4 +101,48 @@ func setupBoltDB(t *testing.T) *Storage {
 		_ = os.Remove(path)
 	})
 	return db
+}
+
+func TestPKARRStorage(t *testing.T) {
+	db := setupBoltDB(t)
+	defer db.Close()
+	require.NotEmpty(t, db)
+
+	// create a did doc as a packet to store
+	sk, doc, err := did.GenerateDIDDHT(did.CreateDIDDHTOpts{})
+	require.NoError(t, err)
+	require.NotEmpty(t, doc)
+
+	packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, packet)
+
+	putMsg, err := dht.CreatePKARRPublishRequest(sk, *packet)
+	require.NoError(t, err)
+	require.NotEmpty(t, putMsg)
+
+	// create record
+	encoding := base64.RawURLEncoding
+	record := pkarr.Record{
+		V:   encoding.EncodeToString(putMsg.V.([]byte)),
+		K:   encoding.EncodeToString(putMsg.K[:]),
+		Sig: encoding.EncodeToString(putMsg.Sig[:]),
+		Seq: putMsg.Seq,
+	}
+
+	ctx := context.Background()
+
+	err = db.WriteRecord(ctx, record)
+	assert.NoError(t, err)
+
+	// read it back
+	readRecord, err := db.ReadRecord(ctx, record.K)
+	assert.NoError(t, err)
+	assert.Equal(t, record, *readRecord)
+
+	// list and confirm it's there
+	records, err := db.ListRecords(ctx)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, records)
+	assert.Equal(t, record, records[0])
 }
