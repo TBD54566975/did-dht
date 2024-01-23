@@ -2,8 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -26,27 +30,44 @@ var commitHash string
 //	@license.name	Apache 2.0
 //	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
 func main() {
-	logrus.Info("Starting up...")
+	logrus.SetFormatter(&logrus.JSONFormatter{
+		DisableTimestamp: false,
+		PrettyPrint:      true,
+	})
+	logrus.SetReportCaller(true)
 
+	log := logrus.NewEntry(logrus.StandardLogger())
 	if commitHash != "" {
-		logrus.Infof("With commit: %s", commitHash)
+		log = log.WithField("commit", commitHash)
 	}
+	log.Info("starting up")
 
 	if err := run(); err != nil {
-		logrus.Fatalf("main: error: %s", err.Error())
+		logrus.WithError(err).Fatal("unexpected error running server")
 	}
 }
 
 func run() error {
+	// Load config
 	configPath := config.DefaultConfigPath
 	envConfigPath, present := os.LookupEnv(config.ConfigPath.String())
 	if present {
-		logrus.Infof("loading config from env var path: %s", envConfigPath)
 		configPath = envConfigPath
 	}
+
+	logrus.WithField("path", configPath).Info("loading config from file")
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
 		logrus.Fatalf("could not instantiate config: %s", err.Error())
+	}
+
+	// set up logger
+	if logFile := configureLogger(cfg.Log.Level, cfg.Log.Path); logFile != nil {
+		defer func(logFile *os.File) {
+			if err = logFile.Close(); err != nil {
+				logrus.WithError(err).Error("failed to close log file")
+			}
+		}(logFile)
 	}
 
 	// create a channel of buffer size 1 to handle shutdown.
@@ -63,7 +84,7 @@ func run() error {
 
 	serverErrors := make(chan error, 1)
 	go func() {
-		logrus.Infof("main: server started and listening on -> %s", s.Addr)
+		logrus.WithField("listen_address", s.Addr).Info("starting listener")
 		serverErrors <- s.ListenAndServe()
 	}()
 
@@ -71,7 +92,7 @@ func run() error {
 	case err = <-serverErrors:
 		return errors.Wrap(err, "server error")
 	case sig := <-shutdown:
-		logrus.Infof("main: shutdown signal received -> %v", sig)
+		logrus.WithField("signal", sig.String()).Info("shutdown signal received")
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
@@ -85,4 +106,37 @@ func run() error {
 	}
 
 	return nil
+}
+
+// configureLogger configures the logger to logs to the given location and returns a file pointer to a logs
+// file that should be closed upon server shutdown
+func configureLogger(level, location string) *os.File {
+	if level != "" {
+		logLevel, err := logrus.ParseLevel(level)
+		if err != nil {
+			logrus.WithError(err).Errorf("could not parse log level<%s>, setting to info", level)
+			logrus.SetLevel(logrus.InfoLevel)
+		} else {
+			logrus.SetLevel(logLevel)
+		}
+	}
+
+	// set logs config from config file
+	var file *os.File
+	var output io.Writer
+	output = os.Stdout
+	if location != "" {
+		now := time.Now()
+		filename := filepath.Join(location, fmt.Sprintf("%s-%s-%s.log", config.ServiceName, now.Format(time.DateOnly), strconv.FormatInt(now.Unix(), 10)))
+		var err error
+		file, err = os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err != nil {
+			logrus.WithError(err).Warn("failed to create logs file, using default stdout")
+		} else {
+			output = io.MultiWriter(os.Stdout, file)
+		}
+	}
+
+	logrus.SetOutput(output)
+	return file
 }

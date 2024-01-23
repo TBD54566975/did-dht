@@ -606,6 +606,8 @@ github.com/swaggo/swag v1.8.12/go.mod h1:lNfm6Gg+oAq3zRJQNEMBE66LIJKM44mxFqhEEgy
 github.com/tinylib/msgp v1.0.2/go.mod h1:+d+yLhGm8mzTaHzB+wgMYrodPfmZrzkirds8fDWklFE=
 github.com/tinylib/msgp v1.1.0/go.mod h1:+d+yLhGm8mzTaHzB+wgMYrodPfmZrzkirds8fDWklFE=
 github.com/tinylib/msgp v1.1.2/go.mod h1:+d+yLhGm8mzTaHzB+wgMYrodPfmZrzkirds8fDWklFE=
+github.com/toorop/gin-logrus v0.0.0-20210225092905-2c785434f26f h1:oqdnd6OGlOUu1InG37hWcCB3a+Jy3fwjylyVboaNMwY=
+github.com/toorop/gin-logrus v0.0.0-20210225092905-2c785434f26f/go.mod h1:X3Dd1SB8Gt1V968NTzpKFjMM6O8ccta2NPC6MprOxZQ=
 github.com/tv42/zbase32 v0.0.0-20220222190657-f76a9fc892fa h1:2EwhXkNkeMjX9iFYGWLPQLPhw9O58BhnYgtYKeqybcY=
 github.com/tv42/zbase32 v0.0.0-20220222190657-f76a9fc892fa/go.mod h1:is48sjgBanWcA5CQrPBu9Y5yABY/T2awj/zI65bq704=
 github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS4MhqMhdFk5YI=
