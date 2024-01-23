@@ -3,15 +3,21 @@ The DID DHT Method Specification Registry 1.0
 
 **Specification Status**: Working Draft
 
-**Latest Draft:** [tbd54566975.github.io/did-dht-method](https://tbd54566975.github.io/did-dht-method)
+**Latest Draft:** [did-dht.com](https://did-dht.com)
+
+**Latest Registry:** [did-dht.com/registry](https://did-dht.com/registry)
 
 **Draft Created:** November 20, 2023
 
-**Latest Update:** January 5, 2024
+**Latest Update:** January 19, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
 ~ [Daniel Buchner](https://github.com/csuwildcat)
+
+**Contributors:**
+~ [Moe Jangda](https://github.com/mistermoe)
+~ [Frank Hinek](https://github.com/frankhinek)
 
 **Participate:**
 ~ [GitHub repo](https://github.com/TBD54566975/did-dht-method)
@@ -45,7 +51,7 @@ record is as follows:
 
 | Name      | Type | TTL  | Rdata                                                     |
 | --------- | ---- | ---- | --------------------------------------------------------- |
-| _k0._did. | TXT  | 7200 | id=#abcd;t=0;k=r96mnGNgWGOmjt6g_3_0nd4Kls5-kknrd4DdPW8qtfw |
+| _k0._did. | TXT  | 7200 | id=abcd;t=0;k=r96mnGNgWGOmjt6g_3_0nd4Kls5-kknrd4DdPW8qtfw |
 
 ### Indexed Types
 

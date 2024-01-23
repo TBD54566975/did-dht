@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Latest Update:** January 9, 2024
+**Latest Update:** January 19, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -150,7 +150,7 @@ Comprising a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then stored 
 
 | Name      | Type | TTL    | Rdata                                    |
 | --------- | ---- | ------ | ---------------------------------------- |
-| _did.     | TXT  |  7200  | vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2 |
+| _did.     | TXT  |  7200  | v=0;vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2 |
 | _k0._did. | TXT  |  7200  | id=0;t=0;k=`<unpadded-b64url>`           |
 | _k1._did. | TXT  |  7200  | id=1;t=1;k=`<unpadded-b64url>`           |
 | _k2._did. | TXT  |  7200  | id=2;t=1;k=`<unpadded-b64url>`           |
@@ -161,7 +161,13 @@ Comprising a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then stored 
 The recommended TTL value is 7200 seconds (2 hours), the default TTL for Mainline records.
 :::
 
-- A root `_did.` record identifies the [property mapping](#property-mapping) for the document.
+- The root `_did.` record identifies the [property mapping](#property-mapping) for the document, along with
+versioning information.
+
+- The root record ****MUST**** include a version number. The version of the DNS packet representation for
+the `did:dht` method is represented by a property `v=V` where `V` is a monotonically increasing version number.
+The version number for this specification version is **0** (e.g. `v=0`). The version number is not present
+in the corresponding DID Document.
 
 - Additional records like `srv` (services), `vm` (verification methods), and verification relationships
 (e.g., authentication, assertion, etc.) are represented as additional records in the format `<ID>._did.`.
@@ -178,9 +184,9 @@ It might look like repeating `_did` is an overhead, but is compressed away using
 
 - The DID identifier [[ref:z-base-32]]-encoded key ****MUST**** be appended as the Origin of all records:
 
-| Name                                                       | Type | TTL    | Rdata                                                 |
-| ---------------------------------------------------------- | ---- | ------ | ----------------------------------------------------- |
-| _did.o4dksfbqk85ogzdb5osziw6befigbuxmuxkuxq8434q89uj56uyy. | TXT  |  7200  | vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2 |
+| Name                                                       | Type | TTL    | Rdata                                                     |
+| ---------------------------------------------------------- | ---- | ------ | --------------------------------------------------------- |
+| _did.o4dksfbqk85ogzdb5osziw6befigbuxmuxkuxq8434q89uj56uyy. | TXT  |  7200  | v=0;vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2 |
 
 ### Property Mapping
 
@@ -214,6 +220,8 @@ A [DID controller](https://www.w3.org/TR/did-core/#did-controller) ****MAY**** b
 If present, a DID controller ****MUST**** be represented as a `_cnt._did` record in the form of a comma-separated
 list of controller DID identifiers.
 
+To ensure that the DID controller is authorized to make changes to the DID Document, the controller for the [[ref:Identity Key]] Verification Method ****MUST**** be contained within the controller property.
+
 An example is given as follows:
 
 | Name       | Type | TTL  | Rdata            |
@@ -242,6 +250,16 @@ a given [Verification Method](https://www.w3.org/TR/did-core/#verification-metho
 `id=M;t=N;k=O` where `M` is the key's ID, `N` is the index of the key's type from [key type index](registry/index.html#key-type-index),
 and `O` is the unpadded base64URL [[spec:RFC4648]] representation of the public key.
 
+- [Verification Methods](https://www.w3.org/TR/did-core/#verification-methods) may have an _optional_ **controller** property
+represented by `c=C` where `C` is the identifier of the verification method's controller (e.g. `id=M;t=N;k=O;c=C`). If omitted,
+it is assumed that the controller of the verification method is the [[ref:Identity Key]].
+
+::: note
+Controllers are not cryptographically verified by [[ref:Gateways]] or this DID method. This means any DID may choose to list
+a controller, even if there is no relationship between the identifiers. As such, DID controllers should be interrogated to 
+assert the veracity of their relations.
+:::
+
 #### Verification Relationships
 
 - Each [Verification Relationship](https://www.w3.org/TR/did-core/#verification-relationships) is represented as a part
@@ -265,7 +283,7 @@ represented as a comma-separated list of key references.
 An example is as follows:
 
 | Verification Relationship            | Rdata in the Root Record                    |
-|-------------------------------------|----------------------------------------------|
+|--------------------------------------|---------------------------------------------|
 | "authentication": ["#0", "#HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ"] | auth=0,HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ |
 | "assertionMethod": ["#0", "#HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ"]| asm=0,HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ  |
 | "keyAgreement": ["#1"]              | agm=1                                        |
@@ -356,7 +374,7 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
 
 | Name       | Type | TTL   | Rdata                                                                       |
 | ---------- | ---- | ----- | --------------------------------------------------------------------------- |
-| _did.TLD.  | TXT  | 7200  | vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;srv=s1                          |
+| _did.TLD.  | TXT  | 7200  | v=0;vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;srv=s1                      |
 | _cnt.did.  | TXT  | 7200  | did:example:abcd                                                            |
 | _aka.did.  | TXT  | 7200  | did:example:efgh,did:example:ijkl                                           |
 | _k0._did.  | TXT  | 7200  | id=0;t=0;h=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc |
@@ -430,6 +448,11 @@ To deactivate a document, there are a couple options:
 ::: note
 If you have published your DID through a [[ref:Gateway]], you may need to contact the operator to have them remove the
 record from their [[ref:Retained DID Set]].
+:::
+
+::: todo
+[](https://github.com/TBD54566975/did-dht-method/issues/100)
+Add guidance for rotating to a new DID after deactivation.
 :::
 
 ### Type Indexing
@@ -573,7 +596,7 @@ Difficulty is exposed as an **OPTIONAL** endpoint based on support of [retention
     - `seq` - **integer** - **REQUIRED** - A sequence number for the request. This number ****MUST**** be unique for each DID operation,
     recommended to be a Unix timestamp in seconds.
     - `v` - **string** - **REQUIRED** - An unpadded base64URL-encoded bencoded DNS packet containing the DID Document.
-    - `retention_proof` - **string** – **OPTIONAL** - A retention proof calculated according to the [retention proof algorithm](#generating-a-retention-proof).
+    - `retention_proof` - **string** - **OPTIONAL** - A retention proof calculated according to the [retention proof algorithm](#generating-a-retention-proof).
 - **Returns:**
   - `202` - Accepted. The server has accepted the request as valid and will publish to the DHT.
   - `400` - Invalid request.
@@ -894,9 +917,9 @@ A minimal DID Document.
 
 **DNS Resource Records:**
 
-| Name      | Type | TTL  | Rdata       |
-| --------- | ---- | ---- | ----------- |
-| _did.     | TXT  | 7200 | vm=k0;auth=k0;asm=k0;inv=k0;del=k0 |
+| Name      | Type | TTL  | Rdata                                                  |
+| --------- | ---- | ---- | ------------------------------------------------------ |
+| _did.     | TXT  | 7200 | v=0;vm=k0;auth=k0;asm=k0;inv=k0;del=k0                 |
 | _k0._did. | TXT  | 7200 | id=0;t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE |
 
 #### Vector 2
@@ -916,6 +939,8 @@ A DID Document with two keys ([[ref:Identity Key]] and an uncompressed secp256k1
 ```
 
 **secp256k1 Public Key JWK:**
+
+With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
 
 ```json
 {
@@ -965,7 +990,7 @@ A DID Document with two keys ([[ref:Identity Key]] and an uncompressed secp256k1
     {
       "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw",
       "type": "JsonWebKey",
-      "controller": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo",
+      "controller": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
       "publicKeyJwk": {
         "kty": "EC",
         "crv": "secp256k1",
@@ -1004,10 +1029,10 @@ A DID Document with two keys ([[ref:Identity Key]] and an uncompressed secp256k1
 
 | Name      | Type | TTL  | Rdata       |
 | --------- | ---- | ---- | ----------- |
-| _did.     | TXT  | 7200 | vm=k0,k1;svc=s0;auth=k0;asm=k0,k1;inv=k0,k1;del=k0                                                |
+| _did.     | TXT  | 7200 | v=0;vm=k0,k1;svc=s0;auth=k0;asm=k0,k1;inv=k0,k1;del=k0                                            |
 | _cnt.did. | TXT  | 7200 | did:example:abcd                                                                                  |
 | _aka.did. | TXT  | 7200 | did:example:efgh,did:example:ijkl                                                                 |
-| _k0.did.  | TXT  | 7200 | id=0;t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE                                            |
+| _k0.did.  | TXT  | 7200 | id=0;t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE;c=did:example:abcd                         |
 | _k1.did.  | TXT  | 7200 | id=0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw;t=1;k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9 |
 | _s0.did.  | TXT  | 7200 | id=service-1;t=TestService;se=https://test-service.com/1,https://test-service.com/2               |
 | _typ.did. | TXT  | 7200 | id=1,2,3                                                                                          |
