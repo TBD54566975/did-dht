@@ -220,7 +220,7 @@ A [DID controller](https://www.w3.org/TR/did-core/#did-controller) ****MAY**** b
 If present, a DID controller ****MUST**** be represented as a `_cnt._did` record in the form of a comma-separated
 list of controller DID identifiers.
 
-The controller for the [[ref:Identity Key]] Verification Method ****MUST**** match the controller property.
+To ensure that the DID controller is authorized to make changes to the DID Document, the controller for the [[ref:Identity Key]] Verification Method ****MUST**** be contained within the controller property.
 
 An example is given as follows:
 
@@ -596,7 +596,7 @@ Difficulty is exposed as an **OPTIONAL** endpoint based on support of [retention
     - `seq` - **integer** - **REQUIRED** - A sequence number for the request. This number ****MUST**** be unique for each DID operation,
     recommended to be a Unix timestamp in seconds.
     - `v` - **string** - **REQUIRED** - An unpadded base64URL-encoded bencoded DNS packet containing the DID Document.
-    - `retention_proof` - **string** – **OPTIONAL** - A retention proof calculated according to the [retention proof algorithm](#generating-a-retention-proof).
+    - `retention_proof` - **string** - **OPTIONAL** - A retention proof calculated according to the [retention proof algorithm](#generating-a-retention-proof).
 - **Returns:**
   - `202` - Accepted. The server has accepted the request as valid and will publish to the DHT.
   - `400` - Invalid request.
