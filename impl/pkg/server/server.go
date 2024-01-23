@@ -11,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 	swaggerfiles "github.com/swaggo/files"
 	ginswagger "github.com/swaggo/gin-swagger"
+	ginlogrus "github.com/toorop/gin-logrus"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	"github.com/TBD54566975/did-dht-method/config"
@@ -35,7 +36,6 @@ type Server struct {
 // NewServer returns a new instance of Server with the given db and host.
 func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	// set up server prerequisites
-	setupLogger(cfg.ServerConfig.LogLevel)
 	handler := setupHandler(cfg.ServerConfig.Environment)
 
 	db, err := storage.NewStorage(cfg.ServerConfig.StorageURI)
@@ -73,33 +73,15 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	}, nil
 }
 
-func setupLogger(level string) {
-	logrus.SetFormatter(&logrus.JSONFormatter{
-		DisableTimestamp: false,
-		PrettyPrint:      true,
-	})
-	logrus.SetReportCaller(true)
-
-	logLevel, err := logrus.ParseLevel(level)
-	if err != nil {
-		logrus.WithError(err).Errorf("could not parse log level[%s], setting to info", level)
-		logrus.SetLevel(logrus.InfoLevel)
-	} else {
-		logrus.SetLevel(logLevel)
-	}
-}
-
 func setupHandler(env config.Environment) *gin.Engine {
-	gin.ForceConsoleColor()
 	middlewares := gin.HandlersChain{
 		gin.Recovery(),
-		gin.Logger(),
+		ginlogrus.Logger(logrus.StandardLogger()),
 		gin.ErrorLogger(),
 		otelgin.Middleware(config.ServiceName),
 		CORS(),
 	}
-	handler := gin.New()
-	handler.Use(middlewares...)
+	logrus.WithField("environment", env).Info("configuring server for environment")
 	switch env {
 	case config.EnvironmentDev:
 		gin.SetMode(gin.DebugMode)
@@ -108,6 +90,8 @@ func setupHandler(env config.Environment) *gin.Engine {
 	case config.EnvironmentProd:
 		gin.SetMode(gin.ReleaseMode)
 	}
+	handler := gin.New()
+	handler.Use(middlewares...)
 	return handler
 }
 

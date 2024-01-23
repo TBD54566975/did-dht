@@ -37,6 +37,7 @@ func (e EnvironmentVariable) String() string {
 }
 
 type Config struct {
+	Log          LogConfig          `toml:"log"`
 	ServerConfig ServerConfig       `toml:"server"`
 	DHTConfig    DHTServiceConfig   `toml:"dht"`
 	PkarrConfig  PKARRServiceConfig `toml:"pkarr"`
@@ -48,7 +49,6 @@ type ServerConfig struct {
 	APIPort     int         `toml:"api_port"`
 	BaseURL     string      `toml:"base_url"`
 	LogLocation string      `toml:"log_location"`
-	LogLevel    string      `toml:"log_level"`
 	StorageURI  string      `toml:"storage_uri"`
 }
 
@@ -62,6 +62,11 @@ type PKARRServiceConfig struct {
 	CacheSizeLimitMB int    `toml:"cache_size_limit_mb"`
 }
 
+type LogConfig struct {
+	Level string `toml:"level"`
+	Path  string `toml:"path"`
+}
+
 func GetDefaultConfig() Config {
 	return Config{
 		ServerConfig: ServerConfig{
@@ -70,7 +75,6 @@ func GetDefaultConfig() Config {
 			APIPort:     8305,
 			BaseURL:     "http://localhost:8305",
 			LogLocation: "log",
-			LogLevel:    "debug",
 			StorageURI:  "bolt://diddht.db",
 		},
 		DHTConfig: DHTServiceConfig{
@@ -80,6 +84,9 @@ func GetDefaultConfig() Config {
 			RepublishCRON:    "0 */2 * * *",
 			CacheTTLSeconds:  600,
 			CacheSizeLimitMB: 500,
+		},
+		Log: LogConfig{
+			Level: logrus.InfoLevel.String(),
 		},
 	}
 }
