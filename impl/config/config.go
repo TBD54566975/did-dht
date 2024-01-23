@@ -49,7 +49,7 @@ type ServerConfig struct {
 	BaseURL     string      `toml:"base_url"`
 	LogLocation string      `toml:"log_location"`
 	LogLevel    string      `toml:"log_level"`
-	DBFile      string      `toml:"db_file"`
+	StorageURI  string      `toml:"storage_uri"`
 }
 
 type DHTServiceConfig struct {
@@ -71,7 +71,7 @@ func GetDefaultConfig() Config {
 			BaseURL:     "http://localhost:8305",
 			LogLocation: "log",
 			LogLevel:    "debug",
-			DBFile:      "diddht.db",
+			StorageURI:  "bolt://diddht.db",
 		},
 		DHTConfig: DHTServiceConfig{
 			BootstrapPeers: GetDefaultBootstrapPeers(),

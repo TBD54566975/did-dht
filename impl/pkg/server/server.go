@@ -38,7 +38,7 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 	setupLogger(cfg.ServerConfig.LogLevel)
 	handler := setupHandler(cfg.ServerConfig.Environment)
 
-	db, err := storage.NewStorage(cfg.ServerConfig.DBFile)
+	db, err := storage.NewStorage(cfg.ServerConfig.StorageURI)
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to instantiate storage")
 	}

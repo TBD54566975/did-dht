@@ -5,7 +5,7 @@
 
 ## Config
 
-# TOML Config File
+### TOML Config File
 
 Config is managed using a [TOML](https://toml.io/en/) [file](../../config/dev.toml). There are sets of configuration values for the server
 (e.g. which port to listen on), the services (e.g. which database to use), and each service.
@@ -47,6 +47,7 @@ Options
  ```
 
 ### `docker`
+
 Run:
 
 ```sh
@@ -61,3 +62,8 @@ and then
 ```sh
 docker run --publish 8305:8305 did-dht
 ```
+
+### Postgres
+
+To use a postgres database as the storage backend, set configuration option `storage_uri` to a `postgres://` URI with the database
+connection string. The schema will be created or updated as needed while the program starts.
