@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"encoding/base64"
-	"errors"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -16,6 +15,7 @@ import (
 
 	"github.com/TBD54566975/did-dht-method/config"
 	dhtint "github.com/TBD54566975/did-dht-method/internal/dht"
+	intutil "github.com/TBD54566975/did-dht-method/internal/util"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
 	"github.com/TBD54566975/did-dht-method/pkg/storage/pkarr"
@@ -86,7 +86,7 @@ func (p PublishPkarrRequest) isValid() error {
 		return err
 	}
 	if !bep44.Verify(p.K[:], nil, p.Seq, bv, p.Sig[:]) {
-		return errors.New("signature is invalid")
+		return &intutil.InvalidSignatureError{}
 	}
 	return nil
 }
@@ -233,6 +233,7 @@ func (s *PkarrService) addRecordToCache(id string, resp GetPkarrResponse) error 
 }
 
 // TODO(gabe) make this more efficient. create a publish schedule based on each individual record, not all records
+// TODO(gabe) consider a get before put to avoid writing outdated records https://github.com/TBD54566975/did-dht-method/issues/12
 func (s *PkarrService) republish() {
 	allRecords, err := s.db.ListRecords(context.Background())
 	if err != nil {

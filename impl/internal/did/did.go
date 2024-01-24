@@ -4,6 +4,7 @@ import (
 	"crypto/ed25519"
 	"encoding/base64"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -76,6 +77,24 @@ type CreateDIDDHTOpts struct {
 type VerificationMethod struct {
 	VerificationMethod did.VerificationMethod `json:"verificationMethod"`
 	Purposes           []did.PublicKeyPurpose `json:"purposes"`
+}
+
+func GenerateVanityDIDDHT(prefix string, opts CreateDIDDHTOpts) (ed25519.PrivateKey, *did.Document, error) {
+	// generate the identity key
+	for i := 0; i < math.MaxInt32; i++ {
+		pubKey, privKey, err := crypto.GenerateEd25519Key()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		id := GetDIDDHTIdentifier(pubKey)
+
+		if strings.HasPrefix(id, prefix) {
+			doc, err := CreateDIDDHTDID(pubKey, opts)
+			return privKey, doc, err
+		}
+	}
+	return nil, nil, fmt.Errorf("failed to generate vanity did:dht identifier with prefix %s", prefix)
 }
 
 // GenerateDIDDHT generates a did:dht identifier given a set of options
