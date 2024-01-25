@@ -35,26 +35,35 @@ func NewBolt(path string) (*boltdb, error) {
 // WriteRecord writes the given record to the storage
 // TODO: don't overwrite existing records, store unique seq numbers
 func (s *boltdb) WriteRecord(_ context.Context, record pkarr.Record) error {
-	recordBytes, err := json.Marshal(record)
+	encoded := encodeRecord(record)
+	recordBytes, err := json.Marshal(encoded)
 	if err != nil {
 		return err
 	}
-	return s.write(pkarrNamespace, record.K, recordBytes)
+
+	return s.write(pkarrNamespace, encoded.K, recordBytes)
 }
 
 // ReadRecord reads the record with the given id from the storage
-func (s *boltdb) ReadRecord(_ context.Context, id string) (*pkarr.Record, error) {
-	recordBytes, err := s.read(pkarrNamespace, id)
+func (s *boltdb) ReadRecord(_ context.Context, id []byte) (*pkarr.Record, error) {
+	recordBytes, err := s.read(pkarrNamespace, encoding.EncodeToString(id))
 	if err != nil {
 		return nil, err
 	}
 	if len(recordBytes) == 0 {
 		return nil, nil
 	}
-	var record pkarr.Record
-	if err = json.Unmarshal(recordBytes, &record); err != nil {
+
+	var b64record base64PkarrRecord
+	if err = json.Unmarshal(recordBytes, &b64record); err != nil {
 		return nil, err
 	}
+
+	record, err := b64record.Decode()
+	if err != nil {
+		return nil, err
+	}
+
 	return &record, nil
 }
 
@@ -64,12 +73,19 @@ func (s *boltdb) ListRecords(_ context.Context) ([]pkarr.Record, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	var records []pkarr.Record
 	for _, recordBytes := range recordsMap {
-		var record pkarr.Record
-		if err = json.Unmarshal(recordBytes, &record); err != nil {
+		var encodedRecord base64PkarrRecord
+		if err = json.Unmarshal(recordBytes, &encodedRecord); err != nil {
 			return nil, err
 		}
+
+		record, err := encodedRecord.Decode()
+		if err != nil {
+			return nil, err
+		}
+
 		records = append(records, record)
 	}
 	return records, nil

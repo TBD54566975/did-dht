@@ -12,7 +12,7 @@ import (
 
 type Storage interface {
 	WriteRecord(ctx context.Context, record pkarr.Record) error
-	ReadRecord(ctx context.Context, id string) (*pkarr.Record, error)
+	ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, error)
 	ListRecords(ctx context.Context) ([]pkarr.Record, error)
 	Close() error
 }

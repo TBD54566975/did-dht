@@ -42,7 +42,7 @@ const readRecord = `-- name: ReadRecord :one
 SELECT key, value, sig, seq FROM pkarr_records WHERE key = $1 LIMIT 1
 `
 
-func (q *Queries) ReadRecord(ctx context.Context, key string) (PkarrRecord, error) {
+func (q *Queries) ReadRecord(ctx context.Context, key []byte) (PkarrRecord, error) {
 	row := q.db.QueryRow(ctx, readRecord, key)
 	var i PkarrRecord
 	err := row.Scan(
@@ -59,9 +59,9 @@ INSERT INTO pkarr_records(key, value, sig, seq) VALUES($1, $2, $3, $4)
 `
 
 type WriteRecordParams struct {
-	Key   string
-	Value string
-	Sig   string
+	Key   []byte
+	Value []byte
+	Sig   []byte
 	Seq   int64
 }
 

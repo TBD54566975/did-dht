@@ -2,13 +2,13 @@ package service
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"time"
 
 	"github.com/goccy/go-json"
 
-	"github.com/TBD54566975/ssi-sdk/util"
+	"github.com/TBD54566975/did-dht-method/internal/util"
+	ssiutil "github.com/TBD54566975/ssi-sdk/util"
 	"github.com/allegro/bigcache/v3"
 	"github.com/anacrolix/dht/v2/bep44"
 	"github.com/anacrolix/torrent/bencode"
@@ -35,12 +35,12 @@ type PkarrService struct {
 // NewPkarrService returns a new instance of the Pkarr service
 func NewPkarrService(cfg *config.Config, db storage.Storage) (*PkarrService, error) {
 	if cfg == nil {
-		return nil, util.LoggingNewError("config is required")
+		return nil, ssiutil.LoggingNewError("config is required")
 	}
 
 	d, err := dht.NewDHT(cfg.DHTConfig.BootstrapPeers)
 	if err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to instantiate dht")
+		return nil, ssiutil.LoggingErrorMsg(err, "failed to instantiate dht")
 	}
 
 	// create and start cache and scheduler
@@ -51,7 +51,7 @@ func NewPkarrService(cfg *config.Config, db storage.Storage) (*PkarrService, err
 	cacheConfig.CleanWindow = cacheTTL / 2
 	cache, err := bigcache.New(context.Background(), cacheConfig)
 	if err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to instantiate cache")
+		return nil, ssiutil.LoggingErrorMsg(err, "failed to instantiate cache")
 	}
 	scheduler := dhtint.NewScheduler()
 	service := PkarrService{
@@ -62,7 +62,7 @@ func NewPkarrService(cfg *config.Config, db storage.Storage) (*PkarrService, err
 		scheduler: &scheduler,
 	}
 	if err = scheduler.Schedule(cfg.PkarrConfig.RepublishCRON, service.republish); err != nil {
-		return nil, util.LoggingErrorMsg(err, "failed to start republisher")
+		return nil, ssiutil.LoggingErrorMsg(err, "failed to start republisher")
 	}
 	return &service, nil
 }
@@ -77,7 +77,7 @@ type PublishPkarrRequest struct {
 
 // isValid returns an error if the request is invalid; also validates the signature
 func (p PublishPkarrRequest) isValid() error {
-	if err := util.IsValidStruct(p); err != nil {
+	if err := ssiutil.IsValidStruct(p); err != nil {
 		return err
 	}
 	// validate the signature
@@ -92,11 +92,10 @@ func (p PublishPkarrRequest) isValid() error {
 }
 
 func (p PublishPkarrRequest) toRecord() pkarr.Record {
-	encoding := base64.RawURLEncoding
 	return pkarr.Record{
-		V:   encoding.EncodeToString(p.V),
-		K:   encoding.EncodeToString(p.K[:]),
-		Sig: encoding.EncodeToString(p.Sig[:]),
+		V:   p.V,
+		K:   p.K[:],
+		Sig: p.Sig[:],
 		Seq: p.Seq,
 	}
 }
@@ -150,19 +149,10 @@ type GetPkarrResponse struct {
 }
 
 func fromPkarrRecord(record pkarr.Record) (*GetPkarrResponse, error) {
-	encoding := base64.RawURLEncoding
-	vBytes, err := encoding.DecodeString(record.V)
-	if err != nil {
-		return nil, err
-	}
-	sigBytes, err := encoding.DecodeString(record.Sig)
-	if err != nil {
-		return nil, err
-	}
 	return &GetPkarrResponse{
-		V:   vBytes,
+		V:   record.V,
 		Seq: record.Seq,
-		Sig: [64]byte(sigBytes),
+		Sig: [64]byte(record.Sig),
 	}, nil
 }
 
@@ -182,19 +172,27 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrRespon
 	got, err := s.dht.GetFull(ctx, id)
 	if err != nil {
 		// try to resolve from storage before returning and error
-		logrus.WithError(err).Warnf("failed to get pkarr record[%s] from dht, attempting to resolve from storage", id)
-		record, err := s.db.ReadRecord(ctx, id)
-		if err != nil || record == nil {
-			logrus.WithError(err).Errorf("failed to resolve pkarr record[%s] from storage", id)
+		logrus.WithError(err).WithField("record", id).Warn("failed to get pkarr record from dht, attempting to resolve from storage")
+
+		rawID, err := util.Z32Decode(id)
+		if err != nil {
 			return nil, err
 		}
-		logrus.Debugf("resolved pkarr record[%s] from storage", id)
+
+		record, err := s.db.ReadRecord(ctx, rawID)
+		if err != nil || record == nil {
+			logrus.WithError(err).WithField("record", id).Error("failed to resolve pkarr record from storage")
+			return nil, err
+		}
+
+		logrus.WithField("record", id).Debug("resolved pkarr record from storage")
 		resp, err := fromPkarrRecord(*record)
 		if err == nil {
 			if err = s.addRecordToCache(id, *resp); err != nil {
-				logrus.WithError(err).Errorf("failed to set pkarr record[%s] in cache", id)
+				logrus.WithError(err).WithField("record", id).Error("failed to set pkarr record in cache")
 			}
 		}
+
 		return resp, err
 	}
 
@@ -262,23 +260,10 @@ func (s *PkarrService) republish() {
 }
 
 func recordToBEP44Put(record pkarr.Record) (*bep44.Put, error) {
-	encoding := base64.RawURLEncoding
-	vBytes, err := encoding.DecodeString(record.V)
-	if err != nil {
-		return nil, err
-	}
-	kBytes, err := encoding.DecodeString(record.K)
-	if err != nil {
-		return nil, err
-	}
-	sigBytes, err := encoding.DecodeString(record.Sig)
-	if err != nil {
-		return nil, err
-	}
 	return &bep44.Put{
-		V:   vBytes,
-		K:   (*[32]byte)(kBytes),
-		Sig: [64]byte(sigBytes),
+		V:   record.V,
+		K:   (*[32]byte)(record.K),
+		Sig: [64]byte(record.Sig),
 		Seq: record.Seq,
 	}, nil
 }
