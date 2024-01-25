@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Latest Update:** January 19, 2024
+**Latest Update:** January 25, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -465,7 +465,7 @@ DIDs can be indexed by type by adding a `_typ._did.` record to the DNS packet. A
 record. This record is a TXT record with the following format:
 
 - The record **name** is represented as a `_typ._did.` record.
-- The record **data** is represented with the form `id=0,1,2` where the value is a comma-separated list of types from
+- The record **data** is represented with the form `id=0,1,2` where the value is a comma-separated list of integer types from
 the [type index](#type-indexing).
 
 An example type record is as follows:
@@ -477,8 +477,8 @@ An example type record is as follows:
 Types can be found and registered in the [DID DHT Registry](registry/index.html#indexed-types).
 
 ::: note
-Identifying entities through type-based indexing is a preliminary and relatively unreliable method. It serves merely
-as an initial phase in recognizing the identity linked to a [[ref:DID]]. To validate identity claims more robustly,
+Identifying entities through type-based indexing is a preliminary and relatively unreliable practice. It serves
+as an initial step in recognizing the identity linked to a [[ref:DID]]. To validate identity claims more robustly,
 it is essential to delve deeper, employing tools like verifiable credentials and examining related data.
 :::
 
@@ -624,7 +624,7 @@ DID by its type.
 - **Returns:**
   - `200` - Success.
     - `did` - **object** - A JSON object representing the DID Document.
-    - `types` - **array** - An array of [type strings](#type-indexing) for the DID.
+    - `types` - **array** - An array of [type integers](#type-indexing) for the DID.
     - `sequence_numbers` - **array** - An sorted array of seen sequence numbers, used with [historical resolution](#historical-resolution).
   - `400` - Invalid request.
   - `404` - DID not found.
@@ -684,7 +684,7 @@ historical state for a given [[ref:DID]]. The following API can be used with spe
 - **Returns**:
   - `200` - Success.
     - `did` - **object** - A JSON object representing the DID Document.
-    - `types` - **array** - An array of [type strings](#type-indexing) for the DID.
+    - `types` - **array** - An array of [type integers](#type-indexing) for the DID.
   - `400` - Invalid request.
   - `404` - DID not found for the given sequence number.
   - `501` - Historical resolution not supported by this gateway.
@@ -706,7 +706,9 @@ stop republishing the DHT. If the DNS Packets contain a `_typ._did.` record, the
 - **Path:** `/did/types`
 - **Returns:**
   - `200` - Success.
-    - **array** - An array of objects describing the known types.
+    - **array** - An array of objects describing the known types of the following form:
+      - `type` - **integer** - An integer representing the [type](#type-indexing).
+      - `description` - **string** - A string describing the [type](#type-indexing).
   - `404` - Type indexing not supported.
 
 ```json

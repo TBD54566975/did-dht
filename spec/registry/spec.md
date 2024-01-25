@@ -9,7 +9,7 @@ The DID DHT Method Specification Registry 1.0
 
 **Draft Created:** November 20, 2023
 
-**Latest Update:** January 19, 2024
+**Latest Update:** January 25, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
