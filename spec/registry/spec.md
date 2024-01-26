@@ -9,7 +9,7 @@ The DID DHT Method Specification Registry 1.0
 
 **Draft Created:** November 20, 2023
 
-**Latest Update:** January 25, 2024
+**Latest Update:** January 26, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -40,7 +40,7 @@ Corresponds to the mapping, for a DID Document's DNS packet representation, of a
 | ----- | ------------------------------------------------------ |
 | 0     | [Ed25519](https://ed25519.cr.yp.to/)                   |
 | 1     | [secp256k1](https://datatracker.ietf.org/doc/html/rfc8812#section-3.1) |
-| 2     | [secp256r1](https://neuromancer.sk/std/secg/secp256r1) |
+| 2     | [secp256r1](https://neuromancer.sk/std/secg/secp256r1) / [P-256](https://neuromancer.sk/std/nist/P-256) |
 
 ::: note
 All keys are represented as JWKs [[spec:RFC7517]] in their **uncompressed** form.
@@ -72,6 +72,24 @@ themselves discoverable via a [[ref:Gateway]]'s API.
 | Software Package        | https://schema.org/SoftwareSourceCode     | 5            |
 | Web App                 | https://schema.org/WebApplication         | 6            |
 | Financial Institution   | https://schema.org/FinancialService       | 7            |
+
+### Additional Properties
+
+DID Documents may contain [additional properties](https://www.w3.org/TR/did-core/#extensibility) not defined by the core data model. These
+properties ****MAY**** be registered in the [[spec:DID-SPEC-REGISTRIES]], or in the following table. Independent of where
+the property is registered, a mapping ****MUST**** be provided between the property and its DNS packet representation.
+
+To add additional properties and note their mappings, please [open a pull request](https://github.com/TBD54566975/did-dht-method/pulls).
+
+#### Service
+
+These properties are for use on a service object, in the value of [service](https://www.w3.org/TR/did-core/#services).
+
+| Property Name | Type                       | DNS Packet Representation                         | Example                                                 |
+| ------------- | -------------------------- | ------------------------------------------------- | ------------------------------------------------------- |
+| `sig`         | String or array of strings | `enc=E` where `E` is a string or array of strings | id=s1;t=TestService;se=https://test-service.com/1;enc=1 |
+| `enc`         | String or array of strings | `sig=S` where `S` is a string or array of strings | id=s1;t=TestService;se=https://test-service.com/1;sig=2 |
+
 
 ### Interoperable DID Methods
 

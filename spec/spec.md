@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Latest Update:** January 25, 2024
+**Latest Update:** January 26, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -202,6 +202,9 @@ values within each property are separated by a comma (`,`).
 
 - Across all properties, distinct elements are separated by semicolons (`;`) while array elements are separated by
 commas (`,`).
+
+- Additional properties not defined by this specification ****MAY**** be represented in a [[ref:DID Document]] and
+its corresponding DNS packet if the properties [are registered in the additional properties registry](registry/index.html#additional-properties).
 
 An example of a _root record_ is as follows:
 
@@ -625,6 +628,7 @@ DID by its type.
   - `200` - Success.
     - `did` - **object** - A JSON object representing the DID Document.
     - `types` - **array** - An array of [type integers](#type-indexing) for the DID.
+    - `sig` - **string** - An unpadded base64URL-encoded signature of the [[ref:BEP44]] payload corresponding to the DID Document.
     - `sequence_numbers` - **array** - An sorted array of seen sequence numbers, used with [historical resolution](#historical-resolution).
   - `400` - Invalid request.
   - `404` - DID not found.
@@ -659,9 +663,9 @@ DID by its type.
 }
 ```
 
-Upon receiving a request to resolve a DID, the Gateway ****MUST**** query the DHT for the DID Document, and if found,
-return the DID Document. If the records are not found in the DHT, the Gateway ****MAY**** fall back to its local storage.
-If the DNS Packets contain a `_typ._did.` record, the Gateway ****MUST**** return the type index.
+Upon receiving a request to resolve a DID, the [[ref:Gateway]] ****MUST**** query the DHT for the DID Document, and if found,
+return the DID Document. If the records are not found in the DHT, the [[ref:Gateway]] ****MAY**** fall back to its local storage.
+If the DNS Packets contain a `_typ._did.` record, the [[ref:Gateway]] ****MUST**** return the type index.
 
 ::: note
 This API is not required to return the complete DNS packet but rather the DID Document and type index. If the full DNS
