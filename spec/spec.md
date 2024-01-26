@@ -578,8 +578,8 @@ Difficulty is exposed as an **OPTIONAL** endpoint based on support of [retention
 - **Path:** `/difficulty`
 - **Returns:**
   - `200` - Success.
-    - `hash` - **string** - The current hash.
-    - `difficulty` - **integer** - The current difficulty.
+    - `hash` - **string** - **REQUIRED** - The current hash.
+    - `difficulty` - **integer** - **REQUIRED** - The current difficulty.
   - `501` - Retention proofs not supported by this gateway.
 
 ```json
@@ -626,11 +626,12 @@ DID by its type.
   - `id` - **string** - **REQUIRED** - ID of the DID to resolve.
 - **Returns:**
   - `200` - Success.
-    - `did` - **object** - A JSON object representing the DID Document.
-    - `types` - **array** - An array of [type integers](#type-indexing) for the DID.
-    - `sig` - **string** - An unpadded base64URL-encoded signature of the [[ref:BEP44]] payload corresponding to the DID Document.
-    - `sequence_numbers` - **array** - An sorted array of seen sequence numbers, used with [historical resolution](#historical-resolution).
-  - `400` - Invalid request.
+    - `did` - **object** - **REQUIRED** - A JSON object representing the DID Document.
+    - `pkarr` - **string** - **REQUIRED** - An unpadded base64URL-encoded representation of the full [[ref:Pkarr]] payload, represented as 64 bytes sig,
+    - `types` - **array** - **OPTIONAL** - An array of [type integers](#type-indexing) for the DID.
+    - `sequence_numbers` - **array** - **OPTIONAL** - An sorted array of seen sequence numbers, used with [historical resolution](#historical-resolution).
+    8 bytes u64 big-endian seq, 0-1000 bytes of v concatenated; enabling independent verification.
+    - `400` - Invalid request.
   - `404` - DID not found.
 
 ```json
@@ -658,6 +659,7 @@ DID by its type.
       "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y#0"
     ]
   },
+  "pkarr": "<unpadded-base64URL-encoded pkarr payload as [sig][seq][v]>",
   "types": [1, 4],
   "sequence_numbers": [1700356854, 1700461736]
 }
@@ -667,11 +669,10 @@ Upon receiving a request to resolve a DID, the [[ref:Gateway]] ****MUST**** quer
 return the DID Document. If the records are not found in the DHT, the [[ref:Gateway]] ****MAY**** fall back to its local storage.
 If the DNS Packets contain a `_typ._did.` record, the [[ref:Gateway]] ****MUST**** return the type index.
 
-::: note
-This API is not required to return the complete DNS packet but rather the DID Document and type index. If the full DNS
-packet, with its signature data, is required it is ****RECOMMENDED**** to use the
-[Relay API](https://github.com/Nuhvi/pkarr/blob/main/design/relays.md) directly.
-:::
+This API is returns a `pkarr` property which matches the payload of a [Pkarr Get Request](https://github.com/Nuhvi/pkarr/blob/main/design/relays.md#get),
+when encoded as an unpadded base64URL string. Implementers are ****RECOMMENDED**** to verify the integrity of the response using
+the `pkarr` data and reconstruct the DID Document themselves. The `did` property is provided as a utility which, without independent verification,
+****SHOULD NOT**** be trusted.
 
 ##### Historical Resolution
 
@@ -687,8 +688,10 @@ historical state for a given [[ref:DID]]. The following API can be used with spe
   - `seq` - **integer** - **OPTIONAL** - Sequence number of the DID to resolve
 - **Returns**:
   - `200` - Success.
-    - `did` - **object** - A JSON object representing the DID Document.
-    - `types` - **array** - An array of [type integers](#type-indexing) for the DID.
+    - `did` - **object** - **REQUIRED** - A JSON object representing the DID Document.
+    - `pkarr` - **string** - **REQUIRED** - An unpadded base64URL-encoded representation of the full [[ref:Pkarr]] payload, represented as 64 bytes sig,
+    - `types` - **array** - **OPTIONAL** - An array of [type integers](#type-indexing) for the DID.
+    8 bytes u64 big-endian seq, 0-1000 bytes of v concatenated; enabling independent verification.
   - `400` - Invalid request.
   - `404` - DID not found for the given sequence number.
   - `501` - Historical resolution not supported by this gateway.
@@ -711,8 +714,8 @@ stop republishing the DHT. If the DNS Packets contain a `_typ._did.` record, the
 - **Returns:**
   - `200` - Success.
     - **array** - An array of objects describing the known types of the following form:
-      - `type` - **integer** - An integer representing the [type](#type-indexing).
-      - `description` - **string** - A string describing the [type](#type-indexing).
+      - `type` - **integer** - **REQUIRED** - An integer representing the [type](#type-indexing).
+      - `description` - **string** - **REQUIRED** - A string describing the [type](#type-indexing).
   - `404` - Type indexing not supported.
 
 ```json
@@ -737,7 +740,7 @@ stop republishing the DHT. If the DNS Packets contain a `_typ._did.` record, the
   - `limit` - **integer** - **OPTIONAL** - Specifies the maximum number of type records to retrieve (Default: `100`).
 - **Returns:**
   - `200` - Success.
-    - **array** - An array of DID Identifiers matching the associated type.
+    - **array** - **REQUIRED** - An array of DID Identifiers matching the associated type.
   - `400` - Invalid request.
   - `404` - Type not found.
   - `501` - Types not supported by this gateway.
