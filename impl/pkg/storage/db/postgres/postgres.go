@@ -75,7 +75,7 @@ func (p postgres) WriteRecord(ctx context.Context, record pkarr.Record) error {
 	return nil
 }
 
-func (p postgres) ReadRecord(ctx context.Context, id string) (*pkarr.Record, error) {
+func (p postgres) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, error) {
 	queries, db, err := p.connect(ctx)
 	if err != nil {
 		return nil, err

@@ -2,7 +2,6 @@ package storage_test
 
 import (
 	"context"
-	"encoding/base64"
 	"os"
 	"testing"
 
@@ -42,11 +41,10 @@ func TestPKARRStorage(t *testing.T) {
 	require.NotEmpty(t, putMsg)
 
 	// create record
-	encoding := base64.RawURLEncoding
 	record := pkarr.Record{
-		V:   encoding.EncodeToString(putMsg.V.([]byte)),
-		K:   encoding.EncodeToString(putMsg.K[:]),
-		Sig: encoding.EncodeToString(putMsg.Sig[:]),
+		V:   putMsg.V.([]byte),
+		K:   putMsg.K[:],
+		Sig: putMsg.Sig[:],
 		Seq: putMsg.Seq,
 	}
 
