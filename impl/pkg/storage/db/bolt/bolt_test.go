@@ -139,7 +139,7 @@ func TestPKARRStorage(t *testing.T) {
 	assert.Equal(t, record, *readRecord)
 
 	// list and confirm it's there
-	records, err := db.ListRecords(ctx)
+	records, _, err := db.ListRecords(ctx, nil, 10)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, records)
 	assert.Equal(t, record, records[0])

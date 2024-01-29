@@ -19,6 +19,10 @@ type boltdb struct {
 	db *bolt.DB
 }
 
+type boltRecord struct {
+	key, value []byte
+}
+
 // NewBolt creates a BoltDB-based implementation of storage.Storage
 func NewBolt(path string) (*boltdb, error) {
 	if path == "" {
@@ -68,7 +72,7 @@ func (s *boltdb) ReadRecord(_ context.Context, id []byte) (*pkarr.Record, error)
 }
 
 // ListRecords lists all records in the storage
-func (s *boltdb) ListRecords(_ context.Context) ([]pkarr.Record, error) {
+func (s *boltdb) ListAllRecords(_ context.Context) ([]pkarr.Record, error) {
 	recordsMap, err := s.readAll(pkarrNamespace)
 	if err != nil {
 		return nil, err
@@ -89,6 +93,37 @@ func (s *boltdb) ListRecords(_ context.Context) ([]pkarr.Record, error) {
 		records = append(records, record)
 	}
 	return records, nil
+}
+
+// ListRecords lists all records in the storage
+func (s *boltdb) ListRecords(_ context.Context, nextPageToken []byte, pagesize int) ([]pkarr.Record, []byte, error) {
+	boltRecords, err := s.readSeveral(pkarrNamespace, nextPageToken, pagesize)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var records []pkarr.Record
+	for _, recordBytes := range boltRecords {
+		var encodedRecord base64PkarrRecord
+		if err = json.Unmarshal(recordBytes.value, &encodedRecord); err != nil {
+			return nil, nil, err
+		}
+
+		record, err := encodedRecord.Decode()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		records = append(records, record)
+	}
+
+	if len(boltRecords) == pagesize {
+		nextPageToken = boltRecords[len(boltRecords)-1].key
+	} else {
+		nextPageToken = nil
+	}
+
+	return records, nextPageToken, nil
 }
 
 func (s *boltdb) Close() error {
@@ -127,12 +162,43 @@ func (s *boltdb) readAll(namespace string) (map[string][]byte, error) {
 	err := s.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
 		if bucket == nil {
-			logrus.Warnf("namespace[%s] does not exist", namespace)
+			logrus.WithField("namespace", namespace).Warn("namespace does not exist")
 			return nil
 		}
 		cursor := bucket.Cursor()
 		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
 			result[string(k)] = v
+		}
+		return nil
+	})
+	return result, err
+}
+
+func (s *boltdb) readSeveral(namespace string, after []byte, count int) ([]boltRecord, error) {
+	var result []boltRecord
+	err := s.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(namespace))
+		if bucket == nil {
+			logrus.WithField("namespace", namespace).Warn("namespace does not exist")
+			return nil
+		}
+
+		cursor := bucket.Cursor()
+
+		var k []byte
+		var v []byte
+		if after != nil {
+			cursor.Seek(after)
+			k, v = cursor.Next()
+		} else {
+			k, v = cursor.First()
+		}
+
+		for ; k != nil; k, v = cursor.Next() {
+			result = append(result, boltRecord{key: k, value: v})
+			if len(result) >= count {
+				break
+			}
 		}
 		return nil
 	})

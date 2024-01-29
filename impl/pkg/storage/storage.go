@@ -13,7 +13,8 @@ import (
 type Storage interface {
 	WriteRecord(ctx context.Context, record pkarr.Record) error
 	ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, error)
-	ListRecords(ctx context.Context) ([]pkarr.Record, error)
+	ListRecords(ctx context.Context, nextPageToken []byte, pagesize int) (records []pkarr.Record, nextPage []byte, err error)
+	ListAllRecords(ctx context.Context) ([]pkarr.Record, error)
 	Close() error
 }
 

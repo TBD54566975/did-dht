@@ -232,31 +232,48 @@ func (s *PkarrService) addRecordToCache(id string, resp GetPkarrResponse) error 
 
 // TODO(gabe) make this more efficient. create a publish schedule based on each individual record, not all records
 func (s *PkarrService) republish() {
-	allRecords, err := s.db.ListRecords(context.Background())
-	if err != nil {
-		logrus.WithError(err).Error("failed to list record(s) for republishing")
-		return
-	}
-	if len(allRecords) == 0 {
-		logrus.Info("No records to republish")
-		return
-	}
-	logrus.Infof("Republishing [%d] record(s)", len(allRecords))
+	var nextPageToken []byte
+	var allRecords []pkarr.Record
+	var err error
 	errCnt := 0
-	for _, record := range allRecords {
-		put, err := recordToBEP44Put(record)
+	successCnt := 0
+	for {
+		allRecords, nextPageToken, err = s.db.ListRecords(context.Background(), nextPageToken, 1000)
 		if err != nil {
-			logrus.WithError(err).Error("failed to convert record to bep44 put")
-			errCnt++
-			continue
+			logrus.WithError(err).Error("failed to list record(s) for republishing")
+			return
 		}
-		if _, err = s.dht.Put(context.Background(), *put); err != nil {
-			logrus.WithError(err).Error("failed to republish record")
-			errCnt++
-			continue
+
+		if len(allRecords) == 0 {
+			logrus.Info("No records to republish")
+			return
+		}
+
+		logrus.WithField("record_count", len(allRecords)).Info("Republishing record")
+
+		for _, record := range allRecords {
+			put, err := recordToBEP44Put(record)
+			if err != nil {
+				logrus.WithError(err).Error("failed to convert record to bep44 put")
+				errCnt++
+				continue
+			}
+
+			if _, err = s.dht.Put(context.Background(), *put); err != nil {
+				logrus.WithError(err).Error("failed to republish record")
+				errCnt++
+				continue
+			}
+
+			successCnt++
+		}
+
+		if nextPageToken == nil {
+			break
 		}
 	}
-	logrus.Infof("Republishing complete. Successfully republished %d out of %d record(s)", len(allRecords)-errCnt, len(allRecords))
+
+	logrus.WithField("success", successCnt).WithField("errors", errCnt).Info("Republishing complete")
 }
 
 func recordToBEP44Put(record pkarr.Record) (*bep44.Put, error) {

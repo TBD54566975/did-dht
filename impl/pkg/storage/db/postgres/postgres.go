@@ -95,14 +95,14 @@ func (p postgres) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, err
 	}, nil
 }
 
-func (p postgres) ListRecords(ctx context.Context) ([]pkarr.Record, error) {
+func (p postgres) ListAllRecords(ctx context.Context) ([]pkarr.Record, error) {
 	queries, db, err := p.connect(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer db.Close(ctx)
 
-	rows, err := queries.ListRecords(ctx)
+	rows, err := queries.ListAllRecords(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -118,6 +118,45 @@ func (p postgres) ListRecords(ctx context.Context) ([]pkarr.Record, error) {
 	}
 
 	return records, nil
+}
+
+func (p postgres) ListRecords(ctx context.Context, nextPageToken []byte, limit int) ([]pkarr.Record, []byte, error) {
+	queries, db, err := p.connect(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer db.Close(ctx)
+
+	var rows []PkarrRecord
+	if nextPageToken == nil {
+		rows, err = queries.ListRecordsFirstPage(ctx, int32(limit))
+	} else {
+		rows, err = queries.ListRecords(ctx, ListRecordsParams{
+			Key:   nextPageToken,
+			Limit: int32(limit),
+		})
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var records []pkarr.Record
+	for _, row := range rows {
+		records = append(records, pkarr.Record{
+			K:   row.Key,
+			V:   row.Value,
+			Sig: row.Sig,
+			Seq: row.Seq,
+		})
+	}
+
+	if len(rows) == limit {
+		nextPageToken = rows[len(rows)-1].Key
+	} else {
+		nextPageToken = nil
+	}
+
+	return records, nextPageToken, nil
 }
 
 func (p postgres) Close() error {
