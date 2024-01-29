@@ -61,6 +61,12 @@ jobs:
       - name: Test
         run: mage citest
 
+      - name: Start a postgres container
+        run: docker run --rm -d --name postgres -p 5432:5432 -e POSTGRES_PASSWORD=a library/postgres && until docker exec -ti postgres pg_isready; do sleep 1; done
+
+      - name: Test with postgres
+        run: TEST_DB=postgres://postgres:a@127.0.0.1:5432/postgres mage citest
+
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
