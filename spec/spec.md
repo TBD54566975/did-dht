@@ -628,9 +628,9 @@ DID by its type.
   - `200` - Success.
     - `did` - **object** - **REQUIRED** - A JSON object representing the DID Document.
     - `pkarr` - **string** - **REQUIRED** - An unpadded base64URL-encoded representation of the full [[ref:Pkarr]] payload, represented as 64 bytes sig,
+    8 bytes u64 big-endian seq, 0-1000 bytes of v concatenated; enabling independent verification.
     - `types` - **array** - **OPTIONAL** - An array of [type integers](#type-indexing) for the DID.
     - `sequence_numbers` - **array** - **OPTIONAL** - An sorted array of seen sequence numbers, used with [historical resolution](#historical-resolution).
-    8 bytes u64 big-endian seq, 0-1000 bytes of v concatenated; enabling independent verification.
     - `400` - Invalid request.
   - `404` - DID not found.
 
@@ -690,8 +690,8 @@ historical state for a given [[ref:DID]]. The following API can be used with spe
   - `200` - Success.
     - `did` - **object** - **REQUIRED** - A JSON object representing the DID Document.
     - `pkarr` - **string** - **REQUIRED** - An unpadded base64URL-encoded representation of the full [[ref:Pkarr]] payload, represented as 64 bytes sig,
-    - `types` - **array** - **OPTIONAL** - An array of [type integers](#type-indexing) for the DID.
     8 bytes u64 big-endian seq, 0-1000 bytes of v concatenated; enabling independent verification.
+    - `types` - **array** - **OPTIONAL** - An array of [type integers](#type-indexing) for the DID.
   - `400` - Invalid request.
   - `404` - DID not found for the given sequence number.
   - `501` - Historical resolution not supported by this gateway.
