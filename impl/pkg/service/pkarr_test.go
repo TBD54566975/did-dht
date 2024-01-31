@@ -10,6 +10,7 @@ import (
 	"github.com/TBD54566975/did-dht-method/config"
 	"github.com/TBD54566975/did-dht-method/internal/did"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
+	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
 )
 
@@ -18,9 +19,9 @@ func TestPKARRService(t *testing.T) {
 	require.NotEmpty(t, svc)
 
 	t.Run("test put bad record", func(t *testing.T) {
-		err := svc.PublishPkarr(context.Background(), "", PublishPkarrRequest{})
+		err := svc.PublishPkarr(context.Background(), "", pkarr.Record{})
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "validation for 'V' failed on the 'required' tag")
+		assert.Contains(t, err.Error(), "validation for 'Value' failed on the 'required' tag")
 	})
 
 	t.Run("test get non existent record", func(t *testing.T) {
@@ -46,22 +47,12 @@ func TestPKARRService(t *testing.T) {
 
 		suffix, err := d.Suffix()
 		require.NoError(t, err)
-		err = svc.PublishPkarr(context.Background(), suffix, PublishPkarrRequest{
-			V:   putMsg.V.([]byte),
-			K:   *putMsg.K,
-			Sig: putMsg.Sig,
-			Seq: putMsg.Seq,
-		})
+		err = svc.PublishPkarr(context.Background(), suffix, pkarr.RecordFromBep44(putMsg))
 		assert.NoError(t, err)
 
 		// invalidate the signature
 		putMsg.Sig[0] = 0
-		err = svc.PublishPkarr(context.Background(), suffix, PublishPkarrRequest{
-			V:   putMsg.V.([]byte),
-			K:   *putMsg.K,
-			Sig: putMsg.Sig,
-			Seq: putMsg.Seq,
-		})
+		err = svc.PublishPkarr(context.Background(), suffix, pkarr.RecordFromBep44(putMsg))
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "signature is invalid")
 	})
@@ -83,12 +74,7 @@ func TestPKARRService(t *testing.T) {
 
 		suffix, err := d.Suffix()
 		require.NoError(t, err)
-		err = svc.PublishPkarr(context.Background(), suffix, PublishPkarrRequest{
-			V:   putMsg.V.([]byte),
-			K:   *putMsg.K,
-			Sig: putMsg.Sig,
-			Seq: putMsg.Seq,
-		})
+		err = svc.PublishPkarr(context.Background(), suffix, pkarr.RecordFromBep44(putMsg))
 		assert.NoError(t, err)
 
 		got, err := svc.GetPkarr(context.Background(), suffix)

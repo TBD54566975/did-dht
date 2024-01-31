@@ -6,10 +6,11 @@ import (
 	"embed"
 	"fmt"
 
-	"github.com/TBD54566975/did-dht-method/pkg/storage/pkarr"
+	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
 	pgx "github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	goose "github.com/pressly/goose/v3"
+	"github.com/sirupsen/logrus"
 )
 
 //go:embed migrations
@@ -63,10 +64,10 @@ func (p postgres) WriteRecord(ctx context.Context, record pkarr.Record) error {
 	defer db.Close(ctx)
 
 	err = queries.WriteRecord(ctx, WriteRecordParams{
-		Key:   record.K,
-		Value: record.V,
-		Sig:   record.Sig,
-		Seq:   record.Seq,
+		Key:   record.Key[:],
+		Value: record.Value[:],
+		Sig:   record.Signature[:],
+		Seq:   record.SequenceNumber,
 	})
 	if err != nil {
 		return err
@@ -82,17 +83,17 @@ func (p postgres) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, err
 	}
 	defer db.Close(ctx)
 
-	record, err := queries.ReadRecord(ctx, id)
+	row, err := queries.ReadRecord(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	return &pkarr.Record{
-		K:   record.Key,
-		V:   record.Value,
-		Sig: record.Sig,
-		Seq: record.Seq,
-	}, nil
+	record, err := pkarr.NewRecord(row.Key, row.Value, row.Sig, row.Seq)
+	if err != nil {
+		return nil, err
+	}
+
+	return record, nil
 }
 
 func (p postgres) ListAllRecords(ctx context.Context) ([]pkarr.Record, error) {
@@ -109,12 +110,12 @@ func (p postgres) ListAllRecords(ctx context.Context) ([]pkarr.Record, error) {
 
 	var records []pkarr.Record
 	for _, row := range rows {
-		records = append(records, pkarr.Record{
-			K:   row.Key,
-			V:   row.Value,
-			Sig: row.Sig,
-			Seq: row.Seq,
-		})
+		record, err := row.Record()
+		if err != nil {
+			logrus.WithError(err).Warn("invalid record stored in database, skipping")
+			continue
+		}
+		records = append(records, *record)
 	}
 
 	return records, nil
@@ -142,12 +143,13 @@ func (p postgres) ListRecords(ctx context.Context, nextPageToken []byte, limit i
 
 	var records []pkarr.Record
 	for _, row := range rows {
-		records = append(records, pkarr.Record{
-			K:   row.Key,
-			V:   row.Value,
-			Sig: row.Sig,
-			Seq: row.Seq,
-		})
+		record, err := pkarr.NewRecord(row.Key, row.Value, row.Sig, row.Seq)
+		if err != nil {
+			logrus.WithError(err).WithField("record_id", row.ID).Warn("error loading record from database, skipping")
+			continue
+		}
+
+		records = append(records, *record)
 	}
 
 	if len(rows) == limit {
@@ -162,4 +164,8 @@ func (p postgres) ListRecords(ctx context.Context, nextPageToken []byte, limit i
 func (p postgres) Close() error {
 	// no-op, postgres connection is closed after each request
 	return nil
+}
+
+func (row PkarrRecord) Record() (*pkarr.Record, error) {
+	return pkarr.NewRecord(row.Key, row.Value, row.Sig, row.Seq)
 }

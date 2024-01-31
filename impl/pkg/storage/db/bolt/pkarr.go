@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/TBD54566975/did-dht-method/pkg/storage/pkarr"
+	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
 )
 
 var encoding = base64.RawURLEncoding
@@ -21,35 +21,32 @@ type base64PkarrRecord struct {
 
 func encodeRecord(r pkarr.Record) base64PkarrRecord {
 	return base64PkarrRecord{
-		V:   encoding.EncodeToString(r.V),
-		K:   encoding.EncodeToString(r.K),
-		Sig: encoding.EncodeToString(r.Sig),
-		Seq: r.Seq,
+		V:   encoding.EncodeToString(r.Value[:]),
+		K:   encoding.EncodeToString(r.Key[:]),
+		Sig: encoding.EncodeToString(r.Signature[:]),
+		Seq: r.SequenceNumber,
 	}
 }
 
-func (b base64PkarrRecord) Decode() (pkarr.Record, error) {
-	record := pkarr.Record{}
-
+func (b base64PkarrRecord) Decode() (*pkarr.Record, error) {
 	v, err := encoding.DecodeString(b.V)
 	if err != nil {
-		return record, fmt.Errorf("error parsing pkarr value field: %v", err)
+		return nil, fmt.Errorf("error parsing pkarr value field: %v", err)
 	}
 
 	k, err := encoding.DecodeString(b.K)
 	if err != nil {
-		return record, fmt.Errorf("error parsing pkarr key field: %v", err)
+		return nil, fmt.Errorf("error parsing pkarr key field: %v", err)
 	}
 
 	sig, err := encoding.DecodeString(b.Sig)
 	if err != nil {
-		return record, fmt.Errorf("error parsing pkarr sig field: %v", err)
+		return nil, fmt.Errorf("error parsing pkarr sig field: %v", err)
 	}
 
-	return pkarr.Record{
-		V:   v,
-		K:   k,
-		Sig: sig,
-		Seq: b.Seq,
-	}, nil
+	record, err := pkarr.NewRecord(k, v, sig, b.Seq)
+	if err != nil {
+		return nil, err
+	}
+	return record, nil
 }

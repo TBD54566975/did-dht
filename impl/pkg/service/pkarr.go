@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -10,15 +9,14 @@ import (
 	"github.com/TBD54566975/did-dht-method/internal/util"
 	ssiutil "github.com/TBD54566975/ssi-sdk/util"
 	"github.com/allegro/bigcache/v3"
-	"github.com/anacrolix/dht/v2/bep44"
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/sirupsen/logrus"
 
 	"github.com/TBD54566975/did-dht-method/config"
 	dhtint "github.com/TBD54566975/did-dht-method/internal/dht"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
+	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
-	"github.com/TBD54566975/did-dht-method/pkg/storage/pkarr"
 )
 
 const recordSizeLimit = 1000
@@ -67,55 +65,18 @@ func NewPkarrService(cfg *config.Config, db storage.Storage) (*PkarrService, err
 	return &service, nil
 }
 
-// PublishPkarrRequest is the request to publish a Pkarr record
-type PublishPkarrRequest struct {
-	V   []byte   `validate:"required"`
-	K   [32]byte `validate:"required"`
-	Sig [64]byte `validate:"required"`
-	Seq int64    `validate:"required"`
-}
-
-// isValid returns an error if the request is invalid; also validates the signature
-func (p PublishPkarrRequest) isValid() error {
-	if err := ssiutil.IsValidStruct(p); err != nil {
-		return err
-	}
-	// validate the signature
-	bv, err := bencode.Marshal(p.V)
-	if err != nil {
-		return err
-	}
-	if !bep44.Verify(p.K[:], nil, p.Seq, bv, p.Sig[:]) {
-		return errors.New("signature is invalid")
-	}
-	return nil
-}
-
-func (p PublishPkarrRequest) toRecord() pkarr.Record {
-	return pkarr.Record{
-		V:   p.V,
-		K:   p.K[:],
-		Sig: p.Sig[:],
-		Seq: p.Seq,
-	}
-}
-
 // PublishPkarr stores the record in the db, publishes the given Pkarr record to the DHT, and returns the z-base-32 encoded ID
-func (s *PkarrService) PublishPkarr(ctx context.Context, id string, request PublishPkarrRequest) error {
-	if err := request.isValid(); err != nil {
+func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr.Record) error {
+	if err := record.Valid(); err != nil {
 		return err
 	}
 
 	// write to db and cache
-	record := request.toRecord()
 	if err := s.db.WriteRecord(ctx, record); err != nil {
 		return err
 	}
-	recordBytes, err := json.Marshal(GetPkarrResponse{
-		V:   request.V,
-		Seq: request.Seq,
-		Sig: request.Sig,
-	})
+
+	recordBytes, err := json.Marshal(record.Response())
 	if err != nil {
 		return err
 	}
@@ -127,12 +88,7 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, request Publ
 	// return here and put it in the DHT asynchronously
 	// TODO(gabe): consider a background process to monitor failures
 	go func() {
-		_, err := s.dht.Put(ctx, bep44.Put{
-			V:   request.V,
-			K:   &request.K,
-			Sig: request.Sig,
-			Seq: request.Seq,
-		})
+		_, err := s.dht.Put(ctx, record.Bep44())
 		if err != nil {
 			logrus.WithError(err).Error("error from dht.Put")
 		}
@@ -141,26 +97,11 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, request Publ
 	return nil
 }
 
-// GetPkarrResponse is the response to a get Pkarr request
-type GetPkarrResponse struct {
-	V   []byte   `validate:"required"`
-	Seq int64    `validate:"required"`
-	Sig [64]byte `validate:"required"`
-}
-
-func fromPkarrRecord(record pkarr.Record) (*GetPkarrResponse, error) {
-	return &GetPkarrResponse{
-		V:   record.V,
-		Seq: record.Seq,
-		Sig: [64]byte(record.Sig),
-	}, nil
-}
-
 // GetPkarr returns the full Pkarr record (including sig data) for the given z-base-32 encoded ID
-func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrResponse, error) {
+func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response, error) {
 	// first do a cache lookup
 	if got, err := s.cache.Get(id); err == nil {
-		var resp GetPkarrResponse
+		var resp pkarr.Response
 		if err = json.Unmarshal(got, &resp); err != nil {
 			return nil, err
 		}
@@ -186,14 +127,12 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrRespon
 		}
 
 		logrus.WithField("record", id).Debug("resolved pkarr record from storage")
-		resp, err := fromPkarrRecord(*record)
-		if err == nil {
-			if err = s.addRecordToCache(id, *resp); err != nil {
-				logrus.WithError(err).WithField("record", id).Error("failed to set pkarr record in cache")
-			}
+		resp := record.Response()
+		if err = s.addRecordToCache(id, record.Response()); err != nil {
+			logrus.WithError(err).WithField("record", id).Error("failed to set pkarr record in cache")
 		}
 
-		return resp, err
+		return &resp, err
 	}
 
 	// prepare the record for return
@@ -205,7 +144,7 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrRespon
 	if err = bencode.Unmarshal(bBytes, &payload); err != nil {
 		return nil, err
 	}
-	resp := GetPkarrResponse{
+	resp := pkarr.Response{
 		V:   []byte(payload),
 		Seq: got.Seq,
 		Sig: got.Sig,
@@ -219,7 +158,7 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*GetPkarrRespon
 	return &resp, nil
 }
 
-func (s *PkarrService) addRecordToCache(id string, resp GetPkarrResponse) error {
+func (s *PkarrService) addRecordToCache(id string, resp pkarr.Response) error {
 	recordBytes, err := json.Marshal(resp)
 	if err != nil {
 		return err
@@ -252,14 +191,7 @@ func (s *PkarrService) republish() {
 		logrus.WithField("record_count", len(allRecords)).Info("Republishing record")
 
 		for _, record := range allRecords {
-			put, err := recordToBEP44Put(record)
-			if err != nil {
-				logrus.WithError(err).Error("failed to convert record to bep44 put")
-				errCnt++
-				continue
-			}
-
-			if _, err = s.dht.Put(context.Background(), *put); err != nil {
+			if _, err = s.dht.Put(context.Background(), record.Bep44()); err != nil {
 				logrus.WithError(err).Error("failed to republish record")
 				errCnt++
 				continue
@@ -272,15 +204,5 @@ func (s *PkarrService) republish() {
 			break
 		}
 	}
-
-	logrus.WithField("success", successCnt).WithField("errors", errCnt).Info("Republishing complete")
-}
-
-func recordToBEP44Put(record pkarr.Record) (*bep44.Put, error) {
-	return &bep44.Put{
-		V:   record.V,
-		K:   (*[32]byte)(record.K),
-		Sig: [64]byte(record.Sig),
-		Seq: record.Seq,
-	}, nil
+	logrus.Infof("Republishing complete. Successfully republished %d out of %d record(s)", len(allRecords)-errCnt, len(allRecords))
 }
