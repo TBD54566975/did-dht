@@ -166,6 +166,24 @@ paths:
             application/json:
               schema:
                 type: object
+                properties: 
+                  did:
+                    type: object
+                    description: "The DID Document."
+                  pkarr:
+                    type: string
+                    description: "An unpadded base64URL-encoded representation of a full Pkarr payload, represented as 64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v concatenated; enabling independent verification."  
+                  types:
+                    type: array
+                    items:
+                      type: integer
+                    description: "The types associated with the DID."
+                  sequence_numbers:
+                    type: array
+                    items:
+                      type: integer
+                    description: "The sequence numbers available for querying for this node."
+                required: [ did, pkarr ]
         "400":
           description: Invalid request.
           content:
@@ -178,12 +196,6 @@ paths:
             application/json:
               schema:
                 type: string
-        "501":
-            description: Historical resolution not supported by this gateway.
-            content:
-              application/json:
-                schema:
-                  type: string
   /dids/types:
     get:
       tags:
@@ -205,7 +217,7 @@ paths:
                     description:
                       type: string
                   required: [ type, description ]
-        "501":
+        "404":
           description: Type indexing not supported by this gateway.
           content:
             application/json:
@@ -243,20 +255,8 @@ paths:
                 type: array
                 items:
                   type: string
-        "400":
-          description: Invalid request.
-          content:
-            application/json:
-              schema:
-                type: string
         "404":
           description: Type not found.
-          content:
-            application/json:
-              schema:
-                type: string
-        "501":
-          description: Type indexing not supported by this gateway.
           content:
             application/json:
               schema:
@@ -280,7 +280,7 @@ paths:
                   difficulty:
                     type: integer
                 required: [ hash, difficulty ]
-        "501":
+        "404":
           description: Retention proofs not supported by this gateway.
           content:
             application/json:
