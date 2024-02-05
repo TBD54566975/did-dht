@@ -778,8 +778,7 @@ encoding format, we recommend additional considerations to keep payload sizes mi
 
 #### Representing Keys
 
-Apart from the encoding of the cryptographic key itself, which cannot be further minimized in size, we ****RECOMMENDED****
-the following representations of keys and their identifiers using `JsonWebKey` (JWK):
+The following representations of keys and their identifiers using `JsonWebKey` (JWK) are ****RECOMMENDED****:
 
 - The [[ref:Identity Key]]'s identifier ****MUST**** always be `0`.
 - Key identifiers (`kid`s) ****MAY**** be omitted. If omitted, upon reconstruction of a DID Document, the JWK `kid`
