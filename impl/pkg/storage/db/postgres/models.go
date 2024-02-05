@@ -7,6 +7,7 @@ package postgres
 import ()
 
 type PkarrRecord struct {
+	ID    int32
 	Key   []byte
 	Value []byte
 	Sig   []byte
