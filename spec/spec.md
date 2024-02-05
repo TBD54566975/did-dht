@@ -779,12 +779,16 @@ encoding format, we recommend additional considerations to keep payload sizes mi
 #### Representing Keys
 
 Apart from the encoding of the cryptographic key itself, which cannot be further minimized in size, we ****RECOMMENDED****
-the following representations of keys and their identifiers using `JsonWebKey`:
+the following representations of keys and their identifiers using `JsonWebKey` (JWK):
 
 - The [[ref:Identity Key]]'s identifier ****MUST**** always be `0`.
 - Key identifiers (`kid`s) ****MAY**** be omitted. If omitted, upon reconstruction of a DID Document, the JWK `kid`
 is set to its JWK Thumbprint [[spec:RFC7638]].
-- DID Document representations ****SHOULD**** always use fully qualified identifiers (e.g. `did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#0` as opposed to `0` or `#0`)
+- [[ref:DID Document]] representations of elliptic curve (EC) keys ****MUST**** include the x- and y-coordinate pair.
+To conserve space in the DNS packet representation, compressed point encoding ****SHOULD**** be used to transmit the
+x-coordinate and a sign bit for the y-coordinate. This practice reduces each public key's size from 65 to 33 bytes.
+- [[ref:DID Document]] representations ****SHOULD**** always use fully qualified identifiers (e.g.
+`did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#0` as opposed to `0` or `#0`)
 
 #### Historical Key State
 
