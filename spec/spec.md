@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Latest Update:** January 26, 2024
+**Latest Update:** February 6, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -99,10 +99,10 @@ between the Domain Name System and peer-to-peer overlay networks, enabling self-
 sovereign, publicly addressable domains."
 
 [[def:Mainline DHT, DHT, Mainline, Mainline Node]]
-~ [Mainline DHT](https://en.wikipedia.org/wiki/Mainline_DHT) is the name given to the DHT used by the BitTorrent
-protocol. It is a distributed system for storing and finding data on a peer-to-peer network. It is based on
-[Kademlia](https://en.wikipedia.org/wiki/Kademlia) and is primarily used to store and retrieve _torrent_ metadata.
-It has between 16 and 28 million concurrent users.
+~ [Mainline DHT](https://en.wikipedia.org/wiki/Mainline_DHT) is the name given to the DHT used by the 
+[BitTorrent protocol](https://github.com/bittorrent/bittorrent.org). It is a distributed system for storing and
+finding data on a peer-to-peer network. It is based on [Kademlia](https://en.wikipedia.org/wiki/Kademlia) and is primarily
+used to store and retrieve peer data. It is estimated to have between 16 and 28 million concurrent active users.
 
 [[def:Gateway, Gateways, Nodes, DID DHT Node, Bitcoin-anchored Gateway]]
 ~ A node that acts as a gateway to the DID DHT. The gateway may offer a set of APIs to interact with the DID DHT,
@@ -123,6 +123,14 @@ such as features providing guaranteed retention, historical resolution, and othe
 [[def:Retention Proof, Retention Proofs]]
 ~ A proof of work that is performed by the [[ref:DID]] controller to prove that they are still in control of the DID.
 Nodes use this proof to determine how long they should retain a DID.
+
+[[def:Sequence Number, Sequence Numbers, Sequence]]
+~ A sequence number, or `seq`, is a property of a mutable item as defined in [[ref:BEP44]]. It is a 64-bit integer that increases
+in a consistent, unidirectional manner, ensuring that items are ordered sequentially. This specification requires that sequence 
+numbers are [[ref:Unix Timestamps]] represented in seconds.
+
+[[def:Unix Timestamp, Unix Timestamps]]
+~ A value that measures time by the number of non-leap seconds that have elapsed since 00:00:00 UTC on 1 January 1970, the Unix epoch.
 
 ## DID DHT Method Specification
 
@@ -399,7 +407,7 @@ To create a `did:dht`, the process is as follows:
 2. Construct a conformant JSON representation of a [[ref:DID Document]].
 
     a. The document ****MUST**** include a [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) with
-    the _identifier key_ encoded as a `publicKeyJwk` as per [[spec:RFC7517]] with an `id` of `#0` and `type` of
+    the _identifier key_ encoded as a `publicKeyJwk` as per [[spec:RFC7517]] with an `id` of `0` and `type` of
     `JsonWebKey` as per [[ref:VC-JOSE-COSE]].
 
     b. The document can include any number of other [core properties](https://www.w3.org/TR/did-core/#core-properties);
@@ -407,7 +415,11 @@ To create a `did:dht`, the process is as follows:
 
 3. Map the output [[ref:DID Document]] to a DNS packet as outlined in [property mapping](#property-mapping).
 
-4. Construct a signed [[ref:BEP44]] put message with the `v` value as a [[ref:bencode]]d DNS packet from the prior step.
+4. Construct a [[ref:BEP44]] conformant mutable put message, as specified by [Pkarr](https://github.com/Nuhvi/pkarr/blob/main/design/relays.md#put).
+  
+   a. `v` ****MUST**** be set to a [[ref:bencoded]] DNS packet from the prior step.
+
+   b. `seq` ****MUST**** be set to the current [[ref:Unix Timestamp]] in seconds.
 
 5. Submit the result of to the [[ref:DHT]] via a [[ref:Pkarr]] relay, or a [[ref:Gateway]], with the identifier created in step 1.
 
@@ -421,7 +433,9 @@ To read a `did:dht`, the process is as follows:
 
 1. Take the suffix of the DID, that is, the _[[ref:z-base-32]] encoded identifier key_, and pass it to a [[ref:Pkarr]]
 relay or a [[ref:Gateway]].
+
 2. Decode the resulting [[ref:BEP44]] response's `v` value using [[ref:bencode]].
+
 3. Reverse the DNS [property mapping](#property-mapping) process and re-construct a conformant [[ref:DID Document]].
 
 ::: note
@@ -433,7 +447,7 @@ containing just the [[ref:Identity Key]].
 
 Any valid [[ref:BEP44]] record written to the DHT is an update. As long as control of the
 [[ref:Identity Key]] is retained any update is made possibly by signing and writing records with a unique incremental
-sequence number with [mutable items](https://www.bittorrent.org/beps/bep_0044.html).
+[[ref:sequence number]] with [mutable items](https://www.bittorrent.org/beps/bep_0044.html).
 
 It is ****RECOMMENDED**** that updates are infrequent, as caching of the DHT is highly encouraged.
 
@@ -596,15 +610,15 @@ Difficulty is exposed as an **OPTIONAL** endpoint based on support of [retention
   - `id` - **string** - **REQUIRED** - ID of the DID to publish.
     - `did` - **string** - **REQUIRED** - The DID to register or update.
     - `sig` - **string** - **REQUIRED** - An unpadded base64URL-encoded signature of the [[ref:BEP44]] payload.
-    - `seq` - **integer** - **REQUIRED** - A sequence number for the request. This number ****MUST**** be unique for each DID operation,
-    recommended to be a Unix timestamp in seconds.
-    - `v` - **string** - **REQUIRED** - An unpadded base64URL-encoded bencoded DNS packet containing the DID Document.
+    - `seq` - **integer** - **REQUIRED** - A [[ref:sequence number]] for the request. This number ****MUST**** be unique for each DID operation,
+    which ****MUST**** be a [[ref:Unix Timestamp]] in seconds.
+    - `v` - **string** - **REQUIRED** - An unpadded base64URL-encoded [[ref:bencoded]] DNS packet containing the DID Document.
     - `retention_proof` - **string** - **OPTIONAL** - A retention proof calculated according to the [retention proof algorithm](#generating-a-retention-proof).
 - **Returns:**
   - `202` - Accepted. The server has accepted the request as valid and will publish to the DHT.
   - `400` - Invalid request.
   - `401` - Invalid signature.
-  - `409` - DID already exists with a higher sequence number. DID may be accepted if the [[ref:Gateway]] supports [historical resolution](#historical-resolution).
+  - `409` - DID already exists with a higher [[ref:sequence number]]. DID may be accepted if the [[ref:Gateway]] supports [historical resolution](#historical-resolution).
 
 ```json
 {
@@ -628,9 +642,9 @@ DID by its type.
   - `200` - Success.
     - `did` - **object** - **REQUIRED** - A JSON object representing the DID Document.
     - `pkarr` - **string** - **REQUIRED** - An unpadded base64URL-encoded representation of the full [[ref:Pkarr]] payload, represented as 64 bytes sig,
-    8 bytes u64 big-endian seq, 0-1000 bytes of v concatenated; enabling independent verification.
+    8 bytes u64 big-endian seq, and 0-1000 bytes of v concatenated, enabling independent verification.
     - `types` - **array** - **OPTIONAL** - An array of [type integers](#type-indexing) for the DID.
-    - `sequence_numbers` - **array** - **OPTIONAL** - An sorted array of seen sequence numbers, used with [historical resolution](#historical-resolution).
+    - `sequence_numbers` - **array** - **OPTIONAL** - An sorted array of seen [[ref:sequence numbers]], used with [historical resolution](#historical-resolution).
     - `400` - Invalid request.
   - `404` - DID not found.
 
@@ -677,23 +691,23 @@ the `pkarr` data and reconstruct the DID Document themselves. The `did` property
 ##### Historical Resolution
 
 [[ref:Nodes]] ****MAY**** choose to support historical resolution, which is to surface different versions of the same [[ref:DID Document]],
-sorted by sequence number, according to the rules set out in the section on [conflict resolution](#conflict-resolution).
+sorted by [[ref:sequence number]], according to the rules set out in the section on [conflict resolution](#conflict-resolution).
 
 Upon [resolving a DID](#resolving-a-did), the Gateway will return the parameter `sequence_numbers` if there exists
-historical state for a given [[ref:DID]]. The following API can be used with specific sequence numbers to fetch historical state:
+historical state for a given [[ref:DID]]. The following API can be used with specific [[ref:sequence numbers]] to fetch historical state:
 
 - **Method:** `GET`
 - **Path:** `/did/:id?seq=:sequence_number`
   - `id` - **string** - **REQUIRED** - ID of the DID to resolve
-  - `seq` - **integer** - **OPTIONAL** - Sequence number of the DID to resolve
+  - `seq` - **integer** - **OPTIONAL** - [[ref:Sequence number]] of the DID to resolve
 - **Returns**:
   - `200` - Success.
     - `did` - **object** - **REQUIRED** - A JSON object representing the DID Document.
     - `pkarr` - **string** - **REQUIRED** - An unpadded base64URL-encoded representation of the full [[ref:Pkarr]] payload, represented as 64 bytes sig,
-    8 bytes u64 big-endian seq, 0-1000 bytes of v concatenated; enabling independent verification.
+    8 bytes u64 big-endian seq, and 0-1000 bytes of v concatenated, enabling independent verification.
     - `types` - **array** - **OPTIONAL** - An array of [type integers](#type-indexing) for the DID.
   - `400` - Invalid request.
-  - `404` - DID not found for the given sequence number.
+  - `404` - DID not found for the given [[ref:sequence number]].
   - `501` - Historical resolution not supported by this gateway.
 
 #### Deactivating a DID
@@ -759,13 +773,13 @@ returned. If no DIDs match the type, an empty array is returned.
 
 ### Conflict Resolution
 
-According to [[ref:BEP44]] [[ref:Nodes]] can leverage the `seq` sequence number to handle conflicts:
+According to [[ref:BEP44]] [[ref:Nodes]] can leverage the `seq` [[ref:sequence number]] to handle conflicts:
 
-> Storing nodes receiving a put request where seq is lower than or equal to what's already stored on the node,
-****MUST**** reject the request. If the sequence number is equal, and the value is also the same, the node
+> Storing nodes receiving a put request where `seq` is lower than or equal to what's already stored on the node,
+****MUST**** reject the request. If the [[ref:sequence number]] is equal, and the value is also the same, the node
 ****SHOULD**** reset its timeout counter.
 
-When the sequence number is equal, but the value is different, nodes need to decide which value to accept and which
+When the [[ref:sequence number]] is equal, but the value is different, nodes need to decide which value to accept and which
 to reject. To make this determination nodes ****MUST**** compare the payloads lexicographically to determine a
 [lexicographical order](https://en.wikipedia.org/wiki/Lexicographic_order), and reject the payload with a **lower**
 lexicographical order.
@@ -784,15 +798,18 @@ the following representations of keys and their identifiers using `JsonWebKey`:
 - The [[ref:Identity Key]]'s identifier ****MUST**** always be `0`.
 - Key identifiers (`kid`s) ****MAY**** be omitted. If omitted, upon reconstruction of a DID Document, the JWK `kid`
 is set to its JWK Thumbprint [[spec:RFC7638]].
-- DID Document representations ****SHOULD**** always use fully qualified identifiers (e.g. `did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#0` as opposed to `0` or `#0`)
+- DID Document representations ****SHOULD**** always use fully qualified identifiers (e.g.
+`did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#0` as opposed to `0` or `#0`)
 
 #### Historical Key State
 
-However, key rotation is a commonly recommended security practice, which could lead to having many historically
-necessary keys in a [[ref: DID Document]], increasing the size of the document. To address this concern and to
-distinguish between keys that are currently active and keys that are no longer used but were once considered valid
-users ****MAY**** make use of the [service property](https://www.w3.org/TR/did-core/#services) to store signed records
-of historical key state, saving space in the [[ref:DID Document]] itself.
+Rotating keys is a widely recommended security practice. However, if you frequently rotate keys in a
+[[ref:DID Document]], this can lead to an increase in the document's size due to the accumulation of old keys.
+This, in turn, can enlarge the size of the corresponding DNS packet. To manage this issue, while still distinguishing
+between currently active keys and those that are no longer in use (but were valid in the past), users ****MAY****
+utilize the [service property](https://www.w3.org/TR/did-core/#services). This property allows for the specification 
+of services that are dedicated to storing signed records of the historical key states. By doing this, it helps to keep 
+the [[ref:DID Document]] more concise.
 
 ### Republishing Data
 
@@ -808,6 +825,25 @@ use of [[ref:Retention Proofs]] can act as an attack prevention measure, as it w
 calculations. [[ref:Nodes]] ****MAY**** choose to explore other rate limiting techniques, such as IP-limiting, or an
 access-token-based approach.
 
+### DID Resolution
+
+When supplying [DID Document Metadata](https://www.w3.org/TR/did-core/#did-document-metadata) as a part of
+[DID Resolution](https://www.w3.org/TR/did-core/#resolution), implementers are provided the following guidance:
+
+* The metadata's [`versionId` property](https://www.w3.org/TR/did-core/#dfn-versionid) ****MUST**** be set to the
+[[ref:DID Document]]'s current [[ref:sequence number]].
+
+* The metadata's [`created` property](https://www.w3.org/TR/did-core/#dfn-created) ****MUST**** be set to 
+[XML Datetime](https://www.w3.org/TR/xmlschema11-2/#dateTime) representation of the earliest known sequence number
+for the DID.
+
+* The metadata's [`updated` property](https://www.w3.org/TR/did-core/#dfn-updated) ****MUST**** be set to the
+[XML Datetime](https://www.w3.org/TR/xmlschema11-2/#dateTime) representation of the last known sequence number
+for the DID.
+
+* If the [[ref:DID Document]] has [been deactivated](#deactivate) the 
+[`deactivated` property](https://www.w3.org/TR/did-core/#dfn-deactivated) ****MUST**** be set to `true`.
+
 ## Security and Privacy Considerations
 
 When implementing and using the `did:dht` method, there are several security and privacy considerations to be aware of
@@ -815,12 +851,12 @@ to ensure expected and legitimate behavior.
 
 ### Data Conflicts
 
-Malicious actors may try to force [[ref:Nodes]] into uncertain states by manipulating the sequence number associated
+Malicious actors may try to force [[ref:Nodes]] into uncertain states by manipulating the [[ref:sequence number]] associated
 with a record set. There are three such cases to be aware of:
 
-- **Low Sequence Number** - If a [[ref:Node]] has yet to see sequence numbers for a given record it ****MUST**** query
+- **Low Sequence Number** - If a [[ref:Node]] has yet to see [[ref:sequence numbers]] for a given record it ****MUST**** query
 its peers to see if they have encountered the record. If a peer is found who has encountered the record, the record
-with the latest sequence number must be selected. If the node has encountered greater sequence numbers before, the
+with the latest sequence number must be selected. If the node has encountered greater [[ref:sequence numbers]] before, the
 node ****MAY**** reject the record set. If the node supports [historical resolution](#historical-resolution) it
 ****MAY**** choose to accept the request and insert the record into its historical ordered state.
 
@@ -828,9 +864,9 @@ node ****MAY**** reject the record set. If the node supports [historical resolut
 [[ref:Mainline Nodes]] or [[ref:Gateways]]. Implementers are encouraged to follow the guidance outlined in [conflict
 resolution](#conflict-resolution).
 
-- **High Sequence Number** - Since sequence numbers ****MUST**** be second representations of [Unix
-time](https://en.wikipedia.org/wiki/Unix_time), it is ****RECOMMENDED**** that nodes reject sequence numbers that
-represent timestamps greater than **2 hours** into the future.
+- **High Sequence Number** - Since [[ref:sequence numbers]] ****MUST**** be second representations of a [[ref:Unix Timestamp]],
+it is ****RECOMMENDED**** that nodes reject [[ref:sequence numbers]] that represent timestamps greater than **2 hours** into
+the future to mitigate [timing attack](#data-conflicts) risks.
 
 ### Data Availability
 
@@ -1062,7 +1098,7 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
 ~ [BEP44](https://www.bittorrent.org/beps/bep_0044.html). Storing arbitrary data in the DHT. A. Norberg, S. Siloti;
 19 December 2014. [Bittorrent.org](https://www.bittorrent.org/).
 
-[[def:Bencode]]
+[[def:Bencode, Bencoded]]
 ~ [Bencode](https://wiki.theory.org/BitTorrentSpecification#Bencoding). A way to specify and organize data in a terse
 format. [Bittorrent.org](https://www.bittorrent.org/).
 
