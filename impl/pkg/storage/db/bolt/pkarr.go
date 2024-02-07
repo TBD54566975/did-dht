@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
+	"github.com/sirupsen/logrus"
 )
 
 var encoding = base64.RawURLEncoding
@@ -46,6 +47,8 @@ func (b base64PkarrRecord) Decode() (*pkarr.Record, error) {
 
 	record, err := pkarr.NewRecord(k, v, sig, b.Seq)
 	if err != nil {
+		// TODO: do something useful if this happens
+		logrus.WithError(err).Warn("error loading record from database, skipping")
 		return nil, err
 	}
 	return record, nil
