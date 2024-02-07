@@ -67,6 +67,11 @@ jobs:
       - name: Test with postgres
         run: TEST_DB=postgres://postgres:a@127.0.0.1:5432/postgres mage citest
 
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
