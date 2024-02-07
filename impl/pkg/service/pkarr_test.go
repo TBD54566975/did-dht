@@ -47,12 +47,12 @@ func TestPKARRService(t *testing.T) {
 
 		suffix, err := d.Suffix()
 		require.NoError(t, err)
-		err = svc.PublishPkarr(context.Background(), suffix, pkarr.RecordFromBep44(putMsg))
+		err = svc.PublishPkarr(context.Background(), suffix, pkarr.RecordFromBEP44(putMsg))
 		assert.NoError(t, err)
 
 		// invalidate the signature
 		putMsg.Sig[0] = 0
-		err = svc.PublishPkarr(context.Background(), suffix, pkarr.RecordFromBep44(putMsg))
+		err = svc.PublishPkarr(context.Background(), suffix, pkarr.RecordFromBEP44(putMsg))
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "signature is invalid")
 	})
@@ -74,7 +74,7 @@ func TestPKARRService(t *testing.T) {
 
 		suffix, err := d.Suffix()
 		require.NoError(t, err)
-		err = svc.PublishPkarr(context.Background(), suffix, pkarr.RecordFromBep44(putMsg))
+		err = svc.PublishPkarr(context.Background(), suffix, pkarr.RecordFromBEP44(putMsg))
 		assert.NoError(t, err)
 
 		got, err := svc.GetPkarr(context.Background(), suffix)

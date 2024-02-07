@@ -67,7 +67,7 @@ func NewPkarrService(cfg *config.Config, db storage.Storage) (*PkarrService, err
 
 // PublishPkarr stores the record in the db, publishes the given Pkarr record to the DHT, and returns the z-base-32 encoded ID
 func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr.Record) error {
-	if err := record.Valid(); err != nil {
+	if err := record.IsValid(); err != nil {
 		return err
 	}
 
@@ -88,7 +88,7 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr
 	// return here and put it in the DHT asynchronously
 	// TODO(gabe): consider a background process to monitor failures
 	go func() {
-		_, err := s.dht.Put(ctx, record.Bep44())
+		_, err := s.dht.Put(ctx, record.BEP44())
 		if err != nil {
 			logrus.WithError(err).Error("error from dht.Put")
 		}
@@ -191,7 +191,7 @@ func (s *PkarrService) republish() {
 		logrus.WithField("record_count", len(allRecords)).Info("Republishing record")
 
 		for _, record := range allRecords {
-			if _, err = s.dht.Put(context.Background(), record.Bep44()); err != nil {
+			if _, err = s.dht.Put(context.Background(), record.BEP44()); err != nil {
 				logrus.WithError(err).Error("failed to republish record")
 				errCnt++
 				continue

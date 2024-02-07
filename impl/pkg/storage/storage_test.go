@@ -46,7 +46,7 @@ func TestPKARRStorage(t *testing.T) {
 	require.NotEmpty(t, putMsg)
 
 	// create record
-	record := pkarr.RecordFromBep44(putMsg)
+	record := pkarr.RecordFromBEP44(putMsg)
 
 	ctx := context.Background()
 
@@ -90,7 +90,7 @@ func TestDBPagination(t *testing.T) {
 		require.NotEmpty(t, putMsg)
 
 		// create record
-		record := pkarr.RecordFromBep44(putMsg)
+		record := pkarr.RecordFromBEP44(putMsg)
 
 		err = db.WriteRecord(ctx, record)
 		assert.NoError(t, err)
@@ -111,7 +111,7 @@ func TestDBPagination(t *testing.T) {
 	require.NotEmpty(t, putMsg)
 
 	// create eleventhRecord
-	eleventhRecord := pkarr.RecordFromBep44(putMsg)
+	eleventhRecord := pkarr.RecordFromBEP44(putMsg)
 
 	err = db.WriteRecord(ctx, eleventhRecord)
 	assert.NoError(t, err)

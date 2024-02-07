@@ -121,7 +121,7 @@ func TestPKARRStorage(t *testing.T) {
 	require.NotEmpty(t, putMsg)
 
 	// create record
-	record := pkarr.RecordFromBep44(putMsg)
+	record := pkarr.RecordFromBEP44(putMsg)
 
 	ctx := context.Background()
 

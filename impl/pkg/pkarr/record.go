@@ -41,11 +41,15 @@ func NewRecord(k []byte, v []byte, sig []byte, seq int64) (*Record, error) {
 	}
 	record.Signature = [64]byte(sig)
 
+	if err := record.IsValid(); err != nil {
+		return nil, err
+	}
+
 	return &record, nil
 }
 
-// Valid returns an error if the request is invalid; also validates the signature
-func (r Record) Valid() error {
+// IsValid returns an error if the request is invalid; also validates the signature
+func (r Record) IsValid() error {
 	if err := util.IsValidStruct(r); err != nil {
 		return err
 	}
@@ -70,7 +74,7 @@ func (r Record) Response() Response {
 	}
 }
 
-func (r Record) Bep44() bep44.Put {
+func (r Record) BEP44() bep44.Put {
 	return bep44.Put{
 		V:   r.Value,
 		K:   &r.Key,
@@ -84,7 +88,7 @@ func (r Record) String() string {
 	return fmt.Sprintf("pkarr.Record{K=%s V=%s Sig=%s Seq=%d}", e.EncodeToString(r.Key[:]), e.EncodeToString(r.Value), e.EncodeToString(r.Signature[:]), r.SequenceNumber)
 }
 
-func RecordFromBep44(putMsg *bep44.Put) Record {
+func RecordFromBEP44(putMsg *bep44.Put) Record {
 	return Record{
 		Key:            *putMsg.K,
 		Value:          putMsg.V.([]byte),
