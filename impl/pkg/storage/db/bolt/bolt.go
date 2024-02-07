@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/TBD54566975/did-dht-method/pkg/storage/pkarr"
+	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
@@ -68,7 +68,7 @@ func (s *boltdb) ReadRecord(_ context.Context, id []byte) (*pkarr.Record, error)
 		return nil, err
 	}
 
-	return &record, nil
+	return record, nil
 }
 
 // ListRecords lists all records in the storage
@@ -90,7 +90,7 @@ func (s *boltdb) ListAllRecords(_ context.Context) ([]pkarr.Record, error) {
 			return nil, err
 		}
 
-		records = append(records, record)
+		records = append(records, *record)
 	}
 	return records, nil
 }
@@ -114,7 +114,7 @@ func (s *boltdb) ListRecords(_ context.Context, nextPageToken []byte, pagesize i
 			return nil, nil, err
 		}
 
-		records = append(records, record)
+		records = append(records, *record)
 	}
 
 	if len(boltRecords) == pagesize {
@@ -148,7 +148,7 @@ func (s *boltdb) read(namespace, key string) ([]byte, error) {
 	err := s.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
 		if bucket == nil {
-			logrus.Infof("namespace[%s] does not exist", namespace)
+			logrus.WithField("namespace", namespace).Info("namespace does not exist")
 			return nil
 		}
 		result = bucket.Get([]byte(key))

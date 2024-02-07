@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/TBD54566975/did-dht-method/internal/util"
+	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
 	"github.com/TBD54566975/did-dht-method/pkg/service"
 )
 
@@ -57,7 +58,7 @@ func (r *PkarrRouter) GetRecord(c *gin.Context) {
 	var seqBuf [8]byte
 	binary.BigEndian.PutUint64(seqBuf[:], uint64(resp.Seq))
 	// sig:seq:v
-	res := append(resp.Sig[:], append(seqBuf[:], resp.V...)...)
+	res := append(resp.Sig[:], append(seqBuf[:], resp.V[:]...)...)
 	RespondBytes(c, res, http.StatusOK)
 }
 
@@ -104,18 +105,16 @@ func (r *PkarrRouter) PutRecord(c *gin.Context) {
 
 	// transform the request into a service request by extracting the fields
 	// according to https://github.com/Nuhvi/pkarr/blob/main/design/relays.md#put
-	vBytes := body[72:]
-	keyBytes := [32]byte(key[:])
-	bytes := body[:64]
-	sigBytes := [64]byte(bytes)
+	value := body[72:]
+	sig := body[:64]
 	seq := int64(binary.BigEndian.Uint64(body[64:72]))
-	request := service.PublishPkarrRequest{
-		V:   vBytes,
-		K:   keyBytes,
-		Sig: sigBytes,
-		Seq: seq,
+	request, err := pkarr.NewRecord(key, value, sig, seq)
+	if err != nil {
+		LoggingRespondErrWithMsg(c, err, "error parsing request", http.StatusBadRequest)
+		return
 	}
-	if err = r.service.PublishPkarr(c, *id, request); err != nil {
+
+	if err = r.service.PublishPkarr(c, *id, *request); err != nil {
 		LoggingRespondErrWithMsg(c, err, "failed to publish pkarr record", http.StatusInternalServerError)
 		return
 	}
