@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
 	"github.com/TBD54566975/did-dht-method/pkg/storage/db/bolt"
 	"github.com/TBD54566975/did-dht-method/pkg/storage/db/postgres"
-	"github.com/TBD54566975/did-dht-method/pkg/storage/pkarr"
 )
 
 type Storage interface {
