@@ -307,7 +307,7 @@ An example is as follows:
 the zero-indexed positional index of the Service (e.g. `_s0`, `_s1`).
 - Each [Service](https://www.w3.org/TR/did-core/#services)'s **data** is represented with the form `id=M;t=N;se=O`
 where `M` is the Service's ID, `N` is the Service's Type and `O` is the Service's URI.
-  - Multiple service endpoints can be represented as an array (e.g. `id=dwn;t=DecentralizedWebNodes;se=https://dwn.org/dwn1,https://dwn.org/dwn2`)
+  - Multiple service endpoints can be represented as an array (e.g. `id=dwn;t=DecentralizedWebNode;se=https://dwn.org/dwn1,https://dwn.org/dwn2`)
   - Additional properties ****MAY**** be present (e.g. `id=dwn;t=DecentralizedWebNode;se=https://dwn.org/dwn1;sig=1;enc=2`)
 
 An example is given as follows:
@@ -388,8 +388,8 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
 | _did.TLD.  | TXT  | 7200  | v=0;vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;srv=s1                      |
 | _cnt.did.  | TXT  | 7200  | did:example:abcd                                                            |
 | _aka.did.  | TXT  | 7200  | did:example:efgh,did:example:ijkl                                           |
-| _k0._did.  | TXT  | 7200  | id=0;t=0;h=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc |
-| _k1._did.  | TXT  | 7200  | id=HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ;t=1;k=BCiNAz7y-XBr853PBAzgAOU_c0Hyw0Gb69Hr9jTC3MQ80iSbXxZo0jIFLtW8vVnoWd8tEzUV2o22BVc_IjVTIt8 |
+| _k0._did.  | TXT  | 7200  | id=0;t=0;k=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc |
+| _k1._did.  | TXT  | 7200  | id=HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ;t=1;k=AyiNAz7y-XBr853PBAzgAOU_c0Hyw0Gb69Hr9jTC3MQ8 |
 | _s0._did.  | TXT  | 7200  | id=dwn;t=DecentralizedWebNode;se=https://example.com/dwn1,https://example.com/dwn2 |
 
 ### Operations
@@ -792,13 +792,18 @@ encoding format, we recommend additional considerations to keep payload sizes mi
 
 #### Representing Keys
 
-Apart from the encoding of the cryptographic key itself, which cannot be further minimized in size, we ****RECOMMENDED****
-the following representations of keys and their identifiers using `JsonWebKey`:
+The following representations of keys and their identifiers using `JsonWebKey` (JWK) are ****REQUIRED****:
 
 - The [[ref:Identity Key]]'s identifier ****MUST**** always be `0`.
+
 - Key identifiers (`kid`s) ****MAY**** be omitted. If omitted, upon reconstruction of a DID Document, the JWK `kid`
 is set to its JWK Thumbprint [[spec:RFC7638]].
-- DID Document representations ****SHOULD**** always use fully qualified identifiers (e.g.
+
+- [[ref:DID Document]] representations of elliptic curve (EC) keys ****MUST**** include the x- and y-coordinate pair.
+To conserve space in the DNS packet representation, compressed point encoding ****MUST**** be used to transmit the
+x-coordinate and a sign bit for the y-coordinate. This practice reduces each public key's size from 65 to 33 bytes.
+
+- [[ref:DID Document]] representations ****SHOULD**** always use fully qualified identifiers (e.g.
 `did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#0` as opposed to `0` or `#0`)
 
 #### Historical Key State

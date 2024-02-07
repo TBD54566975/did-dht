@@ -12,8 +12,8 @@ import (
 
 	"github.com/TBD54566975/did-dht-method/internal/did"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
+	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
-	"github.com/TBD54566975/did-dht-method/pkg/storage/pkarr"
 )
 
 func getTestDB(t *testing.T) storage.Storage {
@@ -46,12 +46,7 @@ func TestPKARRStorage(t *testing.T) {
 	require.NotEmpty(t, putMsg)
 
 	// create record
-	record := pkarr.Record{
-		V:   putMsg.V.([]byte),
-		K:   putMsg.K[:],
-		Sig: putMsg.Sig[:],
-		Seq: putMsg.Seq,
-	}
+	record := pkarr.RecordFromBEP44(putMsg)
 
 	ctx := context.Background()
 
@@ -59,7 +54,7 @@ func TestPKARRStorage(t *testing.T) {
 	assert.NoError(t, err)
 
 	// read it back
-	readRecord, err := db.ReadRecord(ctx, record.K)
+	readRecord, err := db.ReadRecord(ctx, record.Key[:])
 	assert.NoError(t, err)
 	assert.Equal(t, record, *readRecord)
 
@@ -95,12 +90,7 @@ func TestDBPagination(t *testing.T) {
 		require.NotEmpty(t, putMsg)
 
 		// create record
-		record := pkarr.Record{
-			V:   putMsg.V.([]byte),
-			K:   putMsg.K[:],
-			Sig: putMsg.Sig[:],
-			Seq: putMsg.Seq,
-		}
+		record := pkarr.RecordFromBEP44(putMsg)
 
 		err = db.WriteRecord(ctx, record)
 		assert.NoError(t, err)
@@ -121,12 +111,7 @@ func TestDBPagination(t *testing.T) {
 	require.NotEmpty(t, putMsg)
 
 	// create eleventhRecord
-	eleventhRecord := pkarr.Record{
-		V:   putMsg.V.([]byte),
-		K:   putMsg.K[:],
-		Sig: putMsg.Sig[:],
-		Seq: putMsg.Seq,
-	}
+	eleventhRecord := pkarr.RecordFromBEP44(putMsg)
 
 	err = db.WriteRecord(ctx, eleventhRecord)
 	assert.NoError(t, err)

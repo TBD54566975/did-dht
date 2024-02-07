@@ -35,7 +35,7 @@ func TestPKARRRouter(t *testing.T) {
 		c := newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
 
 		pkarrRouter.PutRecord(c)
-		assert.True(t, is2xxResponse(w.Code))
+		assert.True(t, is2xxResponse(w.Code), "unexpected %s", w.Result().Status)
 	})
 
 	t.Run("test get record", func(t *testing.T) {
@@ -48,14 +48,14 @@ func TestPKARRRouter(t *testing.T) {
 		c := newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
 
 		pkarrRouter.PutRecord(c)
-		assert.True(t, is2xxResponse(w.Code))
+		assert.True(t, is2xxResponse(w.Code), "unexpected %s", w.Result().Status)
 
 		w = httptest.NewRecorder()
 		req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", testServerURL, suffix), nil)
 		c = newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
 
 		pkarrRouter.GetRecord(c)
-		assert.True(t, is2xxResponse(w.Code))
+		assert.True(t, is2xxResponse(w.Code), "unexpected %s", w.Result().Status)
 
 		resp, err := io.ReadAll(w.Body)
 		assert.NoError(t, err)
