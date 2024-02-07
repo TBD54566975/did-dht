@@ -112,7 +112,8 @@ func (p postgres) ListAllRecords(ctx context.Context) ([]pkarr.Record, error) {
 	for _, row := range rows {
 		record, err := row.Record()
 		if err != nil {
-			logrus.WithError(err).Warn("invalid record stored in database, skipping")
+			// TODO: do something useful if this happens
+			logrus.WithError(err).WithField("record_id", row.ID).Warn("error loading record from database, skipping")
 			continue
 		}
 		records = append(records, *record)
@@ -145,6 +146,7 @@ func (p postgres) ListRecords(ctx context.Context, nextPageToken []byte, limit i
 	for _, row := range rows {
 		record, err := pkarr.NewRecord(row.Key, row.Value, row.Sig, row.Seq)
 		if err != nil {
+			// TODO: do something useful if this happens
 			logrus.WithError(err).WithField("record_id", row.ID).Warn("error loading record from database, skipping")
 			continue
 		}
