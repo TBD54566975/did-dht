@@ -38,6 +38,8 @@ func NewTestDHT(bootstrapPeers []string) (*dhtclient.DHT, error) {
 }
 
 func TestGetPutDHT(t *testing.T) {
+	ctx := context.Background()
+
 	d, err := dhtclient.NewDHT(config.GetDefaultBootstrapPeers())
 	require.NoError(t, err)
 
@@ -51,13 +53,22 @@ func TestGetPutDHT(t *testing.T) {
 	}
 	put.Sign(privKey)
 
-	id, err := d.Put(context.Background(), *put)
+	id, err := d.Put(ctx, *put)
 	require.NoError(t, err)
 	require.NotEmpty(t, id)
 
-	got, err := d.Get(context.Background(), id)
+	got, err := d.Get(ctx, id)
 	require.NoError(t, err)
 	require.NotEmpty(t, got)
+	require.Equal(t, bencode.Bytes(put.V.([]byte)), got.V[2:])
+	require.Equal(t, put.Seq, got.Seq)
+
+	full, err := d.GetFull(ctx, id)
+	require.NoError(t, err)
+	require.NotEmpty(t, full)
+	require.Equal(t, put.V, full.V[2:])
+	require.Equal(t, put.Seq, full.Seq)
+	require.False(t, full.Mutable)
 
 	var payload string
 	err = bencode.Unmarshal(got.V, &payload)
