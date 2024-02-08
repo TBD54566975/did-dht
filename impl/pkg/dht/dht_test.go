@@ -1,11 +1,13 @@
-package dht
+package dht_test
 
 import (
 	"context"
 	"encoding/hex"
+	"net"
 	"testing"
 	"time"
 
+	"github.com/anacrolix/dht/v2"
 	"github.com/anacrolix/dht/v2/bep44"
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/stretchr/testify/assert"
@@ -13,10 +15,30 @@ import (
 
 	"github.com/TBD54566975/did-dht-method/config"
 	"github.com/TBD54566975/did-dht-method/internal/util"
+	dhtclient "github.com/TBD54566975/did-dht-method/pkg/dht"
+	errutil "github.com/TBD54566975/ssi-sdk/util"
 )
 
+// NewTestDHT returns a new instance of DHT that does not make external connections
+func NewTestDHT(bootstrapPeers []string) (*dhtclient.DHT, error) {
+	c := dht.NewDefaultServerConfig()
+
+	conn, err := net.ListenPacket("udp", "localhost:0")
+	if err != nil {
+		return nil, err
+	}
+	c.Conn = conn
+
+	s, err := dht.NewServer(c)
+	if err != nil {
+		return nil, errutil.LoggingErrorMsg(err, "failed to create dht server")
+	}
+
+	return &dhtclient.DHT{Server: s}, nil
+}
+
 func TestGetPutDHT(t *testing.T) {
-	d, err := NewDHT(config.GetDefaultBootstrapPeers())
+	d, err := dhtclient.NewDHT(config.GetDefaultBootstrapPeers())
 	require.NoError(t, err)
 
 	pubKey, privKey, err := util.GenerateKeypair()
