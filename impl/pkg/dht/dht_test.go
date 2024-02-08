@@ -66,7 +66,7 @@ func TestGetPutDHT(t *testing.T) {
 	full, err := d.GetFull(ctx, id)
 	require.NoError(t, err)
 	require.NotEmpty(t, full)
-	require.Equal(t, put.V, full.V[2:])
+	require.Equal(t, bencode.Bytes(put.V.([]byte)), full.V[2:])
 	require.Equal(t, put.Seq, full.Seq)
 	require.False(t, full.Mutable)
 
