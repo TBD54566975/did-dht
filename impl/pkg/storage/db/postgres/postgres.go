@@ -97,32 +97,6 @@ func (p postgres) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, err
 	return record, nil
 }
 
-func (p postgres) ListAllRecords(ctx context.Context) ([]pkarr.Record, error) {
-	queries, db, err := p.connect(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer db.Close(ctx)
-
-	rows, err := queries.ListAllRecords(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var records []pkarr.Record
-	for _, row := range rows {
-		record, err := row.Record()
-		if err != nil {
-			// TODO: do something useful if this happens
-			logrus.WithError(err).WithField("record_id", row.ID).Warn("error loading record from database, skipping")
-			continue
-		}
-		records = append(records, *record)
-	}
-
-	return records, nil
-}
-
 func (p postgres) ListRecords(ctx context.Context, nextPageToken []byte, limit int) ([]pkarr.Record, []byte, error) {
 	queries, db, err := p.connect(ctx)
 	if err != nil {

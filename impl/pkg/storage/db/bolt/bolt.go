@@ -73,30 +73,6 @@ func (s *boltdb) ReadRecord(_ context.Context, id []byte) (*pkarr.Record, error)
 }
 
 // ListRecords lists all records in the storage
-func (s *boltdb) ListAllRecords(_ context.Context) ([]pkarr.Record, error) {
-	recordsMap, err := s.readAll(pkarrNamespace)
-	if err != nil {
-		return nil, err
-	}
-
-	var records []pkarr.Record
-	for _, recordBytes := range recordsMap {
-		var encodedRecord base64PkarrRecord
-		if err = json.Unmarshal(recordBytes, &encodedRecord); err != nil {
-			return nil, err
-		}
-
-		record, err := encodedRecord.Decode()
-		if err != nil {
-			return nil, err
-		}
-
-		records = append(records, *record)
-	}
-	return records, nil
-}
-
-// ListRecords lists all records in the storage
 func (s *boltdb) ListRecords(_ context.Context, nextPageToken []byte, pagesize int) ([]pkarr.Record, []byte, error) {
 	boltRecords, err := s.readSeveral(pkarrNamespace, nextPageToken, pagesize)
 	if err != nil {
