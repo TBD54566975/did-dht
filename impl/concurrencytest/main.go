@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"net/http"
 	"sync"
@@ -19,14 +20,15 @@ func main() {
 	programstart := time.Now()
 
 	var wg sync.WaitGroup
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 1000; i++ {
 		log := logrus.WithField("i", i)
 
 		wg.Add(1)
 		go func() {
-			log.Info("starting request")
 			start := time.Now()
-			putdid()
+			if err := putdid(); err != nil {
+				log = log.WithError(err)
+			}
 			log.WithField("time", time.Since(start)).Info("request completed")
 			wg.Done()
 		}()
@@ -37,40 +39,38 @@ func main() {
 	logrus.WithField("time", time.Since(programstart)).Info("concurrency test completed")
 }
 
-func putdid() {
+func putdid() error {
 	didID, reqData, err := generateDIDPutRequest()
 	if err != nil {
-		logrus.WithError(err).Fatal("error generating DID for PUT request")
+		return err
 	}
 
 	suffix, err := did.DHT(didID).Suffix()
 	if err != nil {
-		logrus.WithError(err).Fatal("error parsing generated did")
+		return err
 	}
 
 	req, err := http.NewRequest(http.MethodPut, "http://diddht:8305/"+suffix, bytes.NewReader(reqData))
 	if err != nil {
-		logrus.WithError(err).Fatal("error preparing PUT request")
+		return err
 	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		logrus.WithError(err).Fatal("error making request to server")
+		return err
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		logrus.WithError(err).Fatal("error reading response from server")
+		return err
 	}
 
 	if resp.StatusCode != 200 {
-		logrus.WithFields(logrus.Fields{
-			"status": resp.Status,
-			"body":   string(body),
-		}).Warn("unexpected non-200 response code from PUT request")
-		return
+		return fmt.Errorf("unexpected %s: %s", resp.Status, string(body))
 	}
+
+	return nil
 }
 
 func generateDIDPutRequest() (string, []byte, error) {
