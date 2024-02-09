@@ -113,9 +113,10 @@ func LoadConfig(path string) (*Config, error) {
 		}
 	}
 
-	if err = applyEnvVariables(cfg); err != nil {
+	if err = applyEnvVariables(&cfg); err != nil {
 		return nil, errors.Wrap(err, "apply env variables")
 	}
+
 	return &cfg, nil
 }
 
@@ -139,7 +140,7 @@ func loadTOMLConfig(path string, cfg *Config) error {
 	return nil
 }
 
-func applyEnvVariables(cfg Config) error {
+func applyEnvVariables(cfg *Config) error {
 	if err := godotenv.Load(DefaultEnvPath); err != nil {
 		// The error indicates that the file or directory does not exist.
 		if os.IsNotExist(err) {
@@ -153,6 +154,12 @@ func applyEnvVariables(cfg Config) error {
 	if present {
 		cfg.DHTConfig.BootstrapPeers = strings.Split(bootstrapPeers, ",")
 	}
+
+	storage, present := os.LookupEnv("STORAGE_URI")
+	if present {
+		cfg.ServerConfig.StorageURI = storage
+	}
+
 	return nil
 }
 

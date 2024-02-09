@@ -6,11 +6,12 @@ import (
 	"embed"
 	"fmt"
 
-	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
 	pgx "github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	goose "github.com/pressly/goose/v3"
 	"github.com/sirupsen/logrus"
+
+	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
 )
 
 //go:embed migrations

@@ -1,0 +1,37 @@
+services:
+  diddht:
+    build:
+      context: impl
+      dockerfile: build/Dockerfile
+    ports:
+      - "8305:8305"
+    environment:
+      STORAGE_URI: postgres://postgres:aa@postgres/postgres
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8305/health"]
+      interval: 5s
+      timeout: 1s
+      retries: 10
+  postgres:
+    image: library/postgres
+    command: ["-E"]
+    environment:
+      POSTGRES_PASSWORD: aa
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  concurrencytest:
+    build:
+      context: impl
+      dockerfile_inline: |
+        FROM library/golang:latest
+        COPY . /go/diddht
+        WORKDIR /go/diddht
+        RUN go build -o /concurrencytest ./concurrencytest
+    command: "/concurrencytest"
+    depends_on:
+      - diddht
