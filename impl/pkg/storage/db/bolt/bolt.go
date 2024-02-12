@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
+
+	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
 )
 
 const (
