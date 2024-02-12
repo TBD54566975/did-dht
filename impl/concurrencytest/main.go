@@ -43,8 +43,7 @@ func main() {
 				}
 
 				getStart := time.Now()
-				err = get(s, suffix)
-				if err != nil {
+				if err := get(s, suffix); err != nil {
 					log = log.WithError(err)
 				}
 				log.WithField("time", time.Since(getStart)).Info("GET request completed")
