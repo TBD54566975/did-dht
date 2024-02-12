@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Latest Update:** February 6, 2024
+**Latest Update:** February 7, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -293,13 +293,13 @@ represented as a comma-separated list of key references.
 
 An example is as follows:
 
-| Verification Relationship            | Rdata in the Root Record                    |
-|--------------------------------------|---------------------------------------------|
-| "authentication": ["#0", "#HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ"] | auth=0,HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ |
-| "assertionMethod": ["#0", "#HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ"]| asm=0,HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ  |
-| "keyAgreement": ["#1"]              | agm=1                                        |
-| "capabilityInvocation": ["#0"]      | inv=0                                        |
-| "capabilityDelegation": ["#0"]      | del=0                                        |
+| Verification Relationship                          | Rdata in the Root Record                     |
+|----------------------------------------------------|----------------------------------------------|
+| "authentication": ["did:dht:example#0", "did:dht:example#HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ"] | auth=0,HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ |
+| "assertionMethod": ["did:dht:example#0", "did:dht:example#HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ"]| asm=0,HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ  |
+| "keyAgreement": ["did:dht:example#1"]              | agm=1                                        |
+| "capabilityInvocation": ["did:dht:example#0"]      | inv=0                                        |
+| "capabilityDelegation": ["did:dht:example#0"]      | del=0                                        |
 
 #### Services
 
@@ -792,9 +792,7 @@ encoding format, we recommend additional considerations to keep payload sizes mi
 
 #### Representing Keys
 
-Apart from the encoding of the cryptographic key itself, which cannot be further minimized in size, it is
-****REQUIRED**** to follow the following guidance on representations of keys and their identifiers 
-using the `JsonWebKey` type:
+The following guidance on representations of keys and their identifiers using the `JsonWebKey` type are ****REQUIRED****:
 
 - The [[ref:Identity Key]]'s identifier ****MUST**** always be `0`.
 
