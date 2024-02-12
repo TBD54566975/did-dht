@@ -1,10 +1,21 @@
 services:
-  diddht:
+  diddht-a:
     build:
       context: impl
       dockerfile: build/Dockerfile
-    ports:
-      - "8305:8305"
+    environment:
+      STORAGE_URI: postgres://postgres:aa@postgres/postgres
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8305/health"]
+      interval: 5s
+      timeout: 1s
+      retries: 10
+  diddht-b:
+    build:
+      context: impl
+      dockerfile: build/Dockerfile
     environment:
       STORAGE_URI: postgres://postgres:aa@postgres/postgres
     depends_on:
@@ -34,4 +45,5 @@ services:
         RUN go build -o /concurrencytest ./concurrencytest
     command: "/concurrencytest"
     depends_on:
-      - diddht
+      - diddht-a
+      - diddht-b
