@@ -45,4 +45,24 @@ func TestNewRecord(t *testing.T) {
 	r, err = pkarr.NewRecord(putMsg.K[:], putMsg.V.([]byte), putMsg.Sig[:], 1)
 	assert.EqualError(t, err, "signature is invalid")
 	assert.Nil(t, r)
+
+	r, err = pkarr.NewRecord(putMsg.K[:], putMsg.V.([]byte), putMsg.Sig[:], putMsg.Seq)
+	assert.NoError(t, err)
+
+	bep := r.BEP44()
+	assert.Equal(t, putMsg.K, bep.K)
+	assert.Equal(t, putMsg.V, bep.V)
+	assert.Equal(t, putMsg.Sig, bep.Sig)
+	assert.Equal(t, putMsg.Seq, bep.Seq)
+
+	resp := r.Response()
+	assert.Equal(t, r.Value, resp.V)
+	assert.Equal(t, r.SequenceNumber, resp.Seq)
+	assert.Equal(t, r.Signature, resp.Sig)
+
+	r2 := pkarr.RecordFromBEP44(putMsg)
+	assert.Equal(t, r.Key, r2.Key)
+	assert.Equal(t, r.Value, r2.Value)
+	assert.Equal(t, r.Signature, r2.Signature)
+	assert.Equal(t, r.SequenceNumber, r2.SequenceNumber)
 }
