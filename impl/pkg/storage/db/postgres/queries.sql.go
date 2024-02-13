@@ -9,38 +9,8 @@ import (
 	"context"
 )
 
-const listAllRecords = `-- name: ListAllRecords :many
-SELECT id, key, value, sig, seq FROM pkarr_records
-`
-
-func (q *Queries) ListAllRecords(ctx context.Context) ([]PkarrRecord, error) {
-	rows, err := q.db.Query(ctx, listAllRecords)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []PkarrRecord
-	for rows.Next() {
-		var i PkarrRecord
-		if err := rows.Scan(
-			&i.ID,
-			&i.Key,
-			&i.Value,
-			&i.Sig,
-			&i.Seq,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listRecords = `-- name: ListRecords :many
-SELECT id, key, value, sig, seq FROM pkarr_records WHERE id > (SELECT id FROM pkarr_records WHERE pkarr_records.key = $1) ORDER BY ID ASC LIMIT $2
+SELECT id, key, value, sig, seq FROM pkarr_records WHERE id > (SELECT id FROM pkarr_records WHERE pkarr_records.key = $1) ORDER BY id ASC LIMIT $2
 `
 
 type ListRecordsParams struct {
