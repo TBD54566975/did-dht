@@ -194,3 +194,13 @@ func TestDBPagination(t *testing.T) {
 	assert.Nil(t, nextPageToken)
 	assert.Len(t, page, 1+len(preTestRecords))
 }
+
+func TestNewBolt(t *testing.T) {
+	b, err := NewBolt("")
+	assert.Error(t, err)
+	assert.Nil(t, b)
+
+	b, err = NewBolt("bolt:///fake/path/bolt.db")
+	assert.Error(t, err)
+	assert.Nil(t, b)
+}

@@ -89,7 +89,7 @@ func (p Postgres) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, err
 		return nil, err
 	}
 
-	record, err := pkarr.NewRecord(row.Key, row.Value, row.Sig, row.Seq)
+	record, err := row.Record()
 	if err != nil {
 		return nil, err
 	}
