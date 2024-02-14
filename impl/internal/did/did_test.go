@@ -2,12 +2,14 @@ package did
 
 import (
 	"crypto/ed25519"
+	"fmt"
 	"testing"
 
 	"github.com/goccy/go-json"
 
 	"github.com/TBD54566975/ssi-sdk/crypto"
 	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
+	"github.com/TBD54566975/ssi-sdk/cryptosuite"
 	"github.com/TBD54566975/ssi-sdk/did"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -323,4 +325,303 @@ func TestVectors(t *testing.T) {
 			assert.Contains(t, s, expectedRecord.Record)
 		}
 	})
+}
+
+func TestMisc(t *testing.T) {
+	t.Run("DHT.Method()", func(t *testing.T) {
+		privKey, doc, err := GenerateDIDDHT(CreateDIDDHTOpts{})
+		require.NoError(t, err)
+		require.NotEmpty(t, privKey)
+		require.NotEmpty(t, doc)
+
+		didID := DHT(doc.ID)
+		require.Equal(t, didID.Method(), did.Method("dht"))
+	})
+
+	var pubKeyJWK jwx.PublicKeyJWK
+	retrieveTestVectorAs(t, vector1PublicKeyJWK1, &pubKeyJWK)
+
+	pubKey, err := pubKeyJWK.ToPublicKey()
+	require.NoError(t, err)
+
+	var secpJWK jwx.PublicKeyJWK
+	retrieveTestVectorAs(t, vector2PublicKeyJWK2, &secpJWK)
+
+	t.Run("single aka", func(t *testing.T) {
+		doc, err := CreateDIDDHTDID(pubKey.(ed25519.PublicKey), CreateDIDDHTOpts{
+			Controller:  []string{"did:example:abcd"},
+			AlsoKnownAs: []string{"did:example:efgh"},
+			VerificationMethods: []VerificationMethod{
+				{
+					VerificationMethod: did.VerificationMethod{
+						ID:           secpJWK.KID,
+						Type:         JSONWebKeyType,
+						PublicKeyJWK: &secpJWK,
+					},
+					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
+				},
+			},
+			Services: []did.Service{
+				{
+					ID:              "service-1",
+					Type:            "TestService",
+					ServiceEndpoint: []string{"https://test-service.com/1", "https://test-service.com/2"},
+				},
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, doc)
+	})
+
+	t.Run("verification method without ID", func(t *testing.T) {
+		doc, err := CreateDIDDHTDID(pubKey.(ed25519.PublicKey), CreateDIDDHTOpts{
+			Controller:  []string{"did:example:abcd"},
+			AlsoKnownAs: []string{"did:example:efgh"},
+			VerificationMethods: []VerificationMethod{
+				{
+					VerificationMethod: did.VerificationMethod{
+						Type:         JSONWebKeyType,
+						PublicKeyJWK: &secpJWK,
+					},
+					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
+				},
+			},
+			Services: []did.Service{
+				{
+					ID:              "service-1",
+					Type:            "TestService",
+					ServiceEndpoint: []string{"https://test-service.com/1", "https://test-service.com/2"},
+				},
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, doc)
+	})
+
+	t.Run("multiple controllers", func(t *testing.T) {
+		doc, err := CreateDIDDHTDID(pubKey.(ed25519.PublicKey), CreateDIDDHTOpts{
+			Controller:  []string{"did:example:abcd", "did:example:ijkl"},
+			AlsoKnownAs: []string{"did:example:efgh"},
+			VerificationMethods: []VerificationMethod{
+				{
+					VerificationMethod: did.VerificationMethod{
+						ID:           secpJWK.KID,
+						Type:         JSONWebKeyType,
+						PublicKeyJWK: &secpJWK,
+					},
+					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
+				},
+			},
+			Services: []did.Service{
+				{
+					ID:              "service-1",
+					Type:            "TestService",
+					ServiceEndpoint: []string{"https://test-service.com/1", "https://test-service.com/2"},
+				},
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, doc)
+	})
+
+	t.Run("verification method ID # prefix", func(t *testing.T) {
+		doc, err := CreateDIDDHTDID(pubKey.(ed25519.PublicKey), CreateDIDDHTOpts{
+			Controller:  []string{"did:example:abcd"},
+			AlsoKnownAs: []string{"did:example:efgh"},
+			VerificationMethods: []VerificationMethod{
+				{
+					VerificationMethod: did.VerificationMethod{
+						ID:           "#key-1",
+						Type:         JSONWebKeyType,
+						PublicKeyJWK: &secpJWK,
+					},
+					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
+				},
+			},
+			Services: []did.Service{
+				{
+					ID:              "service-1",
+					Type:            "TestService",
+					ServiceEndpoint: []string{"https://test-service.com/1", "https://test-service.com/2"},
+				},
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, doc)
+	})
+
+	t.Run("verification method purposes", func(t *testing.T) {
+		doc, err := CreateDIDDHTDID(pubKey.(ed25519.PublicKey), CreateDIDDHTOpts{
+			Controller:  []string{"did:example:abcd"},
+			AlsoKnownAs: []string{"did:example:efgh"},
+			VerificationMethods: []VerificationMethod{
+				{
+					VerificationMethod: did.VerificationMethod{
+						ID:           secpJWK.KID,
+						Type:         JSONWebKeyType,
+						PublicKeyJWK: &secpJWK,
+					},
+					Purposes: []did.PublicKeyPurpose{did.Authentication, did.KeyAgreement, did.CapabilityDelegation},
+				},
+			},
+			Services: []did.Service{
+				{
+					ID:              "service-1",
+					Type:            "TestService",
+					ServiceEndpoint: []string{"https://test-service.com/1", "https://test-service.com/2"},
+				},
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, doc)
+	})
+}
+
+func TestCreationFailures(t *testing.T) {
+	var pubKeyJWK jwx.PublicKeyJWK
+	retrieveTestVectorAs(t, vector1PublicKeyJWK1, &pubKeyJWK)
+
+	pubKey, err := pubKeyJWK.ToPublicKey()
+	require.NoError(t, err)
+
+	var secpJWK jwx.PublicKeyJWK
+	retrieveTestVectorAs(t, vector2PublicKeyJWK2, &secpJWK)
+
+	t.Run("verification method id 0", func(t *testing.T) {
+		doc, err := CreateDIDDHTDID(pubKey.(ed25519.PublicKey), CreateDIDDHTOpts{
+			Controller:  []string{"did:example:abcd"},
+			AlsoKnownAs: []string{"did:example:efgh", "did:example:ijkl"},
+			VerificationMethods: []VerificationMethod{
+				{
+					VerificationMethod: did.VerificationMethod{
+						ID:           "#0",
+						Type:         JSONWebKeyType,
+						PublicKeyJWK: &secpJWK,
+					},
+					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
+				},
+			},
+			Services: []did.Service{
+				{
+					ID:              "service-1",
+					Type:            "TestService",
+					ServiceEndpoint: []string{"https://test-service.com/1", "https://test-service.com/2"},
+				},
+			},
+		})
+		assert.EqualError(t, err, "verification method id 0 is reserved for the identity key")
+		assert.Nil(t, doc)
+	})
+	t.Run("duplicate verification method id", func(t *testing.T) {
+		doc, err := CreateDIDDHTDID(pubKey.(ed25519.PublicKey), CreateDIDDHTOpts{
+			Controller:  []string{"did:example:abcd"},
+			AlsoKnownAs: []string{"did:example:efgh", "did:example:ijkl"},
+			VerificationMethods: []VerificationMethod{
+				{
+					VerificationMethod: did.VerificationMethod{
+						ID:           secpJWK.KID,
+						Type:         JSONWebKeyType,
+						PublicKeyJWK: &secpJWK,
+					},
+					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
+				},
+				{
+					VerificationMethod: did.VerificationMethod{
+						ID:           secpJWK.KID,
+						Type:         JSONWebKeyType,
+						PublicKeyJWK: &secpJWK,
+					},
+					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
+				},
+			},
+			Services: []did.Service{
+				{
+					ID:              "service-1",
+					Type:            "TestService",
+					ServiceEndpoint: []string{"https://test-service.com/1", "https://test-service.com/2"},
+				},
+			},
+		})
+		assert.EqualError(t, err, fmt.Sprintf("verification method id %s is not unique", secpJWK.KID))
+		assert.Nil(t, doc)
+	})
+
+	t.Run("unsupported verification method", func(t *testing.T) {
+		doc, err := CreateDIDDHTDID(pubKey.(ed25519.PublicKey), CreateDIDDHTOpts{
+			Controller:  []string{"did:example:abcd"},
+			AlsoKnownAs: []string{"did:example:efgh", "did:example:ijkl"},
+			VerificationMethods: []VerificationMethod{
+				{
+					VerificationMethod: did.VerificationMethod{
+						ID:           secpJWK.KID,
+						Type:         cryptosuite.LDKeyType("fake"),
+						PublicKeyJWK: &secpJWK,
+					},
+					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
+				},
+			},
+			Services: []did.Service{
+				{
+					ID:              "service-1",
+					Type:            "TestService",
+					ServiceEndpoint: []string{"https://test-service.com/1", "https://test-service.com/2"},
+				},
+			},
+		})
+		assert.EqualError(t, err, "verification method type fake is not supported")
+		assert.Nil(t, doc)
+	})
+
+	t.Run("nil verification public key", func(t *testing.T) {
+		doc, err := CreateDIDDHTDID(pubKey.(ed25519.PublicKey), CreateDIDDHTOpts{
+			Controller:  []string{"did:example:abcd"},
+			AlsoKnownAs: []string{"did:example:efgh", "did:example:ijkl"},
+			VerificationMethods: []VerificationMethod{
+				{
+					VerificationMethod: did.VerificationMethod{
+						ID:           secpJWK.KID,
+						Type:         JSONWebKeyType,
+						PublicKeyJWK: nil,
+					},
+					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
+				},
+			},
+			Services: []did.Service{
+				{
+					ID:              "service-1",
+					Type:            "TestService",
+					ServiceEndpoint: []string{"https://test-service.com/1", "https://test-service.com/2"},
+				},
+			},
+		})
+		assert.EqualError(t, err, "verification method public key jwk is required")
+		assert.Nil(t, doc)
+	})
+
+	t.Run("unknown key purpose", func(t *testing.T) {
+		doc, err := CreateDIDDHTDID(pubKey.(ed25519.PublicKey), CreateDIDDHTOpts{
+			Controller:  []string{"did:example:abcd"},
+			AlsoKnownAs: []string{"did:example:efgh"},
+			VerificationMethods: []VerificationMethod{
+				{
+					VerificationMethod: did.VerificationMethod{
+						ID:           secpJWK.KID,
+						Type:         JSONWebKeyType,
+						PublicKeyJWK: &secpJWK,
+					},
+					Purposes: []did.PublicKeyPurpose{did.PublicKeyPurpose("fake purpose")},
+				},
+			},
+			Services: []did.Service{
+				{
+					ID:              "service-1",
+					Type:            "TestService",
+					ServiceEndpoint: []string{"https://test-service.com/1", "https://test-service.com/2"},
+				},
+			},
+		})
+		assert.Error(t, err)
+		assert.Nil(t, doc)
+	})
+
 }
