@@ -2,34 +2,12 @@ package server
 
 import (
 	"net/http"
-	"reflect"
-	"strings"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
-
-var (
-	validate *validator.Validate
-)
-
-func init() {
-	// Instantiate validator.
-	validate = validator.New()
-
-	// Use JSON tag names for errors instead of Go struct field names
-	validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
-		name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
-		if name == "-" {
-			return ""
-		}
-
-		return name
-	})
-}
 
 // Respond convert a Go value to JSON and sends it to the client.
 func Respond(c *gin.Context, data any, statusCode int) {

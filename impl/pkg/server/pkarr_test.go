@@ -62,6 +62,38 @@ func TestPKARRRouter(t *testing.T) {
 		assert.NotEmpty(t, resp)
 		assert.Equal(t, reqData, resp)
 	})
+
+	t.Run("test get no ID", func(t *testing.T) {
+		didID, reqData := generateDIDPutRequest(t)
+
+		w := httptest.NewRecorder()
+		suffix, err := did.DHT(didID).Suffix()
+		assert.NoError(t, err)
+		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("%s/%s", testServerURL, suffix), bytes.NewReader(reqData))
+		c := newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
+
+		pkarrRouter.PutRecord(c)
+		assert.True(t, is2xxResponse(w.Code), "unexpected %s", w.Result().Status)
+
+		w = httptest.NewRecorder()
+		req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", testServerURL, suffix), nil)
+		c = newRequestContextWithParams(w, req, map[string]string{})
+
+		pkarrRouter.GetRecord(c)
+		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode, "unexpected %s", w.Result().Status)
+	})
+
+	t.Run("test put no ID", func(t *testing.T) {
+		_, reqData := generateDIDPutRequest(t)
+
+		w := httptest.NewRecorder()
+		assert.NoError(t, err)
+		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("%s/", testServerURL), bytes.NewReader(reqData))
+		c := newRequestContextWithParams(w, req, map[string]string{})
+
+		pkarrRouter.PutRecord(c)
+		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode, "unexpected %s", w.Result().Status)
+	})
 }
 
 func testPKARRService(t *testing.T) service.PkarrService {
