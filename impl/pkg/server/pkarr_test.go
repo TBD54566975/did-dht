@@ -94,6 +94,56 @@ func TestPKARRRouter(t *testing.T) {
 		pkarrRouter.PutRecord(c)
 		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode, "unexpected %s", w.Result().Status)
 	})
+
+	t.Run("test put undecodable ID", func(t *testing.T) {
+		_, reqData := generateDIDPutRequest(t)
+
+		w := httptest.NewRecorder()
+		suffix := "----"
+		assert.NoError(t, err)
+		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("%s/%s", testServerURL, suffix), bytes.NewReader(reqData))
+		c := newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
+
+		pkarrRouter.PutRecord(c)
+		assert.Equal(t, http.StatusInternalServerError, w.Result().StatusCode, "unexpected %s", w.Result().Status)
+	})
+
+	t.Run("test put invalid record signature", func(t *testing.T) {
+		didID, reqData := generateDIDPutRequest(t)
+
+		reqData = append(reqData, []byte{1, 2, 3, 4, 5}...) // append some garbage to the request body, making the signature invalid
+
+		w := httptest.NewRecorder()
+		suffix, err := did.DHT(didID).Suffix()
+		assert.NoError(t, err)
+		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("%s/%s", testServerURL, suffix), bytes.NewReader(reqData))
+		c := newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
+
+		pkarrRouter.PutRecord(c)
+		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode, "unexpected %s", w.Result().Status)
+	})
+
+	t.Run("test put invalid key ID", func(t *testing.T) {
+		_, reqData := generateDIDPutRequest(t)
+
+		w := httptest.NewRecorder()
+		suffix := "aaaa"
+		assert.NoError(t, err)
+		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("%s/%s", testServerURL, suffix), bytes.NewReader(reqData))
+		c := newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
+
+		pkarrRouter.PutRecord(c)
+		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode, "unexpected %s", w.Result().Status)
+	})
+
+	t.Run("test get not found", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		suffix := "aaa"
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", testServerURL, suffix), nil)
+		c := newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
+		pkarrRouter.GetRecord(c)
+		assert.Equal(t, http.StatusNotFound, w.Result().StatusCode, "unexpected %s", w.Result().Status)
+	})
 }
 
 func testPKARRService(t *testing.T) service.PkarrService {
