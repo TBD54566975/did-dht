@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/anacrolix/dht/v2/bep44"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -65,4 +66,22 @@ func TestInvalidDIDDocument(t *testing.T) {
 	assert.Error(t, err) // this should error because the gateway URL is invalid
 	assert.Nil(t, ty)
 	assert.Nil(t, did)
+
+	client, err = NewGatewayClient("https://tbd.website")
+	require.NoError(t, err)
+	require.NotNil(t, client)
+
+	did, ty, err = client.GetDIDDocument("did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y")
+	assert.Error(t, err) // this should error because the gateway URL will return a non-200
+	assert.Nil(t, ty)
+	assert.Nil(t, did)
+
+	err = client.PutDocument("did:dht:example", bep44.Put{})
+	assert.Error(t, err)
+
+	err = client.PutDocument("did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y", bep44.Put{
+		K: &[32]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		V: []byte{0, 0, 0},
+	})
+	assert.Error(t, err)
 }
