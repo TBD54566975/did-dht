@@ -2,12 +2,15 @@ package dht
 
 import (
 	"context"
+	"net"
+	"testing"
 
 	errutil "github.com/TBD54566975/ssi-sdk/util"
 	"github.com/anacrolix/dht/v2"
 	"github.com/anacrolix/dht/v2/bep44"
 	"github.com/anacrolix/dht/v2/exts/getput"
 	"github.com/anacrolix/torrent/types/infohash"
+	"github.com/stretchr/testify/require"
 
 	dhtint "github.com/TBD54566975/did-dht-method/internal/dht"
 	"github.com/TBD54566975/did-dht-method/internal/util"
@@ -29,12 +32,36 @@ func NewDHT(bootstrapPeers []string) (*DHT, error) {
 	return &DHT{Server: s}, nil
 }
 
+// NewTestDHT returns a new instance of DHT that does not make external connections
+func NewTestDHT(t *testing.T, bootstrapPeers ...dht.Addr) *DHT {
+	c := dht.NewDefaultServerConfig()
+	c.WaitToReply = true
+
+	conn, err := net.ListenPacket("udp", "localhost:0")
+	require.NoError(t, err)
+	c.Conn = conn
+
+	if len(bootstrapPeers) == 0 {
+		bootstrapPeers = []dht.Addr{dht.NewAddr(c.Conn.LocalAddr())}
+	}
+	c.StartingNodes = func() ([]dht.Addr, error) { return bootstrapPeers, nil }
+
+	s, err := dht.NewServer(c)
+	require.NoError(t, err)
+	require.NotNil(t, s)
+
+	return &DHT{Server: s}
+}
+
 // Put puts the given BEP-44 value into the DHT and returns its z32-encoded key.
 func (d *DHT) Put(ctx context.Context, request bep44.Put) (string, error) {
 	t, err := getput.Put(ctx, request.Target(), d.Server, nil, func(int64) bep44.Put {
 		return request
 	})
 	if err != nil {
+		if t == nil {
+			return "", errutil.LoggingNewErrorf("failed to put key into dht: %v", err)
+		}
 		return "", errutil.LoggingNewErrorf("failed to put key into dht, tried %d nodes, got %d responses", t.NumAddrsTried, t.NumResponses)
 	}
 	return util.Z32Encode(request.K[:]), nil

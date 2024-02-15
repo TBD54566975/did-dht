@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/TBD54566975/did-dht-method/config"
+	"github.com/TBD54566975/did-dht-method/pkg/dht"
 )
 
 const (
@@ -28,7 +29,8 @@ func TestHealthCheckAPI(t *testing.T) {
 	serviceConfig.ServerConfig.StorageURI = "bolt://health-check.db"
 	serviceConfig.ServerConfig.BaseURL = testServerURL
 	assert.NoError(t, err)
-	server, err := NewServer(serviceConfig, shutdown)
+
+	server, err := NewServer(serviceConfig, shutdown, dht.NewTestDHT(t))
 	assert.NoError(t, err)
 	assert.NotEmpty(t, server)
 

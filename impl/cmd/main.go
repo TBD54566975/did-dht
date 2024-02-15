@@ -15,6 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/TBD54566975/did-dht-method/config"
+	"github.com/TBD54566975/did-dht-method/pkg/dht"
 	"github.com/TBD54566975/did-dht-method/pkg/server"
 )
 
@@ -76,7 +77,13 @@ func run() error {
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
-	s, err := server.NewServer(cfg, shutdown)
+	d, err := dht.NewDHT(cfg.DHTConfig.BootstrapPeers)
+	if err != nil {
+		logrus.WithError(err).Error("failed to instantiate dht")
+		return err
+	}
+
+	s, err := server.NewServer(cfg, shutdown, d)
 	if err != nil {
 		logrus.WithError(err).Error("could not start http services")
 		return err

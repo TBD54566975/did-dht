@@ -148,12 +148,17 @@ func TestPKARRRouter(t *testing.T) {
 
 func testPKARRService(t *testing.T) service.PkarrService {
 	defaultConfig := config.GetDefaultConfig()
+
 	db, err := storage.NewStorage(defaultConfig.ServerConfig.StorageURI)
 	require.NoError(t, err)
 	require.NotEmpty(t, db)
-	pkarrService, err := service.NewPkarrService(&defaultConfig, db)
+
+	d := dht.NewTestDHT(t)
+
+	pkarrService, err := service.NewPkarrService(&defaultConfig, db, d)
 	require.NoError(t, err)
 	require.NotEmpty(t, pkarrService)
+
 	return *pkarrService
 }
 

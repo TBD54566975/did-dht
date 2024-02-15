@@ -15,6 +15,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	"github.com/TBD54566975/did-dht-method/config"
+	"github.com/TBD54566975/did-dht-method/pkg/dht"
 	"github.com/TBD54566975/did-dht-method/pkg/service"
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
 )
@@ -34,7 +35,7 @@ type Server struct {
 }
 
 // NewServer returns a new instance of Server with the given db and host.
-func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
+func NewServer(cfg *config.Config, shutdown chan os.Signal, d *dht.DHT) (*Server, error) {
 	// set up server prerequisites
 	handler := setupHandler(cfg.ServerConfig.Environment)
 
@@ -43,7 +44,7 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal) (*Server, error) {
 		return nil, util.LoggingErrorMsg(err, "failed to instantiate storage")
 	}
 
-	pkarrService, err := service.NewPkarrService(cfg, db)
+	pkarrService, err := service.NewPkarrService(cfg, db, d)
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "could not instantiate pkarr service")
 	}

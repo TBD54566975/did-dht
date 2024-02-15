@@ -2,10 +2,14 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	anacrolixdht "github.com/anacrolix/dht/v2"
 
 	"github.com/TBD54566975/did-dht-method/config"
 	"github.com/TBD54566975/did-dht-method/internal/did"
@@ -15,8 +19,7 @@ import (
 )
 
 func TestPKARRService(t *testing.T) {
-	svc := newPKARRService(t)
-	require.NotEmpty(t, svc)
+	svc := newPKARRService(t, "a")
 
 	t.Run("test put bad record", func(t *testing.T) {
 		err := svc.PublishPkarr(context.Background(), "", pkarr.Record{})
@@ -99,8 +102,8 @@ func TestPKARRService(t *testing.T) {
 
 		d := did.DHT(doc.ID)
 		packet, err := d.ToDNSPacket(*doc, nil)
-		assert.NoError(t, err)
-		assert.NotEmpty(t, packet)
+		require.NoError(t, err)
+		require.NotEmpty(t, packet)
 
 		putMsg, err := dht.CreatePKARRPublishRequest(sk, *packet)
 		require.NoError(t, err)
@@ -109,11 +112,11 @@ func TestPKARRService(t *testing.T) {
 		suffix, err := d.Suffix()
 		require.NoError(t, err)
 		err = svc.PublishPkarr(context.Background(), suffix, pkarr.RecordFromBEP44(putMsg))
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// remove it from the cache so the get tests the uncached lookup path
 		err = svc.cache.Delete(suffix)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		got, err := svc.GetPkarr(context.Background(), suffix)
 		assert.NoError(t, err)
@@ -124,19 +127,37 @@ func TestPKARRService(t *testing.T) {
 	})
 }
 
-func newPKARRService(t *testing.T) PkarrService {
-	defaultConfig := config.GetDefaultConfig()
-	db, err := storage.NewStorage(defaultConfig.ServerConfig.StorageURI)
+func TestDHT(t *testing.T) {
+	svc1 := newPKARRService(t, "b")
+	svc2 := newPKARRService(t, "c", anacrolixdht.NewAddr(svc1.dht.Addr()))
+
+	// create and publish a record to service1
+	sk, doc, err := did.GenerateDIDDHT(did.CreateDIDDHTOpts{})
 	require.NoError(t, err)
-	require.NotEmpty(t, db)
-	pkarrService, err := NewPkarrService(&defaultConfig, db)
+	require.NotEmpty(t, doc)
+	d := did.DHT(doc.ID)
+	packet, err := d.ToDNSPacket(*doc, nil)
 	require.NoError(t, err)
-	require.NotEmpty(t, pkarrService)
-	return *pkarrService
+	require.NotEmpty(t, packet)
+	putMsg, err := dht.CreatePKARRPublishRequest(sk, *packet)
+	require.NoError(t, err)
+	require.NotEmpty(t, putMsg)
+	suffix, err := d.Suffix()
+	require.NoError(t, err)
+	err = svc1.PublishPkarr(context.Background(), suffix, pkarr.RecordFromBEP44(putMsg))
+	require.NoError(t, err)
+
+	// get the record via service2
+	got, err := svc2.GetPkarr(context.Background(), suffix)
+	require.NoError(t, err)
+	require.NotEmpty(t, got)
+	assert.Equal(t, putMsg.V, got.V)
+	assert.Equal(t, putMsg.Sig, got.Sig)
+	assert.Equal(t, putMsg.Seq, got.Seq)
 }
 
 func TestNoConfig(t *testing.T) {
-	svc, err := NewPkarrService(nil, nil)
+	svc, err := NewPkarrService(nil, nil, nil)
 	assert.EqualError(t, err, "config is required")
 	assert.Nil(t, svc)
 
@@ -144,7 +165,7 @@ func TestNoConfig(t *testing.T) {
 		PkarrConfig: config.PKARRServiceConfig{
 			CacheSizeLimitMB: -1,
 		},
-	}, nil)
+	}, nil, nil)
 	assert.EqualError(t, err, "failed to instantiate cache: HardMaxCacheSize must be >= 0")
 	assert.Nil(t, svc)
 
@@ -152,7 +173,25 @@ func TestNoConfig(t *testing.T) {
 		PkarrConfig: config.PKARRServiceConfig{
 			RepublishCRON: "not a real cron expression",
 		},
-	}, nil)
+	}, nil, nil)
 	assert.EqualError(t, err, "failed to start republisher: gocron: cron expression failed to be parsed: failed to parse int from not: strconv.Atoi: parsing \"not\": invalid syntax")
 	assert.Nil(t, svc)
+}
+
+func newPKARRService(t *testing.T, id string, bootstrapPeers ...anacrolixdht.Addr) PkarrService {
+	defaultConfig := config.GetDefaultConfig()
+
+	db, err := storage.NewStorage(fmt.Sprintf("bolt:///tmp/diddht-test-%s.db", id))
+	require.NoError(t, err)
+	require.NotEmpty(t, db)
+
+	t.Cleanup(func() { os.Remove(fmt.Sprintf("/tmp/diddht-test-%s.db", id)) })
+
+	d := dht.NewTestDHT(t, bootstrapPeers...)
+
+	pkarrService, err := NewPkarrService(&defaultConfig, db, d)
+	require.NoError(t, err)
+	require.NotEmpty(t, pkarrService)
+
+	return *pkarrService
 }
