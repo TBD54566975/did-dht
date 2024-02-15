@@ -30,6 +30,12 @@ func TestPKARRService(t *testing.T) {
 		assert.Nil(t, got)
 	})
 
+	t.Run("test get record with invalid ID", func(t *testing.T) {
+		got, err := svc.GetPkarr(context.Background(), "---")
+		assert.EqualError(t, err, "illegal z-base-32 data at input byte 0")
+		assert.Nil(t, got)
+	})
+
 	t.Run("test record with a bad signature", func(t *testing.T) {
 		// create a did doc as a packet to store
 		sk, doc, err := did.GenerateDIDDHT(did.CreateDIDDHTOpts{})
@@ -84,6 +90,38 @@ func TestPKARRService(t *testing.T) {
 		assert.Equal(t, putMsg.Sig, got.Sig)
 		assert.Equal(t, putMsg.Seq, got.Seq)
 	})
+
+	t.Run("test get uncached record", func(t *testing.T) {
+		// create a did doc as a packet to store
+		sk, doc, err := did.GenerateDIDDHT(did.CreateDIDDHTOpts{})
+		require.NoError(t, err)
+		require.NotEmpty(t, doc)
+
+		d := did.DHT(doc.ID)
+		packet, err := d.ToDNSPacket(*doc, nil)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, packet)
+
+		putMsg, err := dht.CreatePKARRPublishRequest(sk, *packet)
+		require.NoError(t, err)
+		require.NotEmpty(t, putMsg)
+
+		suffix, err := d.Suffix()
+		require.NoError(t, err)
+		err = svc.PublishPkarr(context.Background(), suffix, pkarr.RecordFromBEP44(putMsg))
+		assert.NoError(t, err)
+
+		// remove it from the cache so the get tests the uncached lookup path
+		err = svc.cache.Delete(suffix)
+		assert.NoError(t, err)
+
+		got, err := svc.GetPkarr(context.Background(), suffix)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, got)
+		assert.Equal(t, putMsg.V, got.V)
+		assert.Equal(t, putMsg.Sig, got.Sig)
+		assert.Equal(t, putMsg.Seq, got.Seq)
+	})
 }
 
 func newPKARRService(t *testing.T) PkarrService {
@@ -95,4 +133,26 @@ func newPKARRService(t *testing.T) PkarrService {
 	require.NoError(t, err)
 	require.NotEmpty(t, pkarrService)
 	return *pkarrService
+}
+
+func TestNoConfig(t *testing.T) {
+	svc, err := NewPkarrService(nil, nil)
+	assert.EqualError(t, err, "config is required")
+	assert.Nil(t, svc)
+
+	svc, err = NewPkarrService(&config.Config{
+		PkarrConfig: config.PKARRServiceConfig{
+			CacheSizeLimitMB: -1,
+		},
+	}, nil)
+	assert.EqualError(t, err, "failed to instantiate cache: HardMaxCacheSize must be >= 0")
+	assert.Nil(t, svc)
+
+	svc, err = NewPkarrService(&config.Config{
+		PkarrConfig: config.PKARRServiceConfig{
+			RepublishCRON: "not a real cron expression",
+		},
+	}, nil)
+	assert.EqualError(t, err, "failed to start republisher: gocron: cron expression failed to be parsed: failed to parse int from not: strconv.Atoi: parsing \"not\": invalid syntax")
+	assert.Nil(t, svc)
 }
