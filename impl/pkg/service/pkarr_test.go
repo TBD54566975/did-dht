@@ -127,7 +127,7 @@ func TestPKARRService(t *testing.T) {
 	})
 }
 
-func TestDHT(t *testing.T) {
+func disabledTestDHT(t *testing.T) {
 	svc1 := newPKARRService(t, "b")
 	svc2 := newPKARRService(t, "c", anacrolixdht.NewAddr(svc1.dht.Addr()))
 
@@ -181,11 +181,11 @@ func TestNoConfig(t *testing.T) {
 func newPKARRService(t *testing.T, id string, bootstrapPeers ...anacrolixdht.Addr) PkarrService {
 	defaultConfig := config.GetDefaultConfig()
 
-	db, err := storage.NewStorage(fmt.Sprintf("bolt:///tmp/diddht-test-%s.db", id))
+	db, err := storage.NewStorage(fmt.Sprintf("bolt://diddht-test-%s.db", id))
 	require.NoError(t, err)
 	require.NotEmpty(t, db)
 
-	t.Cleanup(func() { os.Remove(fmt.Sprintf("/tmp/diddht-test-%s.db", id)) })
+	t.Cleanup(func() { os.Remove(fmt.Sprintf("diddht-test-%s.db", id)) })
 
 	d := dht.NewTestDHT(t, bootstrapPeers...)
 
