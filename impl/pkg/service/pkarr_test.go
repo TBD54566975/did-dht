@@ -127,9 +127,8 @@ func TestPKARRService(t *testing.T) {
 	})
 }
 
-func disabledTestDHT(t *testing.T) {
+func TestDHT(t *testing.T) {
 	svc1 := newPKARRService(t, "b")
-	svc2 := newPKARRService(t, "c", anacrolixdht.NewAddr(svc1.dht.Addr()))
 
 	// create and publish a record to service1
 	sk, doc, err := did.GenerateDIDDHT(did.CreateDIDDHTOpts{})
@@ -147,13 +146,24 @@ func disabledTestDHT(t *testing.T) {
 	err = svc1.PublishPkarr(context.Background(), suffix, pkarr.RecordFromBEP44(putMsg))
 	require.NoError(t, err)
 
-	// get the record via service2
-	got, err := svc2.GetPkarr(context.Background(), suffix)
+	// make sure we can get it back
+	got, err := svc1.GetPkarr(context.Background(), suffix)
 	require.NoError(t, err)
 	require.NotEmpty(t, got)
 	assert.Equal(t, putMsg.V, got.V)
 	assert.Equal(t, putMsg.Sig, got.Sig)
 	assert.Equal(t, putMsg.Seq, got.Seq)
+
+	// create service2 with service1 as a bootstrap peer
+	svc2 := newPKARRService(t, "c", anacrolixdht.NewAddr(svc1.dht.Addr()))
+
+	// get the record via service2
+	gotFrom2, err := svc2.GetPkarr(context.Background(), suffix)
+	require.NoError(t, err)
+	require.NotEmpty(t, gotFrom2)
+	assert.Equal(t, putMsg.V, gotFrom2.V)
+	assert.Equal(t, putMsg.Sig, gotFrom2.Sig)
+	assert.Equal(t, putMsg.Seq, gotFrom2.Seq)
 }
 
 func TestNoConfig(t *testing.T) {
