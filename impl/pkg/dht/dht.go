@@ -49,6 +49,10 @@ func NewTestDHT(t *testing.T, bootstrapPeers ...dht.Addr) *DHT {
 	s, err := dht.NewServer(c)
 	require.NoError(t, err)
 	require.NotNil(t, s)
+	
+	if _, err = s.Bootstrap(); err != nil {
+		t.Fatalf("failed to bootstrap: %v", err)
+	}
 
 	return &DHT{Server: s}
 }
