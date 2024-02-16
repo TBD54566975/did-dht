@@ -2,10 +2,14 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	anacrolixdht "github.com/anacrolix/dht/v2"
 
 	"github.com/TBD54566975/did-dht-method/config"
 	"github.com/TBD54566975/did-dht-method/internal/did"
@@ -15,8 +19,7 @@ import (
 )
 
 func TestPKARRService(t *testing.T) {
-	svc := newPKARRService(t)
-	require.NotEmpty(t, svc)
+	svc := newPKARRService(t, "a")
 
 	t.Run("test put bad record", func(t *testing.T) {
 		err := svc.PublishPkarr(context.Background(), "", pkarr.Record{})
@@ -27,6 +30,12 @@ func TestPKARRService(t *testing.T) {
 	t.Run("test get non existent record", func(t *testing.T) {
 		got, err := svc.GetPkarr(context.Background(), "test")
 		assert.NoError(t, err)
+		assert.Nil(t, got)
+	})
+
+	t.Run("test get record with invalid ID", func(t *testing.T) {
+		got, err := svc.GetPkarr(context.Background(), "---")
+		assert.EqualError(t, err, "illegal z-base-32 data at input byte 0")
 		assert.Nil(t, got)
 	})
 
@@ -84,15 +93,115 @@ func TestPKARRService(t *testing.T) {
 		assert.Equal(t, putMsg.Sig, got.Sig)
 		assert.Equal(t, putMsg.Seq, got.Seq)
 	})
+
+	t.Run("test get uncached record", func(t *testing.T) {
+		// create a did doc as a packet to store
+		sk, doc, err := did.GenerateDIDDHT(did.CreateDIDDHTOpts{})
+		require.NoError(t, err)
+		require.NotEmpty(t, doc)
+
+		d := did.DHT(doc.ID)
+		packet, err := d.ToDNSPacket(*doc, nil)
+		require.NoError(t, err)
+		require.NotEmpty(t, packet)
+
+		putMsg, err := dht.CreatePKARRPublishRequest(sk, *packet)
+		require.NoError(t, err)
+		require.NotEmpty(t, putMsg)
+
+		suffix, err := d.Suffix()
+		require.NoError(t, err)
+		err = svc.PublishPkarr(context.Background(), suffix, pkarr.RecordFromBEP44(putMsg))
+		require.NoError(t, err)
+
+		// remove it from the cache so the get tests the uncached lookup path
+		err = svc.cache.Delete(suffix)
+		require.NoError(t, err)
+
+		got, err := svc.GetPkarr(context.Background(), suffix)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, got)
+		assert.Equal(t, putMsg.V, got.V)
+		assert.Equal(t, putMsg.Sig, got.Sig)
+		assert.Equal(t, putMsg.Seq, got.Seq)
+	})
 }
 
-func newPKARRService(t *testing.T) PkarrService {
+func TestDHT(t *testing.T) {
+	svc1 := newPKARRService(t, "b")
+
+	// create and publish a record to service1
+	sk, doc, err := did.GenerateDIDDHT(did.CreateDIDDHTOpts{})
+	require.NoError(t, err)
+	require.NotEmpty(t, doc)
+	d := did.DHT(doc.ID)
+	packet, err := d.ToDNSPacket(*doc, nil)
+	require.NoError(t, err)
+	require.NotEmpty(t, packet)
+	putMsg, err := dht.CreatePKARRPublishRequest(sk, *packet)
+	require.NoError(t, err)
+	require.NotEmpty(t, putMsg)
+	suffix, err := d.Suffix()
+	require.NoError(t, err)
+	err = svc1.PublishPkarr(context.Background(), suffix, pkarr.RecordFromBEP44(putMsg))
+	require.NoError(t, err)
+
+	// make sure we can get it back
+	got, err := svc1.GetPkarr(context.Background(), suffix)
+	require.NoError(t, err)
+	require.NotEmpty(t, got)
+	assert.Equal(t, putMsg.V, got.V)
+	assert.Equal(t, putMsg.Sig, got.Sig)
+	assert.Equal(t, putMsg.Seq, got.Seq)
+
+	// create service2 with service1 as a bootstrap peer
+	svc2 := newPKARRService(t, "c", anacrolixdht.NewAddr(svc1.dht.Addr()))
+
+	// get the record via service2
+	gotFrom2, err := svc2.GetPkarr(context.Background(), suffix)
+	require.NoError(t, err)
+	require.NotEmpty(t, gotFrom2)
+	assert.Equal(t, putMsg.V, gotFrom2.V)
+	assert.Equal(t, putMsg.Sig, gotFrom2.Sig)
+	assert.Equal(t, putMsg.Seq, gotFrom2.Seq)
+}
+
+func TestNoConfig(t *testing.T) {
+	svc, err := NewPkarrService(nil, nil, nil)
+	assert.EqualError(t, err, "config is required")
+	assert.Nil(t, svc)
+
+	svc, err = NewPkarrService(&config.Config{
+		PkarrConfig: config.PKARRServiceConfig{
+			CacheSizeLimitMB: -1,
+		},
+	}, nil, nil)
+	assert.EqualError(t, err, "failed to instantiate cache: HardMaxCacheSize must be >= 0")
+	assert.Nil(t, svc)
+
+	svc, err = NewPkarrService(&config.Config{
+		PkarrConfig: config.PKARRServiceConfig{
+			RepublishCRON: "not a real cron expression",
+		},
+	}, nil, nil)
+	assert.EqualError(t, err, "failed to start republisher: gocron: cron expression failed to be parsed: failed to parse int from not: strconv.Atoi: parsing \"not\": invalid syntax")
+	assert.Nil(t, svc)
+}
+
+func newPKARRService(t *testing.T, id string, bootstrapPeers ...anacrolixdht.Addr) PkarrService {
 	defaultConfig := config.GetDefaultConfig()
-	db, err := storage.NewStorage(defaultConfig.ServerConfig.StorageURI)
+
+	db, err := storage.NewStorage(fmt.Sprintf("bolt://diddht-test-%s.db", id))
 	require.NoError(t, err)
 	require.NotEmpty(t, db)
-	pkarrService, err := NewPkarrService(&defaultConfig, db)
+
+	t.Cleanup(func() { os.Remove(fmt.Sprintf("diddht-test-%s.db", id)) })
+
+	d := dht.NewTestDHT(t, bootstrapPeers...)
+
+	pkarrService, err := NewPkarrService(&defaultConfig, db, d)
 	require.NoError(t, err)
 	require.NotEmpty(t, pkarrService)
+
 	return *pkarrService
 }

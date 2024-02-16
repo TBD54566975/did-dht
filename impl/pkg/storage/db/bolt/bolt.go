@@ -16,7 +16,7 @@ const (
 	pkarrNamespace = "pkarr"
 )
 
-type boltdb struct {
+type BoltDB struct {
 	db *bolt.DB
 }
 
@@ -25,7 +25,7 @@ type boltRecord struct {
 }
 
 // NewBolt creates a BoltDB-based implementation of storage.Storage
-func NewBolt(path string) (*boltdb, error) {
+func NewBolt(path string) (*BoltDB, error) {
 	if path == "" {
 		return nil, errors.New("path is required")
 	}
@@ -34,12 +34,12 @@ func NewBolt(path string) (*boltdb, error) {
 		return nil, err
 	}
 
-	return &boltdb{db: db}, nil
+	return &BoltDB{db: db}, nil
 }
 
 // WriteRecord writes the given record to the storage
 // TODO: don't overwrite existing records, store unique seq numbers
-func (s *boltdb) WriteRecord(_ context.Context, record pkarr.Record) error {
+func (s *BoltDB) WriteRecord(_ context.Context, record pkarr.Record) error {
 	encoded := encodeRecord(record)
 	recordBytes, err := json.Marshal(encoded)
 	if err != nil {
@@ -50,7 +50,7 @@ func (s *boltdb) WriteRecord(_ context.Context, record pkarr.Record) error {
 }
 
 // ReadRecord reads the record with the given id from the storage
-func (s *boltdb) ReadRecord(_ context.Context, id []byte) (*pkarr.Record, error) {
+func (s *BoltDB) ReadRecord(_ context.Context, id []byte) (*pkarr.Record, error) {
 	recordBytes, err := s.read(pkarrNamespace, encoding.EncodeToString(id))
 	if err != nil {
 		return nil, err
@@ -73,31 +73,7 @@ func (s *boltdb) ReadRecord(_ context.Context, id []byte) (*pkarr.Record, error)
 }
 
 // ListRecords lists all records in the storage
-func (s *boltdb) ListAllRecords(_ context.Context) ([]pkarr.Record, error) {
-	recordsMap, err := s.readAll(pkarrNamespace)
-	if err != nil {
-		return nil, err
-	}
-
-	var records []pkarr.Record
-	for _, recordBytes := range recordsMap {
-		var encodedRecord base64PkarrRecord
-		if err = json.Unmarshal(recordBytes, &encodedRecord); err != nil {
-			return nil, err
-		}
-
-		record, err := encodedRecord.Decode()
-		if err != nil {
-			return nil, err
-		}
-
-		records = append(records, *record)
-	}
-	return records, nil
-}
-
-// ListRecords lists all records in the storage
-func (s *boltdb) ListRecords(_ context.Context, nextPageToken []byte, pagesize int) ([]pkarr.Record, []byte, error) {
+func (s *BoltDB) ListRecords(_ context.Context, nextPageToken []byte, pagesize int) ([]pkarr.Record, []byte, error) {
 	boltRecords, err := s.readSeveral(pkarrNamespace, nextPageToken, pagesize)
 	if err != nil {
 		return nil, nil, err
@@ -127,11 +103,11 @@ func (s *boltdb) ListRecords(_ context.Context, nextPageToken []byte, pagesize i
 	return records, nextPageToken, nil
 }
 
-func (s *boltdb) Close() error {
+func (s *BoltDB) Close() error {
 	return s.db.Close()
 }
 
-func (s *boltdb) write(namespace string, key string, value []byte) error {
+func (s *BoltDB) write(namespace string, key string, value []byte) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte(namespace))
 		if err != nil {
@@ -144,7 +120,7 @@ func (s *boltdb) write(namespace string, key string, value []byte) error {
 	})
 }
 
-func (s *boltdb) read(namespace, key string) ([]byte, error) {
+func (s *BoltDB) read(namespace, key string) ([]byte, error) {
 	var result []byte
 	err := s.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
@@ -158,7 +134,7 @@ func (s *boltdb) read(namespace, key string) ([]byte, error) {
 	return result, err
 }
 
-func (s *boltdb) readAll(namespace string) (map[string][]byte, error) {
+func (s *BoltDB) readAll(namespace string) (map[string][]byte, error) {
 	result := make(map[string][]byte)
 	err := s.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
@@ -175,7 +151,7 @@ func (s *boltdb) readAll(namespace string) (map[string][]byte, error) {
 	return result, err
 }
 
-func (s *boltdb) readSeveral(namespace string, after []byte, count int) ([]boltRecord, error) {
+func (s *BoltDB) readSeveral(namespace string, after []byte, count int) ([]boltRecord, error) {
 	var result []boltRecord
 	err := s.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))

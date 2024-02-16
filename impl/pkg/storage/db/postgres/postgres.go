@@ -17,11 +17,11 @@ import (
 //go:embed migrations
 var migrations embed.FS
 
-type postgres string
+type Postgres string
 
 // NewPostgres creates a PostgresQL-based implementation of storage.Storage
-func NewPostgres(uri string) (postgres, error) {
-	db := postgres(uri)
+func NewPostgres(uri string) (Postgres, error) {
+	db := Postgres(uri)
 	if err := db.migrate(); err != nil {
 		return db, fmt.Errorf("error migrating postgres database: %v", err)
 	}
@@ -29,7 +29,7 @@ func NewPostgres(uri string) (postgres, error) {
 	return db, nil
 }
 
-func (p postgres) migrate() error {
+func (p Postgres) migrate() error {
 	db, err := sql.Open("pgx/v5", string(p))
 	if err != nil {
 		return err
@@ -48,7 +48,7 @@ func (p postgres) migrate() error {
 	return nil
 }
 
-func (p postgres) connect(ctx context.Context) (*Queries, *pgx.Conn, error) {
+func (p Postgres) connect(ctx context.Context) (*Queries, *pgx.Conn, error) {
 	conn, err := pgx.Connect(ctx, string(p))
 	if err != nil {
 		return nil, nil, err
@@ -57,7 +57,7 @@ func (p postgres) connect(ctx context.Context) (*Queries, *pgx.Conn, error) {
 	return New(conn), conn, nil
 }
 
-func (p postgres) WriteRecord(ctx context.Context, record pkarr.Record) error {
+func (p Postgres) WriteRecord(ctx context.Context, record pkarr.Record) error {
 	queries, db, err := p.connect(ctx)
 	if err != nil {
 		return err
@@ -77,7 +77,7 @@ func (p postgres) WriteRecord(ctx context.Context, record pkarr.Record) error {
 	return nil
 }
 
-func (p postgres) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, error) {
+func (p Postgres) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, error) {
 	queries, db, err := p.connect(ctx)
 	if err != nil {
 		return nil, err
@@ -89,7 +89,7 @@ func (p postgres) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, err
 		return nil, err
 	}
 
-	record, err := pkarr.NewRecord(row.Key, row.Value, row.Sig, row.Seq)
+	record, err := row.Record()
 	if err != nil {
 		return nil, err
 	}
@@ -97,33 +97,7 @@ func (p postgres) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, err
 	return record, nil
 }
 
-func (p postgres) ListAllRecords(ctx context.Context) ([]pkarr.Record, error) {
-	queries, db, err := p.connect(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer db.Close(ctx)
-
-	rows, err := queries.ListAllRecords(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var records []pkarr.Record
-	for _, row := range rows {
-		record, err := row.Record()
-		if err != nil {
-			// TODO: do something useful if this happens
-			logrus.WithError(err).WithField("record_id", row.ID).Warn("error loading record from database, skipping")
-			continue
-		}
-		records = append(records, *record)
-	}
-
-	return records, nil
-}
-
-func (p postgres) ListRecords(ctx context.Context, nextPageToken []byte, limit int) ([]pkarr.Record, []byte, error) {
+func (p Postgres) ListRecords(ctx context.Context, nextPageToken []byte, limit int) ([]pkarr.Record, []byte, error) {
 	queries, db, err := p.connect(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -164,7 +138,7 @@ func (p postgres) ListRecords(ctx context.Context, nextPageToken []byte, limit i
 	return records, nextPageToken, nil
 }
 
-func (p postgres) Close() error {
+func (p Postgres) Close() error {
 	// no-op, postgres connection is closed after each request
 	return nil
 }

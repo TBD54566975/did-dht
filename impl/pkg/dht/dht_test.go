@@ -1,4 +1,4 @@
-package dht
+package dht_test
 
 import (
 	"context"
@@ -11,13 +11,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/TBD54566975/did-dht-method/config"
 	"github.com/TBD54566975/did-dht-method/internal/util"
+	dhtclient "github.com/TBD54566975/did-dht-method/pkg/dht"
 )
 
 func TestGetPutDHT(t *testing.T) {
-	d, err := NewDHT(config.GetDefaultBootstrapPeers())
-	require.NoError(t, err)
+	ctx := context.Background()
+
+	d := dhtclient.NewTestDHT(t)
 
 	pubKey, privKey, err := util.GenerateKeypair()
 	require.NoError(t, err)
@@ -29,13 +30,22 @@ func TestGetPutDHT(t *testing.T) {
 	}
 	put.Sign(privKey)
 
-	id, err := d.Put(context.Background(), *put)
+	id, err := d.Put(ctx, *put)
 	require.NoError(t, err)
 	require.NotEmpty(t, id)
 
-	got, err := d.Get(context.Background(), id)
+	got, err := d.Get(ctx, id)
 	require.NoError(t, err)
 	require.NotEmpty(t, got)
+	require.Equal(t, bencode.Bytes(put.V.([]byte)), got.V[2:])
+	require.Equal(t, put.Seq, got.Seq)
+
+	full, err := d.GetFull(ctx, id)
+	require.NoError(t, err)
+	require.NotEmpty(t, full)
+	require.Equal(t, bencode.Bytes(put.V.([]byte)), full.V[2:])
+	require.Equal(t, put.Seq, full.Seq)
+	require.False(t, full.Mutable)
 
 	var payload string
 	err = bencode.Unmarshal(got.V, &payload)

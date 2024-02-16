@@ -58,19 +58,18 @@ jobs:
       - name: Build
         run: mage build
 
-      - name: Test
-        run: mage citest
-
       - name: Start a postgres container
         run: docker run --rm -d --name postgres -p 5432:5432 -e POSTGRES_PASSWORD=a library/postgres && until docker exec postgres pg_isready; do sleep 1; done
 
-      - name: Test with postgres
+      - name: Test
         run: TEST_DB=postgres://postgres:a@127.0.0.1:5432/postgres mage citest
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - run: go clean -modcache # https://github.com/golangci/golangci-lint-action/issues/135
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3

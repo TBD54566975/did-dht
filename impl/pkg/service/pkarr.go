@@ -31,14 +31,9 @@ type PkarrService struct {
 }
 
 // NewPkarrService returns a new instance of the Pkarr service
-func NewPkarrService(cfg *config.Config, db storage.Storage) (*PkarrService, error) {
+func NewPkarrService(cfg *config.Config, db storage.Storage, d *dht.DHT) (*PkarrService, error) {
 	if cfg == nil {
 		return nil, ssiutil.LoggingNewError("config is required")
-	}
-
-	d, err := dht.NewDHT(cfg.DHTConfig.BootstrapPeers)
-	if err != nil {
-		return nil, ssiutil.LoggingErrorMsg(err, "failed to instantiate dht")
 	}
 
 	// create and start cache and scheduler
