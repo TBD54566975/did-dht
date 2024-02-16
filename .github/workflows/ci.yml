@@ -69,7 +69,7 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-      - run: go clean -modcache
+      - run: go clean -modcache # https://github.com/golangci/golangci-lint-action/issues/135
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
