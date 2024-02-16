@@ -50,6 +50,10 @@ func NewTestDHT(t *testing.T, bootstrapPeers ...dht.Addr) *DHT {
 	require.NoError(t, err)
 	require.NotNil(t, s)
 
+	if _, err = s.Bootstrap(); err != nil {
+		t.Fatalf("failed to bootstrap: %v", err)
+	}
+
 	return &DHT{Server: s}
 }
 
@@ -62,7 +66,7 @@ func (d *DHT) Put(ctx context.Context, request bep44.Put) (string, error) {
 		if t == nil {
 			return "", errutil.LoggingNewErrorf("failed to put key into dht: %v", err)
 		}
-		return "", errutil.LoggingNewErrorf("failed to put key into dht, tried %d nodes, got %d responses", t.NumAddrsTried, t.NumResponses)
+		return "", errutil.LoggingNewErrorf("failed to put key into dht, tried %d node(s), got %d response(s)", t.NumAddrsTried, t.NumResponses)
 	}
 	return util.Z32Encode(request.K[:]), nil
 }
@@ -76,7 +80,7 @@ func (d *DHT) Get(ctx context.Context, key string) (*getput.GetResult, error) {
 	}
 	res, t, err := getput.Get(ctx, infohash.HashBytes(z32Decoded), d.Server, nil, nil)
 	if err != nil {
-		return nil, errutil.LoggingNewErrorf("failed to get key[%s] from dht; tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
+		return nil, errutil.LoggingNewErrorf("failed to get key[%s] from dht; tried %d node(s), got %d response(s)", key, t.NumAddrsTried, t.NumResponses)
 	}
 	return &res, nil
 }
@@ -91,7 +95,7 @@ func (d *DHT) GetFull(ctx context.Context, key string) (*dhtint.FullGetResult, e
 	}
 	res, t, err := dhtint.Get(ctx, infohash.HashBytes(z32Decoded), d.Server, nil, nil)
 	if err != nil {
-		return nil, errutil.LoggingNewErrorf("failed to get key[%s] from dht; tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
+		return nil, errutil.LoggingNewErrorf("failed to get key[%s] from dht; tried %d node(s), got %d response(s)", key, t.NumAddrsTried, t.NumResponses)
 	}
 	return &res, nil
 }
