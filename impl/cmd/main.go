@@ -17,6 +17,7 @@ import (
 	"github.com/TBD54566975/did-dht-method/config"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
 	"github.com/TBD54566975/did-dht-method/pkg/server"
+	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
 )
 
 var commitHash string
@@ -49,6 +50,12 @@ func main() {
 }
 
 func run() error {
+	ctx := context.Background()
+	if err := telemetry.SetupTelemetry(ctx); err != nil {
+		logrus.WithError(err).Fatal("error initializing telemetry")
+	}
+	defer telemetry.Shutdown(ctx)
+
 	// Load config
 	configPath := config.DefaultConfigPath
 	envConfigPath, present := os.LookupEnv(config.ConfigPath.String())
@@ -121,7 +128,7 @@ func configureLogger(level, location string) *os.File {
 	if level != "" {
 		logLevel, err := logrus.ParseLevel(level)
 		if err != nil {
-			logrus.WithError(err).Errorf("could not parse log level<%s>, setting to info", level)
+			logrus.WithError(err).WithField("level", level).Error("could not parse log level, setting to info")
 			logrus.SetLevel(logrus.InfoLevel)
 		} else {
 			logrus.SetLevel(logLevel)

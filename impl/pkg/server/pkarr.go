@@ -43,7 +43,7 @@ func (r *PkarrRouter) GetRecord(c *gin.Context) {
 		return
 	}
 
-	resp, err := r.service.GetPkarr(c, *id)
+	resp, err := r.service.GetPkarr(c.Request.Context(), *id)
 	if err != nil {
 		LoggingRespondErrWithMsg(c, err, "failed to get pkarr record", http.StatusInternalServerError)
 		return
@@ -114,7 +114,7 @@ func (r *PkarrRouter) PutRecord(c *gin.Context) {
 		return
 	}
 
-	if err = r.service.PublishPkarr(c, *id, *request); err != nil {
+	if err = r.service.PublishPkarr(c.Request.Context(), *id, *request); err != nil {
 		LoggingRespondErrWithMsg(c, err, "failed to publish pkarr record", http.StatusInternalServerError)
 		return
 	}

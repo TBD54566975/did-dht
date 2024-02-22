@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -13,14 +14,21 @@ import (
 
 	"github.com/TBD54566975/did-dht-method/config"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
+	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
 )
 
 const (
 	testServerURL = "https://diddht-service.com"
 )
 
-func TestMain(t *testing.M) {
-	os.Exit(t.Run())
+func TestMain(m *testing.M) {
+	// telemetry.Tracer will be nil if this isn't called before the test
+	if err := telemetry.SetupTelemetry(context.Background()); err != nil {
+		panic(err)
+	}
+	defer telemetry.Shutdown(context.Background())
+
+	os.Exit(m.Run())
 }
 
 func TestHealthCheckAPI(t *testing.T) {
