@@ -5,9 +5,6 @@ name: did-dht-ci
 #   - commits are pushed to main
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
   # used to run action manually via the UI
   workflow_dispatch:
 

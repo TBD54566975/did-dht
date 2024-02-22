@@ -8,13 +8,26 @@ import (
 	"github.com/TBD54566975/did-dht-method/internal/did"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
 	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
+	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
 	"github.com/goccy/go-json"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+func TestMain(m *testing.M) {
+	// telemetry.Tracer will be nil if this isn't called before the test
+	if err := telemetry.SetupTelemetry(context.Background()); err != nil {
+		panic(err)
+	}
+	defer telemetry.Shutdown(context.Background())
+
+	os.Exit(m.Run())
+}
+
 func TestBoltDB_ReadWrite(t *testing.T) {
+	ctx := context.Background()
+
 	db := getTestDB(t)
 
 	// create a name space and a message in it
@@ -25,11 +38,11 @@ func TestBoltDB_ReadWrite(t *testing.T) {
 	p1Bytes, err := json.Marshal(players1)
 	assert.NoError(t, err)
 
-	err = db.write(namespace, team1, p1Bytes)
+	err = db.write(ctx, namespace, team1, p1Bytes)
 	assert.NoError(t, err)
 
 	// get it back
-	gotPlayers1, err := db.read(namespace, team1)
+	gotPlayers1, err := db.read(ctx, namespace, team1)
 	assert.NoError(t, err)
 
 	var players1Result []string
@@ -38,12 +51,12 @@ func TestBoltDB_ReadWrite(t *testing.T) {
 	assert.EqualValues(t, players1, players1Result)
 
 	// get a value from a dhtNamespace that doesn't exist
-	res, err := db.read("bad", "worse")
+	res, err := db.read(ctx, "bad", "worse")
 	assert.NoError(t, err)
 	assert.Empty(t, res)
 
 	// get a value that doesn't exist in the dhtNamespace
-	noValue, err := db.read(namespace, "Porsche")
+	noValue, err := db.read(ctx, namespace, "Porsche")
 	assert.NoError(t, err)
 	assert.Empty(t, noValue)
 
@@ -53,7 +66,7 @@ func TestBoltDB_ReadWrite(t *testing.T) {
 	p2Bytes, err := json.Marshal(players2)
 	assert.NoError(t, err)
 
-	err = db.write(namespace, team2, p2Bytes)
+	err = db.write(ctx, namespace, team2, p2Bytes)
 	assert.NoError(t, err)
 
 	// get all values from the dhtNamespace
@@ -69,6 +82,8 @@ func TestBoltDB_ReadWrite(t *testing.T) {
 }
 
 func TestBoltDB_PrefixAndKeys(t *testing.T) {
+	ctx := context.Background()
+
 	db := getTestDB(t)
 
 	namespace := "blockchains"
@@ -76,16 +91,16 @@ func TestBoltDB_PrefixAndKeys(t *testing.T) {
 	// set up prefix read test
 
 	dummyData := []byte("dummy")
-	err := db.write(namespace, "bitcoin-testnet", dummyData)
+	err := db.write(ctx, namespace, "bitcoin-testnet", dummyData)
 	assert.NoError(t, err)
 
-	err = db.write(namespace, "bitcoin-mainnet", dummyData)
+	err = db.write(ctx, namespace, "bitcoin-mainnet", dummyData)
 	assert.NoError(t, err)
 
-	err = db.write(namespace, "tezos-testnet", dummyData)
+	err = db.write(ctx, namespace, "tezos-testnet", dummyData)
 	assert.NoError(t, err)
 
-	err = db.write(namespace, "tezos-mainnet", dummyData)
+	err = db.write(ctx, namespace, "tezos-mainnet", dummyData)
 	assert.NoError(t, err)
 }
 
