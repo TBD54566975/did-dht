@@ -26,7 +26,8 @@ The DID DHT Method Specification 1.0
 
 ## Abstract
 
-A [DID Method](https://www.w3.org/TR/did-core/) based on [Pkarr](https://github.com/nuhvi/pkarr), identified by `did:dht`.
+A [DID Method](https://www.w3.org/TR/did-core/) based on [[ref:Pkarr]] and [[ref:Mainline DHT]],
+identified by the prefix `did:dht`.
 
 <style id="protocol-stack-styles">
   #protocol-stack-styles + table {
@@ -53,19 +54,19 @@ A [DID Method](https://www.w3.org/TR/did-core/) based on [Pkarr](https://github.
   }
 </style>
 
-:----: |
-DID DHT |
-[Pkarr](https://github.com/nuhvi/pkarr)|
+:--------------------------------------------------------: |
+DID DHT                                                    |
+[Pkarr](https://github.com/nuhvi/pkarr)                    |
 [Mainline DHT](https://en.wikipedia.org/wiki/Mainline_DHT) |
 
 [[ref:Pkarr]] stands for **P**ublic **K**ey **A**ddressable **R**esource **R**ecords. [[ref:Pkarr]] makes use of the
-[Mainline DHT](https://en.wikipedia.org/wiki/Mainline_DHT), specifically [[ref:BEP44]] to store records. This DID
-method uses [[ref:Pkarr]] to store _DID Documents_.
+[Mainline DHT](https://en.wikipedia.org/wiki/Mainline_DHT), specifically [[ref:BEP44]] to store signed mutable records. 
+This DID method uses [[ref:Pkarr]] to store _DID Documents_.
 
-As [[ref:Pkarr]] states, mainline is used for the following reasons:
+As [[ref:Pkarr]] states, [[def:Mainline]] is used for the following reasons:
 
 1. It has a proven track record of 15 years.
-2. It is the biggest DHT in existence with an estimated 10 million nodes.
+2. It is the biggest DHT in existence with an estimated 10 million servers.
 3. It is fairly generous in retaining data.
 4. It has been implemented in most languages and is stable.
 
@@ -82,47 +83,49 @@ The keywords MAY, MUST, MUST NOT, RECOMMENDED, SHOULD, and SHOULD NOT in this do
 ~ A [W3C specification](https://www.w3.org/TR/did-core/) describing an _identifier that enables verifiable, decentralized digital identity_. Associated with a document containing properties outlined in the specification.
 
 [[def:DID Suffix, Suffix]]
-~ The unique identifier string within a DID URI. e.g. The unique suffix of `did:dht:123` would be `123`.
+~ The unique identifier string within a DID URI. The unique suffix of `did:dht:123` would be `123`.
 
 [[def:DID Suffix Data, Suffix Data]]
 ~ Data required to deterministically generate a DID, the [[ref:Identity Key]].
 
 [[def:Identity Key]]
-~ An [[ref:Ed25519]] public key encoded with [[ref:z-base-32]] used to uniquely identify a `did:dht` document.
+~ An [[ref:Ed25519]] public key encoded required to authenticate all records in [[ref:Mainline DHT]]. When encoded with
+[[ref:z-base-32]], the resulting string comprises the [[ref:Suffix]] of `did:dht` identifier. This key is guaranteed to
+be present in each `did:dht` document.
 
 [[def:DID DHT Service]]
 ~ A service that provides a [[ref:DHT]] interface to the [[ref:Pkarr]] network, extended to support this [[ref:DID]] method.
 
 [[def:Pkarr]]
-~ An [open-source project](https://github.com/nuhvi/pkarr) that provides the "simplest possible streamlined integration
-between the Domain Name System and peer-to-peer overlay networks, enabling self-issued public keys to function as
-sovereign, publicly addressable domains."
+~ An [open-source project](https://github.com/nuhvi/pkarr), based on [[ref:Mainline]] which aims to provide the 
+_simplest possible streamlined integration between the Domain Name System and peer-to-peer overlay networks, 
+enabling self-issued public keys to function as sovereign, publicly addressable domains_.
 
-[[def:Mainline DHT, DHT, Mainline, Mainline Node]]
-~ [Mainline DHT](https://en.wikipedia.org/wiki/Mainline_DHT) is the name given to the DHT used by the 
+[[def:Mainline DHT, DHT, Mainline, Mainline Server]]
+~ [Mainline DHT](https://en.wikipedia.org/wiki/Mainline_DHT) is the name given to the 
+[Distributed Hash Table](https://en.wikipedia.org/wiki/Distributed_hash_table) used by the 
 [BitTorrent protocol](https://github.com/bittorrent/bittorrent.org). It is a distributed system for storing and
 finding data on a peer-to-peer network. It is based on [Kademlia](https://en.wikipedia.org/wiki/Kademlia) and is primarily
-used to store and retrieve peer data. It is estimated to have between 16 and 28 million concurrent active users.
+used to store and retrieve peer data. It is estimated to consistently have tens of millions of concurrent active users.
 
-[[def:Gateway, Gateways, Nodes, DID DHT Node, Bitcoin-anchored Gateway]]
-~ A node that acts as a gateway to the DID DHT. The gateway may offer a set of APIs to interact with the DID DHT,
-such as features providing guaranteed retention, historical resolution, and other features.
-
-[[def:Registered Gateway, Registered Gateways]]
-~ A gateway that has chosen to make itself discoverable via a [[ref:Gateway Registry]] such as the [DID DHT Registry](registry/index.html#gateways).
+[[def:Gateway, Gateways, DID DHT, Bitcoin-anchored Gateway]]
+~ A server that that facilitates DID DHT operations. The gateway may offer a set of APIs to interact with the DID DHT
+method features such as providing guaranteed retention, historical resolution, and other more. Gateways can make
+themselves discoverable via a [[ref:Gateway Registry]].
 
 [[def:Gateway Registry, Gateway Registries]]
-~ A system used to make [[ref:Gateways]], more specifically, [[ref:Registered Gateways]] discoverable.
+~ A system used to make [[ref:Gateways]] discoverable. One such 
 
 [[def:Client, Clients]]
-~ A client is a piece of software that is responsible for generating a `did:dht` and submitting it to a [[ref:Mainline]] node or [[ref:Gateway]].
+~ A client is a piece of software that is responsible for generating a `did:dht` and submitting it to a 
+[[ref:Mainline Server]] or [[ref:Gateway]].
 
 [[def:Retained DID Set, Retained Set, Retention Set]]
 ~ The set of DIDs that a [[ref:Gateway]] is retaining and thus is responsible for republishing.
 
 [[def:Retention Proof, Retention Proofs]]
 ~ A proof of work that is performed by the [[ref:DID]] controller to prove that they are still in control of the DID.
-Nodes use this proof to determine how long they should retain a DID.
+[[ref:Gateways]] use this proof to determine how long they should retain a DID.
 
 [[def:Sequence Number, Sequence Numbers, Sequence]]
 ~ A sequence number, or `seq`, is a property of a mutable item as defined in [[ref:BEP44]]. It is a 64-bit integer that increases
@@ -169,9 +172,10 @@ Comprising a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then stored 
 The recommended TTL value is 7200 seconds (2 hours), the default TTL for Mainline records.
 :::
 
-- The DID identifier [[ref:z-base-32]]-encoded key ****MUST**** be appended as the Origin of all records:
+- The root record's name ****MUST**** be of the form, `_did.<ID>.`, where `ID` is the [[ref:Pkarr]] identifier
+  associated with the DID (i.e. `did:dht:<ID>` becomes `_did.<ID>.`).
 
-- The root record, `_did.<ID>.`, identifies the [property mapping](#property-mapping) for the document, along with
+- The root record's value identifies the [property mapping](#property-mapping) for the document, along with
 versioning information.
 
 - The root record ****MUST**** include a version number. The version of the DNS packet representation for
@@ -222,7 +226,7 @@ The following instructions serve as a reference for mapping DID Document propert
 
 A [DID controller](https://www.w3.org/TR/did-core/#did-controller) ****MAY**** be present in a `did:dht` document.
 
-If present, a DID controller ****MUST**** be represented as a `_cnt._did` record in the form of a comma-separated
+If present, a DID controller ****MUST**** be represented as a `_cnt._did.` record in the form of a comma-separated
 list of controller DID identifiers.
 
 To ensure that the DID controller is authorized to make changes to the DID Document, the controller for the [[ref:Identity Key]] Verification Method ****MUST**** be contained within the controller property.
@@ -237,7 +241,7 @@ An example is given as follows:
 
 A `did:dht` document ****MAY**** have multiple identifiers using the [alsoKnownAs](https://www.w3.org/TR/did-core/#also-known-as) property.
 
-If present, alternate DID identifiers ****MUST**** be represented as `_aka_.did` record in the form of a
+If present, alternate DID identifiers ****MUST**** be represented as `_aka_.did.` record in the form of a
 comma-separated list of DID identifiers.
 
 An example is given as follows:
@@ -248,7 +252,7 @@ An example is given as follows:
 
 #### Verification Methods
 
-- Method **name** is represented as a `_kN._did` record where `N` is the zero-indexed positional index of
+- Method **name** is represented as a `_kN._did.` record where `N` is the zero-indexed positional index of
 a given [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) (e.g. `_k0`, `_k1`).
 
 - Each [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) **rdata** is represented with the form
@@ -299,9 +303,12 @@ An example is as follows:
 
 - Each [Service](https://www.w3.org/TR/did-core/#services)'s **name** is represented as a `_sN._did.` record where `N` is
 the zero-indexed positional index of the Service (e.g. `_s0`, `_s1`).
+
 - Each [Service](https://www.w3.org/TR/did-core/#services)'s **data** is represented with the form `id=M;t=N;se=O`
 where `M` is the Service's ID, `N` is the Service's Type and `O` is the Service's URI.
+
   - Multiple service endpoints can be represented as an array (e.g. `id=dwn;t=DecentralizedWebNode;se=https://dwn.org/dwn1,https://dwn.org/dwn2`)
+
   - Additional properties ****MAY**** be present (e.g. `id=dwn;t=DecentralizedWebNode;se=https://dwn.org/dwn1;sig=1;enc=2`)
 
 An example is given as follows:
@@ -310,7 +317,7 @@ An example is given as follows:
 | --------- | ---- | ---- | -------------------------------------------------------- |
 | _s0._did. | TXT  | 7200 | id=dwn;t=DecentralizedWebNode;se=https://example.com/dwn |
 
-Each Service is represented as part of the root (`_did.<ID>.`) record as a list under the key `srv=<ids>` where `ids`
+Each Service is represented as part of the root record (`_did.<ID>.`) as a list under the key `srv=<ids>` where `ids`
 is a comma-separated list of all IDs for each Service.
 
 #### Example
@@ -388,7 +395,7 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
 
 ### Operations
 
-Entries to the [[ref:DHT]] require a signed record. As such, the keypair used for the [[ref:Pkarr]]
+Entries to the [[ref:DHT]] require a signed record as per [[ref:BEP44]]. As such, the keypair used for the [[ref:Pkarr]]
 identifier is also used to sign the [[ref:DHT]] record. This keypair ****MUST**** always be present in a `did:dht` document
 and is referred to as the [[ref:Identity Key]].
 
@@ -488,9 +495,9 @@ An example type record is as follows:
 Types can be found and registered in the [DID DHT Registry](registry/index.html#indexed-types).
 
 ::: note
-Identifying entities through type-based indexing is a preliminary and relatively unreliable practice. It serves
-as an initial step in recognizing the identity linked to a [[ref:DID]]. To validate identity claims more robustly,
-it is essential to delve deeper, employing tools like verifiable credentials and examining related data.
+Identifying entities through type-based indexing is a relatively unreliable practice. It serves
+as an initial step in recognizing the identity linked to a [[ref:DID]]. To validate identity assertions more robustly,
+it is essential to delve deeper, employing tools like verifiable credentials and the examination of related data.
 :::
 
 ## Interoperability With Other DID Methods
@@ -501,12 +508,12 @@ key format. By adopting this optional extension, users can maintain their curren
 they gain the ability to add extra information to their DIDs. This is achieved by either publishing or retrieving
 data from [[ref:Mainline]].
 
-Interoperable DID methods ****MUST**** be registered in [the corresponding registry](registry/index.html#interoperable-did-methods).
+Interoperable DID methods ****MUST**** be registered in [this specification's registry](registry/index.html#interoperable-did-methods).
 
 ## Gateways
 
-Gateways serve as specialized nodes within the network, providing a range of DID-centric functionalities that extend
-beyond the capabilities of a standard [[ref:Mainline DHT]] node. This section elaborates on these unique features,
+[[ref:Gateways]] serve as specialized servers, providing a range of DID-centric functionalities that extend
+beyond the capabilities of a standard [[ref:Mainline DHT]] servers. This section elaborates on these unique features,
 outlines the operational prerequisites for managing a gateway, and discusses various other facets, including the
 optional integration of these gateways into a registry system.
 
@@ -517,14 +524,12 @@ optional integration of these gateways into a registry system.
 
 ### Discovering Gateways
 
-As an **OPTIONAL** feature of the DID DHT Method, operators of a [[ref:Gateway]] have the opportunity to make it to
-a [[ref:Registered Gateway]]. A [[ref:Registered Gateway]] distinguishes itself by being discoverable through a
-[[ref:Gateway Registry]]. This feature allows for easy location through various internet-based discovery mechanisms.
-The primary purpose of [[ref:Registered Gateways]] is to simplify the process of finding [[ref:Gateways]], accessible
-to any entity utilizing a [[ref:Gateway Registry]] to locate registered [[ref:Nodes]]. The [[ref:Gateway Registries]]
-can vary in nature, encompassing a spectrum from centrally managed directories to diverse decentralized systems
-including databases, ledgers, or other structures. [[ref:Registered Gateways]] are exposed through the
-[Gateway Registry](registry/index.html#gateways).
+As an **OPTIONAL** feature of the DID DHT Method, operators of a [[ref:Gateway]] may choose to make their server
+discoverable through a [[ref:Gateway Registry]]. This feature allows for easy location through various internet-based 
+discovery mechanisms. [[ref:Gateway Registries]] can vary in nature, encompassing a spectrum from centrally managed 
+directories to diverse decentralized systems including databases, ledgers, or other structures.
+
+One such registry is [provided by this specification](registry/index.html#gateways).
 
 ### Retained DID Set
 
@@ -543,7 +548,7 @@ performs. This mechanism enhances the overall reliability and effectiveness of [
 
 A [[ref:Retention Proof]] is a form of [Proof of Work](https://en.bitcoin.it/wiki/Proof_of_work) performed over a DID
 identifier concatenated with the `retention` value of a given DID operation. The `retention` value is composed of a
-hash value specified [in the gateway registry](registry/index.html#gateways), and a random
+hash value specified [by the gateway](registry/index.html#gateways), and a random
 [nonce](https://en.wikipedia.org/wiki/Cryptographic_nonce) using the [SHA-256 hashing algorithm](https://en.wikipedia.org/wiki/SHA-2).
 The resulting _Retention Proof Hash_ is used to determine the retention duration based on the number of leading zeros
 of the hash, referred to as the _difficulty_, which ****MUST**** be no less than 26 bits of the 256-bit hash value.
@@ -560,23 +565,28 @@ The algorithm, in detail, is as follows:
 
 #### Managing the Retained DID Set
 
-[[ref:Nodes]] following the [[ref:Retention Set]] rules ****SHOULD**** sort DIDs they are retaining by the number of
+[[ref:Gateways]] adhering to the [[ref:Retention Set]] rules ****SHOULD**** sort DIDs they are retaining by the number of
 _leading 0s_ in their [[ref:Retention Proofs]] in descending order, followed by the block hash's index number in
-descending order. When a [[ref:node]] needs to reduce its [[ref:retained set]] of DID entries, it ****SHOULD****
+descending order. When a [[ref:Gateway]] needs to reduce its [[ref:retained set]] of DID entries, it ****SHOULD****
 remove entries from the bottom of the list following this sort.
 
 #### Reporting on Retention Status
 
-Nodes ****MUST**** include the approximate time until retention fall-off in the
+[[ref:Gateways]] ****MUST**** include the approximate time until retention fall-off in the
 [DID Resolution Metadata](https://www.w3.org/TR/did-core/#did-resolution-metadata) of a resolved
 [[ref:DID Document]], to aid [[ref:clients]] in being able to assess whether resubmission is required.
+
+:::todo
+[](https://github.com/TBD54566975/did-dht-method/issues/74)
+Specify how gateways can report on retention guarantees and provide guidance for clients to work with these guarantees.
+:::
 
 ### Gateway API
 
 At a minimum, a gateway ****MUST**** support the [Relay API defined by Pkarr](https://github.com/Nuhvi/pkarr/blob/main/design/relays.md).
 
-Expanding on this API, a Gateway ****MUST**** support the following API, which is also made available via an
-[OpenAPI document](#open-api-definition).
+Expanding on this API, a conforming [[ref:Gateway]] ****MUST**** support the following API, which is also made 
+available via an [OpenAPI document](#open-api-definition).
 
 #### Get the Current Difficulty
 
@@ -624,7 +634,7 @@ Difficulty is exposed as an **OPTIONAL** endpoint based on support of [retention
 ```
 
 Upon receiving a request to register a DID, the Gateway ****MUST**** verify the signature of the request and if valid
-publish the DID Document to the DHT. If the DNS Packets contain a `_typ._did.` record, the Gateway ****MUST**** index the
+publish the DID Document to the DHT. If the DNS Packets contain a `_typ._did.` record, the [[ref:Gateway]] ****MUST**** index the
 DID by its type.
 
 #### Resolving a DID
@@ -673,8 +683,8 @@ DID by its type.
 }
 ```
 
-Upon receiving a request to resolve a DID, the [[ref:Gateway]] ****MUST**** query the DHT for the DID Document, and if found,
-return the DID Document. If the records are not found in the DHT, the [[ref:Gateway]] ****MAY**** fall back to its local storage.
+Upon receiving a request to resolve a DID, the [[ref:Gateway]] ****MUST**** query the DHT for the [[ref:DID Document]], and if found,
+return the document. If the records are not found in the DHT, the [[ref:Gateway]] ****MAY**** fall back to its local storage.
 If the DNS Packets contain a `_typ._did.` record, the [[ref:Gateway]] ****MUST**** return the type index.
 
 This API is returns a `pkarr` property which matches the payload of a [Pkarr Get Request](https://github.com/Nuhvi/pkarr/blob/main/design/relays.md#get),
@@ -684,8 +694,9 @@ the `pkarr` data and reconstruct the DID Document themselves. The `did` property
 
 ##### Historical Resolution
 
-[[ref:Nodes]] ****MAY**** choose to support historical resolution, which is to surface different versions of the same [[ref:DID Document]],
-sorted by [[ref:sequence number]], according to the rules set out in the section on [conflict resolution](#conflict-resolution).
+[[ref:Gateways]] ****MAY**** choose to support historical resolution, which is to surface different versions of the 
+same [[ref:DID Document]], sorted by [[ref:sequence number]], according to the rules set out in the section on 
+[conflict resolution](#conflict-resolution).
 
 Upon [resolving a DID](#resolving-a-did), the Gateway will return the parameter `sequence_numbers` if there exists
 historical state for a given [[ref:DID]]. The following API can be used with specific [[ref:sequence numbers]] to fetch historical state:
@@ -767,21 +778,21 @@ returned. If no DIDs match the type, an empty array is returned.
 
 ### Conflict Resolution
 
-According to [[ref:BEP44]] [[ref:Nodes]] can leverage the `seq` [[ref:sequence number]] to handle conflicts:
+Per [[ref:BEP44]], [[ref:Gateway]] servers can leverage the `seq` [[ref:sequence number]] to handle conflicts:
 
-> Storing nodes receiving a put request where `seq` is lower than or equal to what's already stored on the node,
-****MUST**** reject the request. If the [[ref:sequence number]] is equal, and the value is also the same, the node
+> [[ref:Gateways]] receiving a put request where `seq` is lower than or equal to what's already stored on the server,
+****MUST**** reject the request. If the [[ref:sequence number]] is equal, and the value is also the same, the server
 ****SHOULD**** reset its timeout counter.
 
-When the [[ref:sequence number]] is equal, but the value is different, nodes need to decide which value to accept and which
-to reject. To make this determination nodes ****MUST**** compare the payloads lexicographically to determine a
+When the [[ref:sequence number]] is equal, but the value is different, servers need to decide which value to accept and which
+to reject. To make this determination [[ref:Gateways]] ****MUST**** compare the payloads lexicographically to determine a
 [lexicographical order](https://en.wikipedia.org/wiki/Lexicographic_order), and reject the payload with a **lower**
 lexicographical order.
 
 ### Size Constraints
 
 [[ref:BEP44]] payload sizes are limited to 1000 bytes. Accordingly, we have defined [an efficient representation of a
-DID Document](#dids-as-a-dns-packet) and leveraged DNS packet encoding to optimize our payload sizes. With this
+[DID Document](#dids-as-a-dns-packet) and leveraged DNS packet encoding to optimize our payload sizes. With this
 encoding format, we recommend additional considerations to keep payload sizes minimal:
 
 #### Representing Keys
@@ -826,7 +837,7 @@ address this, it is ****RECOMMENDED**** to use [[ref:Gateways]] equipped with [[
 To reduce the risk of [Denial of Service Attacks](https://www.cisa.gov/news-events/news/understanding-denial-service-attacks),
 spam, and other unwanted traffic, it is ****RECOMMENDED**** that [[ref:Gateways]] require [[ref:Retention Proofs]]. The
 use of [[ref:Retention Proofs]] can act as an attack prevention measure, as it would be costly to scale retention proof
-calculations. [[ref:Nodes]] ****MAY**** choose to explore other rate limiting techniques, such as IP-limiting, or an
+calculations. [[ref:Gateways]] ****MAY**** choose to explore other rate limiting techniques, such as IP-limiting, or an
 access-token-based approach.
 
 ### DID Resolution
@@ -855,36 +866,36 @@ to ensure expected and legitimate behavior.
 
 ### Data Conflicts
 
-Malicious actors may try to force [[ref:Nodes]] into uncertain states by manipulating the [[ref:sequence number]] associated
+Malicious actors may try to force [[ref:Gateways]] into uncertain states by manipulating the [[ref:sequence number]] associated
 with a record set. There are three such cases to be aware of:
 
-- **Low Sequence Number** - If a [[ref:Node]] has yet to see [[ref:sequence numbers]] for a given record it ****MUST**** query
+- **Low Sequence Number** - If a [[ref:Gateway]] has yet to see [[ref:sequence numbers]] for a given record it ****MUST**** query
 its peers to see if they have encountered the record. If a peer is found who has encountered the record, the record
-with the latest sequence number must be selected. If the node has encountered greater [[ref:sequence numbers]] before, the
-node ****MAY**** reject the record set. If the node supports [historical resolution](#historical-resolution) it
+with the latest sequence number must be selected. If the server has encountered greater [[ref:sequence numbers]] before, the
+server ****MAY**** reject the record set. If the server supports [historical resolution](#historical-resolution) it
 ****MAY**** choose to accept the request and insert the record into its historical ordered state.
 
 - **Conflicting Sequence Number** - When a malicious actor publishes _valid but conflicting_ records to two different
-[[ref:Mainline Nodes]] or [[ref:Gateways]]. Implementers are encouraged to follow the guidance outlined in [conflict
+[[ref:Mainline Servers]] or [[ref:Gateways]]. Implementers are encouraged to follow the guidance outlined in [conflict
 resolution](#conflict-resolution).
 
 - **High Sequence Number** - Since [[ref:sequence numbers]] ****MUST**** be second representations of a [[ref:Unix Timestamp]],
-it is ****RECOMMENDED**** that nodes reject [[ref:sequence numbers]] that represent timestamps greater than **2 hours** into
-the future to mitigate [timing attack](#data-conflicts) risks.
+it is ****RECOMMENDED**** that [[ref:Gateways]] reject [[ref:sequence numbers]] that represent timestamps greater than 
+**2 hours** into the future to mitigate [timing attack](#data-conflicts) risks.
 
 ### Data Availability
 
-Given the nature of decentralized distributed systems, there are no firm guarantees that all [[ref:Nodes]] have access
+Given the nature of decentralized distributed systems, there are no firm guarantees that all [[ref:Gateways]] have access
 to the same state. It is ****RECOMMENDED**** to publish and read from multiple [[ref:Gateways]] to reduce such risks.
 As an **optional** enhancement [[ref:Gateways]] ****MAY**** choose to share state amongst themselves via mechanisms
 such as a [gossip protocol](https://en.wikipedia.org/wiki/Gossip_protocol).
 
 ### Data Authenticity
 
-To enter into the DHT using [[ref:BEP44]] your records must be signed by an [[ref:Ed25519]] private key. When retrieving
-records either through a [[ref:Mainline Node]] or a [[ref:Gateway]] is it ****RECOMMENDED**** that one verifies the
-cryptographic integrity of the record themselves instead of trusting a node to have done the validation. Nodes that do
-not return a signature value ****MUST NOT**** be trusted.
+To enter into the DHT using [[ref:BEP44]] records ****MUST*** be signed by an [[ref:Ed25519]] private key, known as the
+[[ref:Identity Key]]. When retrieving records either through a [[ref:Mainline Server]] or a [[ref:Gateway]] is it 
+****RECOMMENDED**** that one verifies the cryptographic integrity of the record themselves instead of trusting a server
+to have done the validation. Servers that do not return a signature value ****MUST NOT**** be trusted.
 
 ### Key Compromise
 
