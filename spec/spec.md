@@ -108,8 +108,8 @@ used to store and retrieve peer data. It is estimated to consistently have tens 
 
 [[def:Gateway, Gateways, DID DHT, Bitcoin-anchored Gateway]]
 ~ A server that that facilitates DID DHT operations. The gateway may offer a set of APIs to interact with the DID DHT
-method features such as providing guaranteed retention, historical resolution, and other more. Gateways can make
-themselves discoverable via a [[ref:Gateway Registry]].
+method features such as providing [guaranteed retention](#retained-did-set), [historical resolution](#historical-resolution), 
+and other features. Gateways can make themselves discoverable via a [[ref:Gateway Registry]].
 
 [[def:Gateway Registry, Gateway Registries]]
 ~ A system used to aid in the discovery of [[ref:Gateways]]. One such system is the 
@@ -172,10 +172,12 @@ which would be undecetable by a client.
 Currently, [[ref:Mainline]] exclusively supports the [[ref:Ed25519]] key type. In turn, [[ref:Ed25519]] is required by DID DHT and is 
 used to uniquely identify DID DHT Documents. DID DHT identifiers are formed by concatenating the `did:dht:` prefix with a [[ref:z-base-32]]
 encoded Identity Key, which acts as its [[ref:suffix]]. Identity Keys always have the identifier `0` as both its Verification Method `id` and
-JWK `kid` [[spec:RFC7517]].
+JWK `kid` [[spec:RFC7517]]. While the system requires at least one [[ref:Ed25519]], a DID DHT Document can include any number of additional keys.
+However, these additional key's types ****MUST**** be registered in the [Key Type Index](registry/index.html##key-type-index).
 
-While the system requires at least one [[ref:Ed25519]], a DID DHT Document can include any number of additional keys. However, these additional
-key's types ****MUST**** be registered in the [Key Type Index](registry/index.html##key-type-index).
+As a unique consequence of the requirement of the Identity Key, DID DHT Documents are able to be partially-resolved without contacting
+[[ref:Maineline]] or [[ref:Gateway]] servers, though it is ****RECOMMENDED**** that deterministic resolution is only used as a fallback mechanism.
+Similarly, the requirement of an Identity Key enables [interoperability with other DID methods](#interoperability-with-other-did-methods).
 
 ### DIDs as DNS Records
 
@@ -868,8 +870,9 @@ access-token-based approach.
 
 ### DID Resolution
 
-When supplying [DID Document Metadata](https://www.w3.org/TR/did-core/#did-document-metadata) as a part of
-[DID Resolution](https://www.w3.org/TR/did-core/#resolution), implementers are provided the following guidance:
+The process for resoloving a DID DHT Document via a [[ref:Gateway]] is outlined in the [read section above](#read).
+However, we provide additional guidance for [DID Resolvers](https://www.w3.org/TR/did-core/#dfn-did-resolvers) supplying
+[DID Document Metadata](https://www.w3.org/TR/did-core/#did-document-metadata) as follows:
 
 * The metadata's [`versionId` property](https://www.w3.org/TR/did-core/#dfn-versionid) ****MUST**** be set to the
 [[ref:DID Document]]'s current [[ref:sequence number]].
