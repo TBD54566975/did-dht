@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Latest Update:** February 7, 2024
+**Latest Update:** February 27, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -156,20 +156,22 @@ did-dht-format := did:dht:Z-BASE-32(raw-public-key-bytes)
 In this scheme, we encode the [[ref:DID Document]] as multiple [DNS TXT records](https://en.wikipedia.org/wiki/TXT_record).
 Comprising a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then stored in the [[ref:DHT]].
 
-| Name      | Type | TTL    | Rdata                                    |
-| --------- | ---- | ------ | ---------------------------------------- |
-| _did.     | TXT  |  7200  | v=0;vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2 |
-| _k0._did. | TXT  |  7200  | id=0;t=0;k=`<unpadded-b64url>`           |
-| _k1._did. | TXT  |  7200  | id=1;t=1;k=`<unpadded-b64url>`           |
-| _k2._did. | TXT  |  7200  | id=2;t=1;k=`<unpadded-b64url>`           |
-| _s0._did. | TXT  |  7200  | id=domain;t=LinkedDomains;se=foo.com     |
-| _s1._did. | TXT  |  7200  | id=dwn;t=DecentralizedWebNode;se=https://dwn.tbddev.org/dwn5 |
+| Name         | Type | TTL    | Rdata                                    |
+| ------------ | ---- | ------ | ---------------------------------------- |
+| _did.`<ID>`. | TXT  |  7200  | v=0;vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2 |
+| _k0._did.    | TXT  |  7200  | id=0;t=0;k=`<unpadded-b64url>`           |
+| _k1._did.    | TXT  |  7200  | id=1;t=1;k=`<unpadded-b64url>`           |
+| _k2._did.    | TXT  |  7200  | id=2;t=1;k=`<unpadded-b64url>`           |
+| _s0._did.    | TXT  |  7200  | id=domain;t=LinkedDomains;se=foo.com     |
+| _s1._did.    | TXT  |  7200  | id=dwn;t=DecentralizedWebNode;se=https://dwn.tbddev.org/dwn5 |
 
 ::: note
 The recommended TTL value is 7200 seconds (2 hours), the default TTL for Mainline records.
 :::
 
-- The root `_did.` record identifies the [property mapping](#property-mapping) for the document, along with
+- The DID identifier [[ref:z-base-32]]-encoded key ****MUST**** be appended as the Origin of all records:
+
+- The root record, `_did.<ID>.`, identifies the [property mapping](#property-mapping) for the document, along with
 versioning information.
 
 - The root record ****MUST**** include a version number. The version of the DNS packet representation for
@@ -181,29 +183,21 @@ in the corresponding DID Document.
 (e.g., authentication, assertion, etc.) are represented as additional records in the format `<ID>._did.`.
 These records contain the zero-indexed value of each `key` or `service` as attributes.
 
-- All records ****MUST**** end in `_did.` or `_did.TLD.` if a TLD is associated with the record.
-
-::: note
-It might look like repeating `_did` is an overhead, but is compressed away using
-[DNS packet compression](https://courses.cs.duke.edu/fall16/compsci356/DNS/DNS-primer.pdf) techniques.
-:::
+- All resource record names ****MUST**** end in `_did.`
 
 - The DNS packet ****MUST**** set the _Authoritative Answer_ flag since this is always an _Authoritative_ packet.
 
-- The DID identifier [[ref:z-base-32]]-encoded key ****MUST**** be appended as the Origin of all records:
+**Example Root Record**
 
-| Name                                                       | Type | TTL    | Rdata                                                     |
-| ---------------------------------------------------------- | ---- | ------ | --------------------------------------------------------- |
-| _did.o4dksfbqk85ogzdb5osziw6befigbuxmuxkuxq8434q89uj56uyy. | TXT  |  7200  | v=0;vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2 |
+| Name                                                       | Type | TTL    | Rdata                                                     
+| ---------------------------------------------------------- | ---- | ------ | --------------------------------------------------------- 
+| _did.o4dksfbqk85ogzdb5osziw6befigbuxmuxkuxq8434q89uj56uyy. | TXT  |  7200  | v=0;vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2 
 
 ### Property Mapping
 
 The following section describes mapping a [[ref:DID Document]] to a DNS packet. To avoid repeating potentially
 long identifiers in resource name fields, resource names are aliased with zero-indexed values (e.g. `k0`, `k1`, `s0`, `s1`).
 The complete identifier is stored in the resource data field (e.g. `id=abcd;t=0;k=...`).
-
-- The _root record_, `_did.` or `_did.TLD.` if a [TLD](https://en.wikipedia.org/wiki/Top-level_domain) is used,
-contains a list of IDs of the keys and service endpoints used in different sections of the [[ref:DID Document]].
 
 - Verification Methods, Verification Relationships, and Services are separated by a semicolon (`;`), while
 values within each property are separated by a comma (`,`).
@@ -216,9 +210,9 @@ its corresponding DNS packet if the properties [are registered in the additional
 
 An example of a _root record_ is as follows:
 
-| Name       | Type | TTL  | Rdata                                                 |
-| ---------- | ---- | ---- | ----------------------------------------------------- |
-| _did.TLD.  | TXT  | 7200 | vm=k1,k2,k3;auth=k1;asm=k2;inv=k3;del=k3;srv=s1,s2,s3 |
+| Name         | Type | TTL  | Rdata                                                 |
+| ------------ | ---- | ---- | ----------------------------------------------------- |
+| _did.`<ID>`. | TXT  | 7200 | vm=k1,k2,k3;auth=k1;asm=k2;inv=k3;del=k3;srv=s1,s2,s3 |
 
 The following instructions serve as a reference for mapping DID Document properties to [DNS TXT records](https://en.wikipedia.org/wiki/TXT_record):
 
@@ -274,7 +268,7 @@ assert the veracity of their relations.
 #### Verification Relationships
 
 - Each [Verification Relationship](https://www.w3.org/TR/did-core/#verification-relationships) is represented as a part
-of the root `_did.TLD.` record (see: [Property Mapping](#property-mapping)).
+of the root `_did.<ID>.` record (see: [Property Mapping](#property-mapping)).
 
 The following table acts as a map between Verification Relationship types and their record name:
 
@@ -316,7 +310,7 @@ An example is given as follows:
 | --------- | ---- | ---- | -------------------------------------------------------- |
 | _s0._did. | TXT  | 7200 | id=dwn;t=DecentralizedWebNode;se=https://example.com/dwn |
 
-Each Service is represented as part of the root `_did.TLD.` record as a list under the key `srv=<ids>` where `ids`
+Each Service is represented as part of the root (`_did.<ID>.`) record as a list under the key `srv=<ids>` where `ids`
 is a comma-separated list of all IDs for each Service.
 
 #### Example
@@ -383,14 +377,14 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
 
 **DNS Resource Records**
 
-| Name       | Type | TTL   | Rdata                                                                       |
-| ---------- | ---- | ----- | --------------------------------------------------------------------------- |
-| _did.TLD.  | TXT  | 7200  | v=0;vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;srv=s1                      |
-| _cnt.did.  | TXT  | 7200  | did:example:abcd                                                            |
-| _aka.did.  | TXT  | 7200  | did:example:efgh,did:example:ijkl                                           |
-| _k0._did.  | TXT  | 7200  | id=0;t=0;k=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc |
-| _k1._did.  | TXT  | 7200  | id=HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ;t=1;k=AyiNAz7y-XBr853PBAzgAOU_c0Hyw0Gb69Hr9jTC3MQ8 |
-| _s0._did.  | TXT  | 7200  | id=dwn;t=DecentralizedWebNode;se=https://example.com/dwn1,https://example.com/dwn2 |
+| Name         | Type | TTL   | Rdata                                                                       |
+| ------------ | ---- | ----- | --------------------------------------------------------------------------- |
+| _did.`<ID>`. | TXT  | 7200  | v=0;vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;srv=s1                      |
+| _cnt.did.    | TXT  | 7200  | did:example:abcd                                                            |
+| _aka.did.    | TXT  | 7200  | did:example:efgh,did:example:ijkl                                           |
+| _k0._did.    | TXT  | 7200  | id=0;t=0;k=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc |
+| _k1._did.    | TXT  | 7200  | id=HTsY9aMkoDomPBhGcUxSOGP40F-W4Q9XCJV1ab8anTQ;t=1;k=AyiNAz7y-XBr853PBAzgAOU_c0Hyw0Gb69Hr9jTC3MQ8 |
+| _s0._did.    | TXT  | 7200  | id=dwn;t=DecentralizedWebNode;se=https://example.com/dwn1,https://example.com/dwn2 |
 
 ### Operations
 
@@ -458,9 +452,9 @@ To deactivate a document, there are a couple options:
 1. Let the DHT record expire and cease to publish it.
 2. Publish a new DHT record where the `rdata` of the root DNS record is the string "deactivated."
 
-| Name       | Type | TTL  | Rdata       |
-| ---------- | ---- | ---- | ----------- |
-| _did.TLD.  | TXT  | 7200 | deactivated |
+| Name         | Type | TTL  | Rdata       |
+| ------------ | ---- | ---- | ----------- |
+| _did.`<ID>`. | TXT  | 7200 | deactivated |
 
 ::: note
 If you have published your DID through a [[ref:Gateway]], you may need to contact the operator to have them remove the
@@ -974,7 +968,7 @@ A minimal DID Document.
 
 | Name      | Type | TTL  | Rdata                                                  |
 | --------- | ---- | ---- | ------------------------------------------------------ |
-| _did.     | TXT  | 7200 | v=0;vm=k0;auth=k0;asm=k0;inv=k0;del=k0                 |
+| _did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo. | TXT  | 7200 | v=0;vm=k0;auth=k0;asm=k0;inv=k0;del=k0 |
 | _k0._did. | TXT  | 7200 | id=0;t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE |
 
 #### Vector 2
@@ -1084,7 +1078,7 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
 
 | Name      | Type | TTL  | Rdata       |
 | --------- | ---- | ---- | ----------- |
-| _did.     | TXT  | 7200 | v=0;vm=k0,k1;svc=s0;auth=k0;asm=k0,k1;inv=k0,k1;del=k0                                            |
+| _did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo. | TXT | 7200 | v=0;vm=k0,k1;svc=s0;auth=k0;asm=k0,k1;inv=k0,k1;del=k0 |
 | _cnt.did. | TXT  | 7200 | did:example:abcd                                                                                  |
 | _aka.did. | TXT  | 7200 | did:example:efgh,did:example:ijkl                                                                 |
 | _k0.did.  | TXT  | 7200 | id=0;t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE;c=did:example:abcd                         |
