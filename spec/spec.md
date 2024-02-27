@@ -80,13 +80,12 @@ The keywords MAY, MUST, MUST NOT, RECOMMENDED, SHOULD, and SHOULD NOT in this do
 ## Terminology
 
 [[def:Decentralized Identifier, Decentralized Identifier, DID, DIDs, DID Document, DID Documents]]
-~ A [W3C specification](https://www.w3.org/TR/did-core/) describing an _identifier that enables verifiable, decentralized digital identity_. Associated with a document containing properties outlined in the specification.
+~ A [W3C specification](https://www.w3.org/TR/did-core/) describing an _identifier that enables verifiable, 
+decentralized digital identity_. A DID identifier is associated with a JSON document containing cryptograhpic keys,
+services, and other properties outlined in the specification.
 
 [[def:DID Suffix, Suffix]]
-~ The unique identifier string within a DID URI. The unique suffix of `did:dht:123` would be `123`.
-
-[[def:DID Suffix Data, Suffix Data]]
-~ Data required to deterministically generate a DID, the [[ref:Identity Key]].
+~ The unique identifier string within a DID URI. For DID DHT the suffix is the [[ref:z-base-32]] encoded [[ref:Identity Key]].
 
 [[def:Identity Key]]
 ~ An [[ref:Ed25519]] public key encoded required to authenticate all records in [[ref:Mainline DHT]]. When encoded with
@@ -114,11 +113,12 @@ method features such as providing guaranteed retention, historical resolution, a
 themselves discoverable via a [[ref:Gateway Registry]].
 
 [[def:Gateway Registry, Gateway Registries]]
-~ A system used to make [[ref:Gateways]] discoverable. One such 
+~ A system used to aid in the discovery of [[ref:Gateways]]. One such system is the 
+[registry provided by this specification]((registry/index.html#gateways)).
 
 [[def:Client, Clients]]
 ~ A client is a piece of software that is responsible for generating a `did:dht` and submitting it to a 
-[[ref:Mainline Server]] or [[ref:Gateway]].
+[[ref:Mainline Server]] or [[ref:Gateway]]. Notably, a client has the ability to sign messages with the [[ref:Identity Key]].
 
 [[def:Retained DID Set, Retained Set, Retention Set]]
 ~ The set of DIDs that a [[ref:Gateway]] is retaining and thus is responsible for republishing.
@@ -187,7 +187,7 @@ in the corresponding DID Document.
 (e.g., authentication, assertion, etc.) are represented as additional records in the format `<ID>._did.`.
 These records contain the zero-indexed value of each `key` or `service` as attributes.
 
-- All resource record names ****MUST**** end in `_did.`
+- All resource record names, aside from the root record, ****MUST**** end in `_did.`.
 
 - The DNS packet ****MUST**** set the _Authoritative Answer_ flag since this is always an _Authoritative_ packet.
 
@@ -212,13 +212,7 @@ commas (`,`).
 - Additional properties not defined by this specification ****MAY**** be represented in a [[ref:DID Document]] and
 its corresponding DNS packet if the properties [are registered in the additional properties registry](registry/index.html#additional-properties).
 
-An example of a _root record_ is as follows:
-
-| Name         | Type | TTL  | Rdata                                                 |
-| ------------ | ---- | ---- | ----------------------------------------------------- |
-| _did.`<ID>`. | TXT  | 7200 | vm=k1,k2,k3;auth=k1;asm=k2;inv=k3;del=k3;srv=s1,s2,s3 |
-
-The following instructions serve as a reference for mapping DID Document properties to [DNS TXT records](https://en.wikipedia.org/wiki/TXT_record):
+The subsequent instructions serve as a reference for mapping DID Document properties to [DNS TXT records](https://en.wikipedia.org/wiki/TXT_record):
 
 #### Identifiers
 
@@ -231,7 +225,7 @@ list of controller DID identifiers.
 
 To ensure that the DID controller is authorized to make changes to the DID Document, the controller for the [[ref:Identity Key]] Verification Method ****MUST**** be contained within the controller property.
 
-An example is given as follows:
+**Example Controller Record**
 
 | Name       | Type | TTL  | Rdata            |
 | ---------- | ---- | ---- | ---------------- |
@@ -244,7 +238,7 @@ A `did:dht` document ****MAY**** have multiple identifiers using the [alsoKnownA
 If present, alternate DID identifiers ****MUST**** be represented as `_aka_.did.` record in the form of a
 comma-separated list of DID identifiers.
 
-An example is given as follows:
+**Example AKA Record**
 
 | Name       | Type | TTL  | Rdata                              |
 | ---------- | ---- | ---- | ---------------------------------- |
@@ -289,7 +283,7 @@ The following table acts as a map between Verification Relationship types and th
 The record data is uniform across [Verification Relationships](https://www.w3.org/TR/did-core/#verification-relationships),
 represented as a comma-separated list of key references.
 
-An example is as follows:
+**Example Verification Relationship Records**
 
 | Verification Relationship                          | Rdata in the Root Record                     |
 |----------------------------------------------------|----------------------------------------------|
@@ -311,7 +305,7 @@ where `M` is the Service's ID, `N` is the Service's Type and `O` is the Service'
 
   - Additional properties ****MAY**** be present (e.g. `id=dwn;t=DecentralizedWebNode;se=https://dwn.org/dwn1;sig=1;enc=2`)
 
-An example is given as follows:
+**Example Service Record**
 
 | Name      | Type | TTL  | Rdata                                                    |
 | --------- | ---- | ---- | -------------------------------------------------------- |
@@ -432,7 +426,7 @@ This specification **does not** make use of JSON-LD. As such it is prohibited to
 
 To read a `did:dht`, the process is as follows:
 
-1. Take the suffix of the DID, that is, the _[[ref:z-base-32]] encoded identifier key_, and pass it to a [[ref:Pkarr]]
+1. Take the [[ref:suffix]] of the DID, that is, the _[[ref:z-base-32]] encoded identifier key_, and pass it to a [[ref:Pkarr]]
 relay or a [[ref:Gateway]].
 
 2. Decode the resulting [[ref:BEP44]] response's `v` value using [[ref:bencode]].
@@ -486,7 +480,7 @@ record. This record is a TXT record with the following format:
 - The record **data** is represented with the form `id=0,1,2` where the value is a comma-separated list of integer types from
 the [type index](#type-indexing).
 
-An example type record is as follows:
+**Example Type Index Record**
 
 | Name       | Type | TTL  | Rdata     |
 | ---------- | ---- | ---- | --------- |
