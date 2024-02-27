@@ -187,9 +187,9 @@ Comprising a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then stored 
 | Name         | Type | TTL    | Rdata                                                        |
 | ------------ | ---- | ------ | ------------------------------------------------------------ |
 | _did.`<ID>`. | TXT  |  7200  | v=0;vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2    |
-| _k0._did.    | TXT  |  7200  | t=0;k=`<unpadded-b64url>`                                    |
-| _k1._did.    | TXT  |  7200  | t=1;k=`<unpadded-b64url>`                                    |
-| _k2._did.    | TXT  |  7200  | t=1;k=`<unpadded-b64url>`                                    |
+| _k0._did.    | TXT  |  7200  | id=0;t=0;k=`<unpadded-b64url>`                               |
+| _k1._did.    | TXT  |  7200  | id=1;t=1;k=`<unpadded-b64url>`                               |
+| _k2._did.    | TXT  |  7200  | id=2;t=1;k=`<unpadded-b64url>`                               |
 | _s0._did.    | TXT  |  7200  | id=domain;t=LinkedDomains;se=https://foo.com                 |
 | _s1._did.    | TXT  |  7200  | id=dwn;t=DecentralizedWebNode;se=https://dwn.tbddev.org/dwn5 |
 
@@ -198,7 +198,7 @@ The recommended TTL value is 7200 seconds (2 hours), the default TTL for [[ref:M
 :::
 
 - The root record's name ****MUST**** be of the form, `_did.<ID>.`, where `ID` is the [[ref:Pkarr]] identifier
-  associated with the DID (i.e. `did:dht:<ID>` becomes `_did.<ID>.`).
+associated with the DID (i.e. `did:dht:<ID>` becomes `_did.<ID>.`).
 
 - The root record's value identifies the [property mapping](#property-mapping) for the document, along with
 versioning information.
@@ -224,9 +224,9 @@ These records contain the zero-indexed value of each `key` or `service` as attri
 
 ### Property Mapping
 
-The following section describes mapping a [[ref:DID Document]] to a DNS packet. Resource names are aliased with zero-indexed 
-values (e.g. `k0`, `k1`, `s0`, `s1`). Key identifiers are ommitted, as they can be deterministically computed using the guidance
-provided in the section on [representing keys](#representing-keys).
+The following section describes mapping a [[ref:DID Document]] to a DNS packet.
+
+- Resource names are aliased with zero-indexed values (e.g. `k0`, `k1`, `s0`, `s1`).
 
 - Verification Methods, Verification Relationships, and Services are separated by a semicolon (`;`), while
 values within each property are separated by a comma (`,`).
@@ -274,18 +274,19 @@ comma-separated list of DID identifiers.
 - Each [Verification Method's](https://www.w3.org/TR/did-core/#verification-methods) **name** is represented 
 as a `_kN._did.` record where `N` is the zero-indexed positional index of a given Verification Method (e.g. `_k0`, `_k1`).
 
-- Each [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) **rdata** is represented with the form
-`t=M;k=N` where `M` is the index of the key's type from [key type index](registry/index.html#key-type-index),
-and `N` is the unpadded base64URL [[spec:RFC4648]] representation of the public key.
+- Each [Verification Method's](https://www.w3.org/TR/did-core/#verification-methods) **rdata** is represented by the form
+`id=M;t=N;k=O` where `M` is the Verification Method's `id`, `N` is the index of the key's type from the
+[key type index](registry/index.html#key-type-index), and `N` is the unpadded base64URL [[spec:RFC4648]] representation of
+the public key.
 
-  - Key identifiers are omitted as they can be computed according to the rules specified in the section 
-  on [representing keys](#representing-keys).
+  - Verification Method `id`s ****MAY**** be omitted. If omitted, they can be computed according to the 
+  rules specified in the section on [representing keys](#representing-keys) when reconstructing the DID Document.
+
+  - The [[ref:Identity Key]] ****MUST**** always be at index `_k0` with `id` `0`.
 
 - [Verification Methods](https://www.w3.org/TR/did-core/#verification-methods) ****MAY**** have an _optional_ **controller** property
 represented by `c=C` where `C` is the identifier of the verification method's controller (e.g. `t=N;k=O;c=C`). If omitted,
 it is assumed that the controller of the Verification Method is the [[ref:Identity Key]].
-
-- The [[ref:Identity Key]] ****MUST**** always be at index `_k0`.
 
 ::: note
 Controllers are not cryptographically verified by [[ref:Gateways]] or this DID method. This means any DID may choose to list
@@ -420,8 +421,7 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
 ### Operations
 
 Entries to the [[ref:DHT]] require a signed record as per [[ref:BEP44]]. As such, the keypair used for the [[ref:Pkarr]]
-identifier is also used to sign the [[ref:DHT]] record. This keypair ****MUST**** always be present in a `did:dht` document
-and is referred to as the [[ref:Identity Key]].
+identifier is also used to sign the [[ref:DHT]] record.
 
 #### Create
 
@@ -454,12 +454,15 @@ This specification **does not** make use of JSON-LD. As such DID DHT Documents *
 
 To read a `did:dht`, the process is as follows:
 
-1. Take the [[ref:suffix]] of the DID, that is, the _[[ref:z-base-32]] encoded identifier key_, and pass it to a [[ref:Pkarr]]
+1. Take the [[ref:suffix]] of the DID, that is, the _[[ref:z-base-32]] encoded identifier key_, and submit it to a [[ref:Pkarr]]
 relay or a [[ref:Gateway]].
 
 2. Decode the resulting [[ref:BEP44]] response's `v` value using [[ref:bencode]].
 
 3. Reverse the DNS [property mapping](#property-mapping) process and re-construct a conformant [[ref:DID Document]].
+
+    a. Expand all identifiers to their fully-qualified form (e.g. `did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#0` 
+    as opposed to `0` or `#0`, `did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#service-1` as opposed to `#service-1`).
 
 ::: note
 As a fallback, if a `did:dht` value cannot be resolved via the network, it can be expanded to a conformant [[ref:DID Document]]
@@ -476,7 +479,7 @@ It is ****RECOMMENDED**** that updates are infrequent, as caching of the DHT is 
 
 #### Deactivate
 
-To deactivate a document, there are a couple options:
+To deactivate a [[ref:DID Document]], there are a couple options:
 
 1. Let the DHT record expire and cease to publish it.
 
@@ -516,7 +519,7 @@ the [type index](#type-indexing).
 | ---------- | ---- | ---- | --------- |
 | _typ._did. | TXT  | 7200 | id=0,1,2  |
 
-Types can be found and registered in the [DID DHT Registry](registry/index.html#indexed-types).
+Types can be found and registered in the [indexed types registry](registry/index.html#indexed-types).
 
 ::: note
 Identifying entities through type-based indexing is a relatively unreliable practice. It serves
@@ -578,7 +581,7 @@ The resulting _Retention Proof Hash_ is used to determine the retention duration
 of the hash, referred to as the _difficulty_, which ****MUST**** be no less than 26 bits of the 256-bit hash value.
 The algorithm, in detail, is as follows:
 
-1. Obtain a did identifier and set it to `DID`.
+1. Obtain a DID identifier and set it to `DID`.
 
 2. Get the difficulty and recent hash from the server set to `DIFFICULTY` and `HASH`, respectively.
 
@@ -822,27 +825,28 @@ lexicographical order.
 
 ### Size Constraints
 
-[[ref:BEP44]] payload sizes are limited to 1000 bytes. Accordingly, we have defined [an efficient representation of a
-[DID Document](#dids-as-a-dns-packet) and leveraged DNS packet encoding to optimize our payload sizes. With this
-encoding format, we recommend additional considerations to keep payload sizes minimal:
+[[ref:BEP44]] payload sizes are limited to 1000 bytes. Accordingly, we specify [an efficient representation of a
+DID Document](#dids-as-dns-records) and leveraged DNS packet encoding to optimize our payload sizes. With this
+encoding format, we recommend additional considerations to minimize payload sizes:
 
 #### Representing Keys
 
 The following guidance on representations of keys and their identifiers using the `JsonWebKey` type defined by
 [[ref:VC-JOSE-COSE]] are ****REQUIRED****:
 
-- Key identifiers (`kid`s) ****MUST**** be set to the key's JWK Thumbprint as per [[spec:RFC7638]], except for the
-[[ref:Identity Key]], whose `kid` ****MUST**** be `0`.
+- For the [[ref:Identity Key]], both the Verification Method `id` and JWK `id` ****MUST**** be set to `0`.
 
-- A Verification Method's `id` ****MUST**** match the corresponding JWK's `kid` property for all keys expect 
-the [[ref:Identity Key]], whose Verification Method `id` ****MUST**** be `0`.
+- For all other Verification Methods, JWK identifiers (`kid`s) ****MUST**** be set to the key's JWK Thumbprint
+as per [[spec:RFC7638]].
+
+- If no Verification Method `id` is provided, the Verification Method `id` is set to the JWK's `kid` value.
 
 - [[ref:DID Document]] representations of elliptic curve (EC) keys ****MUST**** include the x- and y-coordinate pair.
 To conserve space in the DNS packet representation, compressed point encoding ****MUST**** be used to transmit the
 x-coordinate and a sign bit for the y-coordinate. This practice reduces each public key's size from 65 to 33 bytes.
 
-- [[ref:DID Document]] representations ****SHOULD**** always use fully qualified identifiers (e.g.
-`did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#0` as opposed to `0` or `#0`)
+- [[ref:DID Document]] representations ****MUST**** always use fully-qualified identifiers when referring 
+to Verification Methods (e.g. `did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#0` as opposed to `0` or `#0`).
 
 #### Historical Key State
 
@@ -1009,7 +1013,7 @@ A minimal DID Document.
 | Name      | Type | TTL  | Rdata                                                  |
 | --------- | ---- | ---- | ------------------------------------------------------ |
 | _did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo. | TXT  | 7200 | v=0;vm=k0;auth=k0;asm=k0;inv=k0;del=k0 |
-| _k0._did. | TXT  | 7200 | t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE |
+| _k0._did. | TXT  | 7200 | id=0;t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE |
 
 #### Vector 2
 
@@ -1121,8 +1125,8 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
 | _did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo. | TXT | 7200 | v=0;vm=k0,k1;svc=s0;auth=k0;asm=k0,k1;inv=k0,k1;del=k0 |
 | _cnt.did. | TXT  | 7200 | did:example:abcd                                                                                       |
 | _aka.did. | TXT  | 7200 | did:example:efgh,did:example:ijkl                                                                      |
-| _k0.did.  | TXT  | 7200 | t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE;c=did:example:abcd                                   |
-| _k1.did.  | TXT  | 7200 | t=1;k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9                                                     |
+| _k0.did.  | TXT  | 7200 | id=0;t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE;c=did:example:abcd                              |
+| _k1.did.  | TXT  | 7200 | id=1;t=1;k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9                                                |
 | _s0.did.  | TXT  | 7200 | id=service-1;t=TestService;se=https://test-service.com/1,https://test-service.com/2                    |
 | _typ.did. | TXT  | 7200 | id=1,2,3                                                                                               |
 
