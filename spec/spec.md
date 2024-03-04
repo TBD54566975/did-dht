@@ -87,9 +87,9 @@ services, and other properties outlined in the specification.
 ~ The unique identifier string within a DID URI. For DID DHT the suffix is the [[ref:z-base-32]] encoded [[ref:Identity Key]].
 
 [[def:Identity Key]]
-~ An [Identity Key](#identity-key) is a [[ref:Ed25519]] public key encoded required to authenticate all records in 
-[[ref:Mainline DHT]]. When encoded with [[ref:z-base-32]], the resulting string comprises the [[ref:Suffix]] of `did:dht`
-identifier. This key is guaranteed to be present in each `did:dht` document.
+~ An [Identity Key](#identity-key) is a [[ref:z-base-32]] encoded [[ref:Ed25519]] public key required to authenticate all records in 
+[[ref:Mainline DHT]]. The encoded string comprises the [[ref:Suffix]] of `did:dht` identifier. This key is guaranteed to be present
+in each `did:dht` document.
 
 [[def:DID DHT Service]]
 ~ A service that provides a [[ref:DHT]] interface to the [[ref:Pkarr]] network, extended to support this [[ref:DID]] method.
@@ -461,7 +461,8 @@ relay or a [[ref:Gateway]].
 
 3. Reverse the DNS [property mapping](#property-mapping) process and re-construct a conformant [[ref:DID Document]].
 
-    a. Expand all identifiers to their fully-qualified form (e.g. `did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#0` 
+    a. Expand all identifiers (i.e. Verification Methods, Services, etc.) to their fully-qualified 
+    form (e.g. `did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#0` 
     as opposed to `0` or `#0`, `did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#service-1` as opposed to `#service-1`).
 
 ::: note
