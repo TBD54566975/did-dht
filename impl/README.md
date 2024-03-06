@@ -52,7 +52,7 @@ Run:
 
 ```sh
 docker build \
-  --build-arg GIT_COMMIT_HASH=$(git rev-parse head) \
+  --build-arg VERSION=$(git describe --always --tags) \
   --tag did-dht \
   --file build/Dockerfile .
 ```

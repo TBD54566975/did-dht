@@ -18,6 +18,7 @@ import (
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
 	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
+	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
 )
 
 const recordSizeLimit = 1000
@@ -63,6 +64,9 @@ func NewPkarrService(cfg *config.Config, db storage.Storage, d *dht.DHT) (*Pkarr
 
 // PublishPkarr stores the record in the db, publishes the given Pkarr record to the DHT, and returns the z-base-32 encoded ID
 func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr.Record) error {
+	ctx, span := telemetry.GetTracer().Start(ctx, "PkarrService.PublishPkarr")
+	defer span.End()
+
 	if err := record.IsValid(); err != nil {
 		return err
 	}
@@ -95,13 +99,16 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr
 
 // GetPkarr returns the full Pkarr record (including sig data) for the given z-base-32 encoded ID
 func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response, error) {
+	ctx, span := telemetry.GetTracer().Start(ctx, "PkarrService,GetPkarr")
+	defer span.End()
+
 	// first do a cache lookup
 	if got, err := s.cache.Get(id); err == nil {
 		var resp pkarr.Response
 		if err = json.Unmarshal(got, &resp); err != nil {
 			return nil, err
 		}
-		logrus.Debugf("resolved pkarr record[%s] from cache", id)
+		logrus.WithField("record_id", id).Debug("resolved pkarr record from cache")
 		return &resp, nil
 	}
 
@@ -167,13 +174,16 @@ func (s *PkarrService) addRecordToCache(id string, resp pkarr.Response) error {
 
 // TODO(gabe) make this more efficient. create a publish schedule based on each individual record, not all records
 func (s *PkarrService) republish() {
+	ctx, span := telemetry.GetTracer().Start(context.Background(), "PkarrService.republish")
+	defer span.End()
+
 	var nextPageToken []byte
 	var allRecords []pkarr.Record
 	var err error
 	errCnt := 0
 	successCnt := 0
 	for {
-		allRecords, nextPageToken, err = s.db.ListRecords(context.Background(), nextPageToken, 1000)
+		allRecords, nextPageToken, err = s.db.ListRecords(ctx, nextPageToken, 1000)
 		if err != nil {
 			logrus.WithError(err).Error("failed to list record(s) for republishing")
 			return
@@ -187,7 +197,7 @@ func (s *PkarrService) republish() {
 		logrus.WithField("record_count", len(allRecords)).Info("Republishing record")
 
 		for _, record := range allRecords {
-			if _, err = s.dht.Put(context.Background(), record.BEP44()); err != nil {
+			if _, err = s.dht.Put(ctx, record.BEP44()); err != nil {
 				logrus.WithError(err).Error("failed to republish record")
 				errCnt++
 				continue
@@ -200,5 +210,9 @@ func (s *PkarrService) republish() {
 			break
 		}
 	}
-	logrus.Infof("Republishing complete. Successfully republished %d out of %d record(s)", len(allRecords)-errCnt, len(allRecords))
+	logrus.WithFields(logrus.Fields{
+		"success": len(allRecords) - errCnt,
+		"errors":  errCnt,
+		"total":   len(allRecords),
+	}).Info("Republishing complete")
 }

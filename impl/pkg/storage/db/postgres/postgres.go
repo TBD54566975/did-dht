@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
+	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
 )
 
 //go:embed migrations
@@ -49,6 +50,9 @@ func (p Postgres) migrate() error {
 }
 
 func (p Postgres) connect(ctx context.Context) (*Queries, *pgx.Conn, error) {
+	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.connect")
+	defer span.End()
+
 	conn, err := pgx.Connect(ctx, string(p))
 	if err != nil {
 		return nil, nil, err
@@ -58,6 +62,9 @@ func (p Postgres) connect(ctx context.Context) (*Queries, *pgx.Conn, error) {
 }
 
 func (p Postgres) WriteRecord(ctx context.Context, record pkarr.Record) error {
+	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.WriteRecord")
+	defer span.End()
+
 	queries, db, err := p.connect(ctx)
 	if err != nil {
 		return err
@@ -78,6 +85,9 @@ func (p Postgres) WriteRecord(ctx context.Context, record pkarr.Record) error {
 }
 
 func (p Postgres) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, error) {
+	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.ReadRecord")
+	defer span.End()
+
 	queries, db, err := p.connect(ctx)
 	if err != nil {
 		return nil, err
@@ -98,6 +108,9 @@ func (p Postgres) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, err
 }
 
 func (p Postgres) ListRecords(ctx context.Context, nextPageToken []byte, limit int) ([]pkarr.Record, []byte, error) {
+	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.ListRecords")
+	defer span.End()
+
 	queries, db, err := p.connect(ctx)
 	if err != nil {
 		return nil, nil, err

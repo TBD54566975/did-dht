@@ -107,13 +107,3 @@ func PkarrAPI(rg *gin.RouterGroup, service *service.PkarrService) error {
 	rg.GET("/:id", relayRouter.GetRecord)
 	return nil
 }
-
-// func GatewayAPI(rg *gin.RouterGroup, service *service.PkarrService) error {
-// 	gatewayRouter, err := NewGatewayRouter(service)
-// 	if err != nil {
-// 		return util.LoggingErrorMsg(err, "could not instantiate gateway router")
-// 	}
-//
-// 	rg.GET("/did", gatewayRouter.GetRecord)
-// 	return nil
-// }
