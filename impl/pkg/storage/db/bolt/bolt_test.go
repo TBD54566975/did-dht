@@ -8,22 +8,11 @@ import (
 	"github.com/TBD54566975/did-dht-method/internal/did"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
 	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
-	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
 	"github.com/goccy/go-json"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestMain(m *testing.M) {
-	// telemetry.Tracer will be nil if this isn't called before the test
-	if err := telemetry.SetupTelemetry(context.Background()); err != nil {
-		panic(err)
-	}
-	defer telemetry.Shutdown(context.Background())
-
-	os.Exit(m.Run())
-}
 
 func TestBoltDB_ReadWrite(t *testing.T) {
 	ctx := context.Background()

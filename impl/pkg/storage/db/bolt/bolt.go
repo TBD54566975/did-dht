@@ -41,7 +41,7 @@ func NewBolt(path string) (*BoltDB, error) {
 // WriteRecord writes the given record to the storage
 // TODO: don't overwrite existing records, store unique seq numbers
 func (s *BoltDB) WriteRecord(ctx context.Context, record pkarr.Record) error {
-	ctx, span := telemetry.Tracer.Start(ctx, "bolt.WriteRecord")
+	ctx, span := telemetry.GetTracer("pkg/storage/bolt").Start(ctx, "WriteRecord")
 	defer span.End()
 
 	encoded := encodeRecord(record)
@@ -55,7 +55,7 @@ func (s *BoltDB) WriteRecord(ctx context.Context, record pkarr.Record) error {
 
 // ReadRecord reads the record with the given id from the storage
 func (s *BoltDB) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, error) {
-	ctx, span := telemetry.Tracer.Start(ctx, "bolt.ReadRecord")
+	ctx, span := telemetry.GetTracer("pkg/storage/bolt").Start(ctx, "ReadRecord")
 	defer span.End()
 
 	recordBytes, err := s.read(ctx, pkarrNamespace, encoding.EncodeToString(id))
@@ -81,7 +81,7 @@ func (s *BoltDB) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, erro
 
 // ListRecords lists all records in the storage
 func (s *BoltDB) ListRecords(ctx context.Context, nextPageToken []byte, pagesize int) ([]pkarr.Record, []byte, error) {
-	ctx, span := telemetry.Tracer.Start(ctx, "bold.ListRecords")
+	ctx, span := telemetry.GetTracer("pkg/storage/bolt").Start(ctx, "ListRecords")
 	defer span.End()
 
 	boltRecords, err := s.readSeveral(ctx, pkarrNamespace, nextPageToken, pagesize)
@@ -118,7 +118,7 @@ func (s *BoltDB) Close() error {
 }
 
 func (s *BoltDB) write(ctx context.Context, namespace string, key string, value []byte) error {
-	_, span := telemetry.Tracer.Start(ctx, "bolt.write")
+	_, span := telemetry.GetTracer("pkg/storage/bolt").Start(ctx, "write")
 	defer span.End()
 
 	return s.db.Update(func(tx *bolt.Tx) error {
@@ -134,7 +134,7 @@ func (s *BoltDB) write(ctx context.Context, namespace string, key string, value 
 }
 
 func (s *BoltDB) read(ctx context.Context, namespace, key string) ([]byte, error) {
-	_, span := telemetry.Tracer.Start(ctx, "bolt.read")
+	_, span := telemetry.GetTracer("pkg/storage/bolt").Start(ctx, "read")
 	defer span.End()
 
 	var result []byte
@@ -168,7 +168,7 @@ func (s *BoltDB) readAll(namespace string) (map[string][]byte, error) {
 }
 
 func (s *BoltDB) readSeveral(ctx context.Context, namespace string, after []byte, count int) ([]boltRecord, error) {
-	_, span := telemetry.Tracer.Start(ctx, "bolt.readSeveral")
+	_, span := telemetry.GetTracer("pkg/storage/bolt").Start(ctx, "readSeveral")
 	defer span.End()
 
 	var result []boltRecord

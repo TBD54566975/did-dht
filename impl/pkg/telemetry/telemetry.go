@@ -2,6 +2,8 @@ package telemetry
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"time"
 
 	"github.com/TBD54566975/did-dht-method/config"
@@ -10,7 +12,6 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	"go.opentelemetry.io/otel/metric"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -21,10 +22,10 @@ import (
 const scopeName = "github.com/TBD54566975/did-dht-method"
 
 var (
-	Tracer        trace.Tracer
 	traceProvider *sdktrace.TracerProvider
+	tracers       = make(map[string]trace.Tracer)
+	tracersLock   sync.Mutex
 
-	Meter         metric.Meter
 	meterProvider *sdkmetric.MeterProvider
 )
 
@@ -44,7 +45,6 @@ func SetupTelemetry(ctx context.Context) error {
 	}
 	traceProvider = sdktrace.NewTracerProvider(sdktrace.WithBatcher(traceExporter), sdktrace.WithResource(r))
 	otel.SetTracerProvider(traceProvider)
-	Tracer = traceProvider.Tracer(scopeName, trace.WithInstrumentationVersion(config.Version))
 
 	// setup metrics
 	metricExporter, err := otlpmetrichttp.New(ctx)
@@ -53,7 +53,6 @@ func SetupTelemetry(ctx context.Context) error {
 	}
 	meterProvider = sdkmetric.NewMeterProvider(sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricExporter)))
 	otel.SetMeterProvider(meterProvider)
-	Meter = meterProvider.Meter(scopeName, metric.WithInstrumentationVersion(config.Version))
 
 	// setup memory metrics
 	err = runtime.Start(runtime.WithMinimumReadMemStatsInterval(time.Second * 30))
@@ -65,11 +64,29 @@ func SetupTelemetry(ctx context.Context) error {
 }
 
 func Shutdown(ctx context.Context) {
-	if err := traceProvider.Shutdown(ctx); err != nil {
-		logrus.WithError(err).Error("error shutting down trace provider")
+	if traceProvider != nil {
+		if err := traceProvider.Shutdown(ctx); err != nil {
+			logrus.WithError(err).Error("error shutting down trace provider")
+		}
 	}
 
-	if err := meterProvider.Shutdown(ctx); err != nil {
-		logrus.WithError(err).Error("error shutting down meter provider")
+	if meterProvider != nil {
+		if err := meterProvider.Shutdown(ctx); err != nil {
+			logrus.WithError(err).Error("error shutting down meter provider")
+		}
 	}
+}
+
+func GetTracer(subpackage string) trace.Tracer {
+	tracersLock.Lock()
+	defer tracersLock.Unlock()
+
+	tracer, ok := tracers[subpackage]
+	if !ok {
+		name := fmt.Sprintf("%s/%s", scopeName, subpackage)
+		tracer = otel.GetTracerProvider().Tracer(name, trace.WithInstrumentationVersion(config.Version))
+		tracers[subpackage] = tracer
+	}
+
+	return tracer
 }

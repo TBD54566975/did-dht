@@ -60,7 +60,7 @@ func NewTestDHT(t *testing.T, bootstrapPeers ...dht.Addr) *DHT {
 
 // Put puts the given BEP-44 value into the DHT and returns its z32-encoded key.
 func (d *DHT) Put(ctx context.Context, request bep44.Put) (string, error) {
-	ctx, span := telemetry.Tracer.Start(ctx, "DHT.Put")
+	ctx, span := telemetry.GetTracer("pkg/dht").Start(ctx, "DHT.Put")
 	defer span.End()
 
 	t, err := getput.Put(ctx, request.Target(), d.Server, nil, func(int64) bep44.Put {
@@ -78,7 +78,7 @@ func (d *DHT) Put(ctx context.Context, request bep44.Put) (string, error) {
 // Get returns the BEP-44 result for the given key from the DHT.
 // The key is a z32-encoded string, such as "yj47pezutnpw9pyudeeai8cx8z8d6wg35genrkoqf9k3rmfzy58o".
 func (d *DHT) Get(ctx context.Context, key string) (*getput.GetResult, error) {
-	ctx, span := telemetry.Tracer.Start(ctx, "DHT.Get")
+	ctx, span := telemetry.GetTracer("pkg/dht").Start(ctx, "DHT.Get")
 	defer span.End()
 
 	z32Decoded, err := util.Z32Decode(key)
@@ -96,7 +96,7 @@ func (d *DHT) Get(ctx context.Context, key string) (*getput.GetResult, error) {
 // implementation of getput.Get. It should ONLY be used when it's needed to get the signature
 // data for a record.
 func (d *DHT) GetFull(ctx context.Context, key string) (*dhtint.FullGetResult, error) {
-	ctx, span := telemetry.Tracer.Start(ctx, "DHT.GetFull")
+	ctx, span := telemetry.GetTracer("pkg/dht").Start(ctx, "DHT.GetFull")
 	defer span.End()
 
 	z32Decoded, err := util.Z32Decode(key)
