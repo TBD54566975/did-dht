@@ -27,7 +27,12 @@ const (
 // Build builds the library.
 func Build() error {
 	println("Building...")
-	return sh.Run(Go, "build", "-tags", "jwx_es256k", "./...")
+	version, err := sh.Output("git", "describe", "--always", "--tags")
+	if err != nil {
+		println("error getting current version: ", err.Error())
+	}
+
+	return sh.Run(Go, "build", fmt.Sprintf("-ldflags=-X github.com/TBD54566975/did-dht-method/config.Version=%s", version), "-tags", "jwx_es256k", "./...")
 }
 
 // Clean deletes any build artifacts.

@@ -19,10 +19,6 @@ const (
 	testServerURL = "https://diddht-service.com"
 )
 
-func TestMain(t *testing.M) {
-	os.Exit(t.Run())
-}
-
 func TestHealthCheckAPI(t *testing.T) {
 	shutdown := make(chan os.Signal, 1)
 	serviceConfig, err := config.LoadConfig("")

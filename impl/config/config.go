@@ -27,6 +27,8 @@ const (
 	BootstrapPeers EnvironmentVariable = "BOOTSTRAP_PEERS"
 )
 
+var Version = "devel"
+
 type (
 	Environment         string
 	EnvironmentVariable string

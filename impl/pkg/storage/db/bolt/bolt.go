@@ -10,6 +10,7 @@ import (
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
+	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
 )
 
 const (
@@ -39,19 +40,25 @@ func NewBolt(path string) (*BoltDB, error) {
 
 // WriteRecord writes the given record to the storage
 // TODO: don't overwrite existing records, store unique seq numbers
-func (s *BoltDB) WriteRecord(_ context.Context, record pkarr.Record) error {
+func (s *BoltDB) WriteRecord(ctx context.Context, record pkarr.Record) error {
+	ctx, span := telemetry.GetTracer().Start(ctx, "bolt.WriteRecord")
+	defer span.End()
+
 	encoded := encodeRecord(record)
 	recordBytes, err := json.Marshal(encoded)
 	if err != nil {
 		return err
 	}
 
-	return s.write(pkarrNamespace, encoded.K, recordBytes)
+	return s.write(ctx, pkarrNamespace, encoded.K, recordBytes)
 }
 
 // ReadRecord reads the record with the given id from the storage
-func (s *BoltDB) ReadRecord(_ context.Context, id []byte) (*pkarr.Record, error) {
-	recordBytes, err := s.read(pkarrNamespace, encoding.EncodeToString(id))
+func (s *BoltDB) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, error) {
+	ctx, span := telemetry.GetTracer().Start(ctx, "bolt.ReadRecord")
+	defer span.End()
+
+	recordBytes, err := s.read(ctx, pkarrNamespace, encoding.EncodeToString(id))
 	if err != nil {
 		return nil, err
 	}
@@ -73,8 +80,11 @@ func (s *BoltDB) ReadRecord(_ context.Context, id []byte) (*pkarr.Record, error)
 }
 
 // ListRecords lists all records in the storage
-func (s *BoltDB) ListRecords(_ context.Context, nextPageToken []byte, pagesize int) ([]pkarr.Record, []byte, error) {
-	boltRecords, err := s.readSeveral(pkarrNamespace, nextPageToken, pagesize)
+func (s *BoltDB) ListRecords(ctx context.Context, nextPageToken []byte, pagesize int) ([]pkarr.Record, []byte, error) {
+	ctx, span := telemetry.GetTracer().Start(ctx, "bolt.ListRecords")
+	defer span.End()
+
+	boltRecords, err := s.readSeveral(ctx, pkarrNamespace, nextPageToken, pagesize)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -107,7 +117,10 @@ func (s *BoltDB) Close() error {
 	return s.db.Close()
 }
 
-func (s *BoltDB) write(namespace string, key string, value []byte) error {
+func (s *BoltDB) write(ctx context.Context, namespace string, key string, value []byte) error {
+	_, span := telemetry.GetTracer().Start(ctx, "bolt.write")
+	defer span.End()
+
 	return s.db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte(namespace))
 		if err != nil {
@@ -120,7 +133,10 @@ func (s *BoltDB) write(namespace string, key string, value []byte) error {
 	})
 }
 
-func (s *BoltDB) read(namespace, key string) ([]byte, error) {
+func (s *BoltDB) read(ctx context.Context, namespace, key string) ([]byte, error) {
+	_, span := telemetry.GetTracer().Start(ctx, "bolt.read")
+	defer span.End()
+
 	var result []byte
 	err := s.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
@@ -151,7 +167,10 @@ func (s *BoltDB) readAll(namespace string) (map[string][]byte, error) {
 	return result, err
 }
 
-func (s *BoltDB) readSeveral(namespace string, after []byte, count int) ([]boltRecord, error) {
+func (s *BoltDB) readSeveral(ctx context.Context, namespace string, after []byte, count int) ([]boltRecord, error) {
+	_, span := telemetry.GetTracer().Start(ctx, "bolt.readSeveral")
+	defer span.End()
+
 	var result []boltRecord
 	err := s.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
