@@ -6,11 +6,12 @@ import (
 
 	"github.com/goccy/go-json"
 
-	"github.com/TBD54566975/did-dht-method/internal/util"
 	ssiutil "github.com/TBD54566975/ssi-sdk/util"
 	"github.com/allegro/bigcache/v3"
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/sirupsen/logrus"
+
+	"github.com/TBD54566975/did-dht-method/internal/util"
 
 	"github.com/TBD54566975/did-dht-method/config"
 	dhtint "github.com/TBD54566975/did-dht-method/internal/dht"

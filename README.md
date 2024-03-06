@@ -45,7 +45,10 @@ docker build \
 and then
 
 ```sh
-docker run --publish 8305:8305 did-dht
+docker run \
+    --publish 8305:8305 \
+    --publish 6881:6881/udp \
+    did-dht
 ```
 
 ## Implementations
