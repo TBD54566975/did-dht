@@ -50,7 +50,6 @@ type ServerConfig struct {
 	APIHost     string      `toml:"api_host"`
 	APIPort     int         `toml:"api_port"`
 	BaseURL     string      `toml:"base_url"`
-	LogLocation string      `toml:"log_location"`
 	StorageURI  string      `toml:"storage_uri"`
 }
 
@@ -76,7 +75,6 @@ func GetDefaultConfig() Config {
 			APIHost:     "0.0.0.0",
 			APIPort:     8305,
 			BaseURL:     "http://localhost:8305",
-			LogLocation: "log",
 			StorageURI:  "bolt://diddht.db",
 		},
 		DHTConfig: DHTServiceConfig{
@@ -160,6 +158,16 @@ func applyEnvVariables(cfg *Config) error {
 	storage, present := os.LookupEnv("STORAGE_URI")
 	if present {
 		cfg.ServerConfig.StorageURI = storage
+	}
+
+	levelString, present := os.LookupEnv("LOG_LEVEL")
+	if present {
+		_, err := logrus.ParseLevel(levelString)
+		if err != nil {
+			logrus.WithField("requested_level", levelString).Warn("unable to parse log level requested in environment variable")
+		} else {
+			cfg.Log.Level = levelString
+		}
 	}
 
 	return nil

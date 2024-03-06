@@ -9,7 +9,9 @@ import (
 	"github.com/anacrolix/dht/v2"
 	"github.com/anacrolix/dht/v2/bep44"
 	"github.com/anacrolix/dht/v2/exts/getput"
+	"github.com/anacrolix/log"
 	"github.com/anacrolix/torrent/types/infohash"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
 	dhtint "github.com/TBD54566975/did-dht-method/internal/dht"
@@ -24,12 +26,16 @@ type DHT struct {
 
 // NewDHT returns a new instance of DHT with the given bootstrap peers.
 func NewDHT(bootstrapPeers []string) (*DHT, error) {
+	logrus.WithField("bootstrap_peers", len(bootstrapPeers)).Info("initializing DHT")
+
 	c := dht.NewDefaultServerConfig()
 	conn, err := net.ListenPacket("udp", "0.0.0.0:6881")
 	if err != nil {
 		return nil, errutil.LoggingErrorMsg(err, "failed to listen on udp port 6881")
 	}
 	c.Conn = conn
+	c.Logger = log.NewLogger().WithFilterLevel(log.Debug)
+	c.Logger.SetHandlers(loghandler{})
 	c.StartingNodes = func() ([]dht.Addr, error) { return dht.ResolveHostPorts(bootstrapPeers) }
 	s, err := dht.NewServer(c)
 	if err != nil {
@@ -116,4 +122,18 @@ func (d *DHT) GetFull(ctx context.Context, key string) (*dhtint.FullGetResult, e
 		return nil, errutil.LoggingNewErrorf("failed to get key[%s] from dht; tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
 	}
 	return &res, nil
+}
+
+type loghandler struct{}
+
+var levels = map[log.Level]logrus.Level{
+	log.Debug:    logrus.DebugLevel,
+	log.Info:     logrus.InfoLevel,
+	log.Warning:  logrus.WarnLevel,
+	log.Error:    logrus.ErrorLevel,
+	log.Critical: logrus.ErrorLevel,
+}
+
+func (loghandler) Handle(record log.Record) {
+	logrus.WithField("names", record.Names).Log(levels[record.Level], record.Msg.String())
 }
