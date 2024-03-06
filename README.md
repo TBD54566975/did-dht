@@ -1,3 +1,9 @@
+[![godoc did-dht-method](https://img.shields.io/badge/godoc-did_dht_method-blue)](https://github.com/TBD54566975/did-dht-method/impl)
+[![go version 1.22.1](https://img.shields.io/badge/go_version-1.22.1-brightgreen)](https://go.dev/)
+[![license Apache 2](https://img.shields.io/badge/license-Apache%202-black)](https://github.com/TBD54566975/did-dht-method/blob/main/LICENSE)
+[![issues](https://img.shields.io/github/issues/TBD54566975/did-dht-method)](https://github.com/TBD54566975/did-dht-method/issues)
+![push](https://github.com/TBD54566975/did-dht-method/workflows/did-dht-ci/badge.svg?branch=main&event=push)
+
 # did-dht-method
 
 The `did:dht` method. Home to the [DID DHT Method Specification](https://did-dht.com), and a reference implementation of a
