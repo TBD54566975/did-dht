@@ -24,10 +24,18 @@ type DHT struct {
 // NewDHT returns a new instance of DHT with the given bootstrap peers.
 func NewDHT(bootstrapPeers []string) (*DHT, error) {
 	c := dht.NewDefaultServerConfig()
+	conn, err := net.ListenPacket("udp", "0.0.0.0:6881")
+	if err != nil {
+		return nil, errutil.LoggingErrorMsg(err, "failed to listen on udp port 6881")
+	}
+	c.Conn = conn
 	c.StartingNodes = func() ([]dht.Addr, error) { return dht.ResolveHostPorts(bootstrapPeers) }
 	s, err := dht.NewServer(c)
 	if err != nil {
 		return nil, errutil.LoggingErrorMsg(err, "failed to create dht server")
+	}
+	if _, err = s.Bootstrap(); err != nil {
+		return nil, errutil.LoggingErrorMsg(err, "failed to bootstrap the dht")
 	}
 	return &DHT{Server: s}, nil
 }
@@ -49,7 +57,7 @@ func NewTestDHT(t *testing.T, bootstrapPeers ...dht.Addr) *DHT {
 	s, err := dht.NewServer(c)
 	require.NoError(t, err)
 	require.NotNil(t, s)
-	
+
 	if _, err = s.Bootstrap(); err != nil {
 		t.Fatalf("failed to bootstrap: %v", err)
 	}
@@ -76,7 +84,7 @@ func (d *DHT) Put(ctx context.Context, request bep44.Put) (string, error) {
 func (d *DHT) Get(ctx context.Context, key string) (*getput.GetResult, error) {
 	z32Decoded, err := util.Z32Decode(key)
 	if err != nil {
-		return nil, errutil.LoggingErrorMsg(err, "failed to decode key")
+		return nil, errutil.LoggingErrorMsgf(err, "failed to decode key [%s]", key)
 	}
 	res, t, err := getput.Get(ctx, infohash.HashBytes(z32Decoded), d.Server, nil, nil)
 	if err != nil {
@@ -91,7 +99,7 @@ func (d *DHT) Get(ctx context.Context, key string) (*getput.GetResult, error) {
 func (d *DHT) GetFull(ctx context.Context, key string) (*dhtint.FullGetResult, error) {
 	z32Decoded, err := util.Z32Decode(key)
 	if err != nil {
-		return nil, errutil.LoggingErrorMsg(err, "failed to decode key")
+		return nil, errutil.LoggingErrorMsgf(err, "failed to decode key [%s]", key)
 	}
 	res, t, err := dhtint.Get(ctx, infohash.HashBytes(z32Decoded), d.Server, nil, nil)
 	if err != nil {

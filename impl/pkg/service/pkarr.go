@@ -6,11 +6,12 @@ import (
 
 	"github.com/goccy/go-json"
 
-	"github.com/TBD54566975/did-dht-method/internal/util"
 	ssiutil "github.com/TBD54566975/ssi-sdk/util"
 	"github.com/allegro/bigcache/v3"
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/sirupsen/logrus"
+
+	"github.com/TBD54566975/did-dht-method/internal/util"
 
 	"github.com/TBD54566975/did-dht-method/config"
 	dhtint "github.com/TBD54566975/did-dht-method/internal/dht"
@@ -54,7 +55,7 @@ func NewPkarrService(cfg *config.Config, db storage.Storage, d *dht.DHT) (*Pkarr
 		cache:     cache,
 		scheduler: &scheduler,
 	}
-	if err = scheduler.Schedule(cfg.PkarrConfig.RepublishCRON, service.republish); err != nil {
+	if err = scheduler.Schedule("* * * * *", service.republish); err != nil {
 		return nil, ssiutil.LoggingErrorMsg(err, "failed to start republisher")
 	}
 	return &service, nil

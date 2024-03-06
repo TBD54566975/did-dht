@@ -1,6 +1,6 @@
 module github.com/TBD54566975/did-dht-method
 
-go 1.21
+go 1.22
 
 require (
 	github.com/BurntSushi/toml v0.3.1

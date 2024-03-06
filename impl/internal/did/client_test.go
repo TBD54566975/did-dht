@@ -12,7 +12,7 @@ import (
 )
 
 func TestClient(t *testing.T) {
-	client, err := NewGatewayClient("https://diddht.tbddev.org")
+	client, err := NewGatewayClient("http://0.0.0.0:8305")
 	require.NoError(t, err)
 	require.NotNil(t, client)
 
@@ -39,6 +39,19 @@ func TestClient(t *testing.T) {
 
 	since := time.Since(start)
 	t.Logf("time to put and get: %s", since)
+
+	println("did: " + doc.ID)
+}
+
+func TestGet(t *testing.T) {
+	client, err := NewGatewayClient("http://0.0.0.0:8305")
+	require.NoError(t, err)
+	require.NotNil(t, client)
+
+	id := "did:dht:y1tq37ejfubsqyhrfbrw54pgibhs9iqwfngxmskxygcray78n5gy"
+	gotDID, _, err := client.GetDIDDocument(id)
+	assert.NoError(t, err)
+	assert.EqualValues(t, id, gotDID.ID)
 }
 
 func TestClientInvalidGateway(t *testing.T) {

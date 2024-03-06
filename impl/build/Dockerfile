@@ -1,4 +1,4 @@
-FROM golang:1.21.5-alpine
+FROM golang:1.22.1-alpine
 
 # Create directory for our app inside the container
 WORKDIR /app
@@ -21,5 +21,6 @@ ENV GIT_COMMIT_HASH=$GIT_COMMIT_HASH
 RUN go build -ldflags="-X main.commitHash=$GIT_COMMIT_HASH" -tags jwx_es256k -o /did-dht ./cmd
 
 EXPOSE 8305
+EXPOSE 6881/udp
 
 CMD [ "/did-dht" ]
