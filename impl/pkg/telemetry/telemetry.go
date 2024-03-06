@@ -2,8 +2,6 @@ package telemetry
 
 import (
 	"context"
-	"fmt"
-	"sync"
 	"time"
 
 	"github.com/TBD54566975/did-dht-method/config"
@@ -23,8 +21,7 @@ const scopeName = "github.com/TBD54566975/did-dht-method"
 
 var (
 	traceProvider *sdktrace.TracerProvider
-	tracers       = make(map[string]trace.Tracer)
-	tracersLock   sync.RWMutex
+	tracer        trace.Tracer
 
 	meterProvider *sdkmetric.MeterProvider
 )
@@ -77,18 +74,9 @@ func Shutdown(ctx context.Context) {
 	}
 }
 
-func GetTracer(subpackage string) trace.Tracer {
-	tracersLock.RLock()
-	tracer, ok := tracers[subpackage]
-	tracersLock.RUnlock()
-
-	if !ok {
-		tracersLock.Lock()
-		defer tracersLock.Unlock()
-
-		name := fmt.Sprintf("%s/%s", scopeName, subpackage)
-		tracer = otel.GetTracerProvider().Tracer(name, trace.WithInstrumentationVersion(config.Version))
-		tracers[subpackage] = tracer
+func GetTracer() trace.Tracer {
+	if tracer == nil {
+		tracer = otel.GetTracerProvider().Tracer(scopeName, trace.WithInstrumentationVersion(config.Version))
 	}
 
 	return tracer

@@ -63,7 +63,7 @@ func NewPkarrService(cfg *config.Config, db storage.Storage, d *dht.DHT) (*Pkarr
 
 // PublishPkarr stores the record in the db, publishes the given Pkarr record to the DHT, and returns the z-base-32 encoded ID
 func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr.Record) error {
-	ctx, span := telemetry.GetTracer("pkg/service").Start(ctx, "PublishPkarr")
+	ctx, span := telemetry.GetTracer().Start(ctx, "PkarrService.PublishPkarr")
 	defer span.End()
 
 	if err := record.IsValid(); err != nil {
@@ -98,7 +98,7 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr
 
 // GetPkarr returns the full Pkarr record (including sig data) for the given z-base-32 encoded ID
 func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response, error) {
-	ctx, span := telemetry.GetTracer("pkg/service").Start(ctx, "GetPkarr")
+	ctx, span := telemetry.GetTracer().Start(ctx, "PkarrService,GetPkarr")
 	defer span.End()
 
 	// first do a cache lookup
@@ -173,7 +173,7 @@ func (s *PkarrService) addRecordToCache(id string, resp pkarr.Response) error {
 
 // TODO(gabe) make this more efficient. create a publish schedule based on each individual record, not all records
 func (s *PkarrService) republish() {
-	ctx, span := telemetry.GetTracer("pkg/service").Start(context.Background(), "republish")
+	ctx, span := telemetry.GetTracer().Start(context.Background(), "PkarrService.republish")
 	defer span.End()
 
 	var nextPageToken []byte

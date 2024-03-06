@@ -50,7 +50,7 @@ func (p Postgres) migrate() error {
 }
 
 func (p Postgres) connect(ctx context.Context) (*Queries, *pgx.Conn, error) {
-	ctx, span := telemetry.GetTracer("pkg/storage/postgres").Start(ctx, "connect")
+	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.connect")
 	defer span.End()
 
 	conn, err := pgx.Connect(ctx, string(p))
@@ -62,7 +62,7 @@ func (p Postgres) connect(ctx context.Context) (*Queries, *pgx.Conn, error) {
 }
 
 func (p Postgres) WriteRecord(ctx context.Context, record pkarr.Record) error {
-	ctx, span := telemetry.GetTracer("pkg/storage/postgres").Start(ctx, "WriteRecord")
+	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.WriteRecord")
 	defer span.End()
 
 	queries, db, err := p.connect(ctx)
@@ -85,7 +85,7 @@ func (p Postgres) WriteRecord(ctx context.Context, record pkarr.Record) error {
 }
 
 func (p Postgres) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, error) {
-	ctx, span := telemetry.GetTracer("pkg/storage/postgres").Start(ctx, "ReadRecord")
+	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.ReadRecord")
 	defer span.End()
 
 	queries, db, err := p.connect(ctx)
@@ -108,7 +108,7 @@ func (p Postgres) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, err
 }
 
 func (p Postgres) ListRecords(ctx context.Context, nextPageToken []byte, limit int) ([]pkarr.Record, []byte, error) {
-	ctx, span := telemetry.GetTracer("pkg/storage/postgres").Start(ctx, "ListRecords")
+	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.ListRecords")
 	defer span.End()
 
 	queries, db, err := p.connect(ctx)
