@@ -18,15 +18,18 @@ import (
 
 var (
 	ticker = time.NewTicker(time.Second * 30)
-	server = "https://diddht-dev-finn.tbddev.org"
 )
 
 func main() {
 	logrus.SetLevel(logrus.InfoLevel)
-	run()
+	if len(os.Args) < 2 {
+		logrus.Fatal("must specify 1 argument (server URL)")
+	}
+
+	run(os.Args[1])
 }
 
-func run() {
+func run(server string) {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	defer stop()
 
@@ -37,13 +40,13 @@ func run() {
 			return
 
 		case <-ticker.C:
-			suffix, err := put(ctx)
+			suffix, err := put(ctx, server)
 			if err != nil {
 				logrus.WithError(err).Error("error making PUT request")
 				continue
 			}
 
-			if err := get(ctx, suffix); err != nil {
+			if err := get(ctx, server, suffix); err != nil {
 				logrus.WithError(err).Error("error making GET request")
 				continue
 			}
@@ -51,7 +54,7 @@ func run() {
 	}
 }
 
-func put(ctx context.Context) (string, error) {
+func put(ctx context.Context, server string) (string, error) {
 	didID, reqData, err := generateDIDPutRequest()
 	if err != nil {
 		return "", err
@@ -74,7 +77,7 @@ func put(ctx context.Context) (string, error) {
 	return suffix, nil
 }
 
-func get(ctx context.Context, suffix string) error {
+func get(ctx context.Context, server string, suffix string) error {
 	req, err := http.NewRequest(http.MethodGet, server+"/"+suffix, nil)
 	if err != nil {
 		return err

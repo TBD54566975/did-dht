@@ -99,7 +99,7 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr
 
 // GetPkarr returns the full Pkarr record (including sig data) for the given z-base-32 encoded ID
 func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response, error) {
-	ctx, span := telemetry.GetTracer().Start(ctx, "PkarrService,GetPkarr")
+	ctx, span := telemetry.GetTracer().Start(ctx, "PkarrService.GetPkarr")
 	defer span.End()
 
 	// first do a cache lookup
