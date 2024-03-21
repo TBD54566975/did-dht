@@ -35,7 +35,7 @@ func NewDHT(bootstrapPeers []string) (*DHT, error) {
 	}
 	c.Conn = conn
 	c.Logger = log.NewLogger().WithFilterLevel(log.Debug)
-	c.Logger.SetHandlers(loghandler{})
+	c.Logger.SetHandlers(logHandler{})
 	c.StartingNodes = func() ([]dht.Addr, error) { return dht.ResolveHostPorts(bootstrapPeers) }
 	s, err := dht.NewServer(c)
 	if err != nil {
@@ -124,7 +124,7 @@ func (d *DHT) GetFull(ctx context.Context, key string) (*dhtint.FullGetResult, e
 	return &res, nil
 }
 
-type loghandler struct{}
+type logHandler struct{}
 
 var levels = map[log.Level]logrus.Level{
 	log.Debug:    logrus.DebugLevel,
@@ -134,6 +134,6 @@ var levels = map[log.Level]logrus.Level{
 	log.Critical: logrus.ErrorLevel,
 }
 
-func (loghandler) Handle(record log.Record) {
+func (logHandler) Handle(record log.Record) {
 	logrus.WithField("names", record.Names).Log(levels[record.Level], record.Msg.String())
 }

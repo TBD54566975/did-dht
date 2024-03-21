@@ -8,7 +8,6 @@ import (
 	"net/url"
 
 	"github.com/TBD54566975/ssi-sdk/did"
-	"github.com/TBD54566975/ssi-sdk/util"
 	"github.com/anacrolix/dht/v2/bep44"
 	"github.com/miekg/dns"
 	"github.com/pkg/errors"
@@ -55,7 +54,7 @@ func (c *GatewayClient) GetDIDDocument(id string) (*did.Document, []TypeIndex, e
 	}
 	msg := new(dns.Msg)
 	if err = msg.Unpack(body[72:]); err != nil {
-		return nil, nil, util.LoggingErrorMsg(err, "failed to unpack records")
+		return nil, nil, errors.Wrap(err, "failed to unpack records")
 	}
 	return d.FromDNSPacket(msg)
 }

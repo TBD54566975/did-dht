@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/TBD54566975/did-dht-method/config"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel"
@@ -15,9 +14,13 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/TBD54566975/did-dht-method/config"
 )
 
-const scopeName = "github.com/TBD54566975/did-dht-method"
+const (
+	scopeName = "github.com/TBD54566975/did-dht-method"
+)
 
 var (
 	traceProvider *sdktrace.TracerProvider
@@ -78,6 +81,5 @@ func GetTracer() trace.Tracer {
 	if tracer == nil {
 		tracer = otel.GetTracerProvider().Tracer(scopeName, trace.WithInstrumentationVersion(config.Version))
 	}
-
 	return tracer
 }

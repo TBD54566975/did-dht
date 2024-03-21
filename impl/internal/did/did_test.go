@@ -9,7 +9,6 @@ import (
 
 	"github.com/TBD54566975/ssi-sdk/crypto"
 	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
-	"github.com/TBD54566975/ssi-sdk/cryptosuite"
 	"github.com/TBD54566975/ssi-sdk/did"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -554,7 +553,7 @@ func TestCreationFailures(t *testing.T) {
 				{
 					VerificationMethod: did.VerificationMethod{
 						ID:           secpJWK.KID,
-						Type:         cryptosuite.LDKeyType("fake"),
+						Type:         "fake",
 						PublicKeyJWK: &secpJWK,
 					},
 					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
@@ -609,7 +608,7 @@ func TestCreationFailures(t *testing.T) {
 						Type:         JSONWebKeyType,
 						PublicKeyJWK: &secpJWK,
 					},
-					Purposes: []did.PublicKeyPurpose{did.PublicKeyPurpose("fake purpose")},
+					Purposes: []did.PublicKeyPurpose{"fake purpose"},
 				},
 			},
 			Services: []did.Service{

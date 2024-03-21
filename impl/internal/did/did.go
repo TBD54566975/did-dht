@@ -26,6 +26,9 @@ const (
 	DHTMethod      did.Method            = "dht"
 	JSONWebKeyType cryptosuite.LDKeyType = "JsonWebKey"
 
+	// Version corresponds to the version fo the specification https://did-dht.com/#dids-as-dns-records
+	Version int = 0
+
 	Discoverable           TypeIndex = 0
 	Organization           TypeIndex = 1
 	GovernmentOrganization TypeIndex = 2
@@ -242,6 +245,9 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex) (*dns.Msg, error) 
 	var rootRecord []string
 	keyLookup := make(map[string]string)
 
+	// first append the version to the root record
+	rootRecord = append(rootRecord, fmt.Sprintf("v=%d", Version))
+
 	// build controller and aka records
 	if doc.Controller != nil {
 		var controllerTxt string
@@ -298,13 +304,23 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex) (*dns.Msg, error) 
 		if err != nil {
 			return nil, err
 		}
-		pubKeyBytes, err := crypto.PubKeyToBytes(pubKey)
+		// as per the spec's guidance DNS representations use compressed keys, so we must marshal them as such
+		pubKeyBytes, err := crypto.PubKeyToBytes(pubKey, crypto.ECDSAMarshalCompressed)
 		if err != nil {
 			return nil, err
 		}
 		keyBase64Url := base64.RawURLEncoding.EncodeToString(pubKeyBytes)
 
 		vmKeyFragment := vm.ID[strings.LastIndex(vm.ID, "#")+1:]
+		txtRecord := fmt.Sprintf("id=%s;t=%d;k=%s", vmKeyFragment, keyType, keyBase64Url)
+		// note the controller if it differs from the DID
+		if vm.Controller != doc.ID {
+			// handle the case where the controller of the identity key is not the DID itself
+			if vm.ID == doc.ID+"#0" && (vm.Controller != "" || vm.Controller != doc.ID) {
+				return nil, fmt.Errorf("controller of identity key must be the DID itself, instead it is: %s", vm.Controller)
+			}
+			txtRecord += fmt.Sprintf(";c=%s", vm.Controller)
+		}
 		keyRecord := dns.TXT{
 			Hdr: dns.RR_Header{
 				Name:   fmt.Sprintf("_%s._did.", recordIdentifier),
@@ -312,12 +328,13 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex) (*dns.Msg, error) 
 				Class:  dns.ClassINET,
 				Ttl:    7200,
 			},
-			Txt: []string{fmt.Sprintf("id=%s;t=%d;k=%s", vmKeyFragment, keyType, keyBase64Url)},
+			Txt: []string{txtRecord},
 		}
 
 		records = append(records, &keyRecord)
 		vmIDs = append(vmIDs, recordIdentifier)
 	}
+
 	// add verification methods to the root record
 	rootRecord = append(rootRecord, fmt.Sprintf("vm=%s", strings.Join(vmIDs, ",")))
 
@@ -482,13 +499,20 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 				vmID := data["id"]
 				keyType := keyTypeLookUp(data["t"])
 				keyBase64URL := data["k"]
+				controller := data["c"]
+
+				// set the controller to the DID if it's not provided
+				if controller == "" {
+					controller = d.String()
+				}
 
 				// Convert keyBase64URL back to PublicKeyJWK
 				pubKeyBytes, err := base64.RawURLEncoding.DecodeString(keyBase64URL)
 				if err != nil {
 					return nil, nil, err
 				}
-				pubKey, err := crypto.BytesToPubKey(pubKeyBytes, keyType)
+				// as per the spec's guidance DNS representations use compressed keys, so we must unmarshall them as such
+				pubKey, err := crypto.BytesToPubKey(pubKeyBytes, keyType, crypto.ECDSAUnmarshalCompressed)
 				if err != nil {
 					return nil, nil, err
 				}
@@ -497,6 +521,10 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 					return nil, nil, err
 				}
 
+				// make sure the controller of the identity key matches the DID
+				if vmID == "0" && controller != d.String() {
+					return nil, nil, fmt.Errorf("controller of identity key must be the DID itself, instead it is: %s", controller)
+				}
 				vm := did.VerificationMethod{
 					ID:           d.String() + "#" + vmID,
 					Type:         JSONWebKeyType,
@@ -555,6 +583,7 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 				rootData := strings.Join(record.Txt, ";")
 				rootItems := strings.Split(rootData, ";")
 
+				seenVersion := false
 				for _, item := range rootItems {
 					kv := strings.Split(item, "=")
 					if len(kv) != 2 {
@@ -565,6 +594,11 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 					valueItems := strings.Split(values, ",")
 
 					switch key {
+					case "v":
+						if len(valueItems) != 1 || valueItems[0] != strconv.Itoa(Version) {
+							return nil, nil, fmt.Errorf("invalid version: %s", values)
+						}
+						seenVersion = true
 					case "auth":
 						for _, valueItem := range valueItems {
 							doc.Authentication = append(doc.Authentication, doc.ID+"#"+keyLookup[valueItem])
@@ -586,6 +620,9 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 							doc.CapabilityDelegation = append(doc.CapabilityDelegation, doc.ID+"#"+keyLookup[valueItem])
 						}
 					}
+				}
+				if !seenVersion {
+					return nil, nil, fmt.Errorf("root record missing version identifier")
 				}
 			}
 		}
