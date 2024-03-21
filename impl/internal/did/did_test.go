@@ -345,7 +345,7 @@ func TestMisc(t *testing.T) {
 	var secpJWK jwx.PublicKeyJWK
 	retrieveTestVectorAs(t, vector2PublicKeyJWK2, &secpJWK)
 
-	t.Run("single aka", func(t *testing.T) {
+	t.Run("single aka field", func(t *testing.T) {
 		doc, err := CreateDIDDHTDID(pubKey.(ed25519.PublicKey), CreateDIDDHTOpts{
 			Controller:  []string{"did:example:abcd"},
 			AlsoKnownAs: []string{"did:example:efgh"},
