@@ -220,7 +220,6 @@ func TestToDNSPacket(t *testing.T) {
 }
 
 func TestVectors(t *testing.T) {
-
 	type testVectorDNSRecord struct {
 		RecordType string `json:"type"`
 		TTL        string `json:"ttl"`
