@@ -147,15 +147,8 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 			// mark as seen
 			seenIDs[vm.VerificationMethod.ID] = true
 
-			// update ID and controller in place, setting to thumbprint if none is provided
-
-			// e.g. nothing -> did:dht:123456789abcdefghi#<jwk key id>
-			if vm.VerificationMethod.ID == "" {
-				vm.VerificationMethod.ID = id + "#" + vm.VerificationMethod.PublicKeyJWK.KID
-			} else {
-				// make sure the verification method ID and KID match
-				vm.VerificationMethod.PublicKeyJWK.KID = vm.VerificationMethod.ID
-			}
+			// make sure the verification method JWK KID is set to its thumbprint
+			vm.VerificationMethod.ID = id + "#" + vm.VerificationMethod.PublicKeyJWK.KID
 
 			// e.g. #key-1 -> did:dht:123456789abcdefghi#key-1
 			if strings.HasPrefix(vm.VerificationMethod.ID, "#") {
@@ -304,15 +297,16 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex) (*dns.Msg, error) 
 		if err != nil {
 			return nil, err
 		}
+
 		// as per the spec's guidance DNS representations use compressed keys, so we must marshal them as such
 		pubKeyBytes, err := crypto.PubKeyToBytes(pubKey, crypto.ECDSAMarshalCompressed)
 		if err != nil {
 			return nil, err
 		}
-		keyBase64Url := base64.RawURLEncoding.EncodeToString(pubKeyBytes)
 
+		keyBase64URL := base64.RawURLEncoding.EncodeToString(pubKeyBytes)
 		vmKeyFragment := vm.ID[strings.LastIndex(vm.ID, "#")+1:]
-		txtRecord := fmt.Sprintf("id=%s;t=%d;k=%s", vmKeyFragment, keyType, keyBase64Url)
+		txtRecord := fmt.Sprintf("id=%s;t=%d;k=%s", vmKeyFragment, keyType, keyBase64URL)
 		// note the controller if it differs from the DID
 		if vm.Controller != doc.ID {
 			// handle the case where the controller of the identity key is not the DID itself
@@ -525,6 +519,11 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 				if vmID == "0" && controller != d.String() {
 					return nil, nil, fmt.Errorf("controller of identity key must be the DID itself, instead it is: %s", controller)
 				}
+
+				if vmID != "0" && pubKeyJWK.KID != vmID {
+					return nil, nil, fmt.Errorf("verification method JWK KID must be set to its thumbprint")
+				}
+
 				vm := did.VerificationMethod{
 					ID:           d.String() + "#" + vmID,
 					Type:         JSONWebKeyType,
