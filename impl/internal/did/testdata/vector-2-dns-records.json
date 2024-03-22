@@ -22,7 +22,7 @@
   "_k1._did.": {
     "type": "TXT",
     "ttl": "7200",
-    "rdata": "id=0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw;t=1;k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9"
+    "rdata": "t=1;k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9"
   },
   "_s0._did.": {
     "type": "TXT",

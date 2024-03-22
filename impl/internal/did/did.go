@@ -520,6 +520,11 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 					return nil, nil, fmt.Errorf("controller of identity key must be the DID itself, instead it is: %s", controller)
 				}
 
+				// if the verification method ID is not set, set it to the thumbprint
+				if vmID == "" {
+					vmID = pubKeyJWK.KID
+				}
+
 				if vmID != "0" && pubKeyJWK.KID != vmID {
 					return nil, nil, fmt.Errorf("verification method JWK KID must be set to its thumbprint")
 				}
