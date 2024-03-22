@@ -49,17 +49,17 @@ func NewPkarrService(cfg *config.Config, db storage.Storage, d *dht.DHT) (*Pkarr
 		return nil, ssiutil.LoggingErrorMsg(err, "failed to instantiate cache")
 	}
 	scheduler := dhtint.NewScheduler()
-	service := PkarrService{
+	svc := PkarrService{
 		cfg:       cfg,
 		db:        db,
 		dht:       d,
 		cache:     cache,
 		scheduler: &scheduler,
 	}
-	if err = scheduler.Schedule(cfg.PkarrConfig.RepublishCRON, service.republish); err != nil {
+	if err = scheduler.Schedule(cfg.PkarrConfig.RepublishCRON, svc.republish); err != nil {
 		return nil, ssiutil.LoggingErrorMsg(err, "failed to start republisher")
 	}
-	return &service, nil
+	return &svc, nil
 }
 
 // PublishPkarr stores the record in the db, publishes the given Pkarr record to the DHT, and returns the z-base-32 encoded ID
@@ -88,8 +88,7 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr
 	// return here and put it in the DHT asynchronously
 	// TODO(gabe): consider a background process to monitor failures
 	go func() {
-		_, err := s.dht.Put(ctx, record.BEP44())
-		if err != nil {
+		if _, err = s.dht.Put(ctx, record.BEP44()); err != nil {
 			logrus.WithError(err).Error("error from dht.Put")
 		}
 	}()
@@ -105,11 +104,12 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response
 	// first do a cache lookup
 	if got, err := s.cache.Get(id); err == nil {
 		var resp pkarr.Response
-		if err = json.Unmarshal(got, &resp); err != nil {
-			return nil, err
+		err = json.Unmarshal(got, &resp)
+		if err == nil {
+			logrus.WithField("record_id", id).Debug("resolved pkarr record from cache")
+			return &resp, nil
 		}
-		logrus.WithField("record_id", id).Debug("resolved pkarr record from cache")
-		return &resp, nil
+		logrus.WithError(err).WithField("record", id).Warn("failed to unmarshal pkarr record from cache, falling back to dht")
 	}
 
 	// next do a dht lookup
@@ -145,7 +145,7 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response
 	}
 	var payload string
 	if err = bencode.Unmarshal(bBytes, &payload); err != nil {
-		return nil, err
+		return nil, ssiutil.LoggingErrorMsg(err, "failed to unmarshal bencoded payload")
 	}
 	resp := pkarr.Response{
 		V:   []byte(payload),
@@ -202,7 +202,6 @@ func (s *PkarrService) republish() {
 				errCnt++
 				continue
 			}
-
 			successCnt++
 		}
 

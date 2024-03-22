@@ -148,3 +148,5 @@ dist
 # spec stuff
 spec/build
 spec/node_modules
+
+coverage.out

@@ -9,7 +9,6 @@ import (
 
 	"github.com/TBD54566975/ssi-sdk/crypto"
 	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
-	"github.com/TBD54566975/ssi-sdk/cryptosuite"
 	"github.com/TBD54566975/ssi-sdk/did"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -221,7 +220,6 @@ func TestToDNSPacket(t *testing.T) {
 }
 
 func TestVectors(t *testing.T) {
-
 	type testVectorDNSRecord struct {
 		RecordType string `json:"type"`
 		TTL        string `json:"ttl"`
@@ -347,7 +345,7 @@ func TestMisc(t *testing.T) {
 	var secpJWK jwx.PublicKeyJWK
 	retrieveTestVectorAs(t, vector2PublicKeyJWK2, &secpJWK)
 
-	t.Run("single aka", func(t *testing.T) {
+	t.Run("single aka field", func(t *testing.T) {
 		doc, err := CreateDIDDHTDID(pubKey.(ed25519.PublicKey), CreateDIDDHTOpts{
 			Controller:  []string{"did:example:abcd"},
 			AlsoKnownAs: []string{"did:example:efgh"},
@@ -554,7 +552,7 @@ func TestCreationFailures(t *testing.T) {
 				{
 					VerificationMethod: did.VerificationMethod{
 						ID:           secpJWK.KID,
-						Type:         cryptosuite.LDKeyType("fake"),
+						Type:         "fake",
 						PublicKeyJWK: &secpJWK,
 					},
 					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
@@ -609,7 +607,7 @@ func TestCreationFailures(t *testing.T) {
 						Type:         JSONWebKeyType,
 						PublicKeyJWK: &secpJWK,
 					},
-					Purposes: []did.PublicKeyPurpose{did.PublicKeyPurpose("fake purpose")},
+					Purposes: []did.PublicKeyPurpose{"fake purpose"},
 				},
 			},
 			Services: []did.Service{

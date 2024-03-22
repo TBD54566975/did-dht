@@ -9,9 +9,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/TBD54566975/did-dht-method/internal/did"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -22,7 +23,7 @@ var (
 func main() {
 	logrus.SetLevel(logrus.DebugLevel)
 
-	programstart := time.Now()
+	programStart := time.Now()
 
 	var wg sync.WaitGroup
 	for _, server := range servers {
@@ -43,7 +44,7 @@ func main() {
 				}
 
 				getStart := time.Now()
-				if err := get(s, suffix); err != nil {
+				if err = get(s, suffix); err != nil {
 					log = log.WithError(err)
 				}
 				log.WithField("time", time.Since(getStart)).Info("GET request completed")
@@ -55,7 +56,7 @@ func main() {
 
 	wg.Wait()
 
-	logrus.WithField("time", time.Since(programstart)).Info("concurrency test completed")
+	logrus.WithField("time", time.Since(programStart)).Info("concurrency test completed")
 }
 
 func put(server string) (string, error) {
@@ -99,8 +100,7 @@ func get(server, suffix string) error {
 	}
 	defer resp.Body.Close()
 
-	_, err = io.ReadAll(resp.Body)
-	if err != nil {
+	if _, err = io.ReadAll(resp.Body); err != nil {
 		return err
 	}
 
