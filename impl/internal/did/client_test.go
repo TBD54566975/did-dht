@@ -12,7 +12,10 @@ import (
 )
 
 func TestClient(t *testing.T) {
-	client, err := NewGatewayClient("https://diddht.tbddev.org")
+	// client, err := NewGatewayClient("https://diddht.tbddev.org")
+	// client, err := NewGatewayClient("https://diddht-staging.tbd.engineering")
+	client, err := NewGatewayClient("http://0.0.0.0:8305")
+
 	require.NoError(t, err)
 	require.NotNil(t, client)
 
@@ -37,8 +40,24 @@ func TestClient(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, doc, gotDID)
 
+	println(doc.ID)
 	since := time.Since(start)
 	t.Logf("time to put and get: %s", since)
+}
+
+func TestGet(t *testing.T) {
+	// client, err := NewGatewayClient("https://diddht.tbddev.org")
+	// client, err := NewGatewayClient("https://diddht-staging.tbd.engineering")
+	client, err := NewGatewayClient("http://0.0.0.0:8305")
+
+	require.NoError(t, err)
+	require.NotNil(t, client)
+	// 3h1ukmqyrfbzhr94ykum1j33gdoiibugabcbm8jfcyy1ft77efsy <-- in staging
+	// aptterwukoxrqgx75jwei67hw53c8uxdukgx4yhta8m4gedbseco <-- in dev
+	did, _, err := client.GetDIDDocument("did:dht:d4j51t8hm6by36pscqun97f874br81fgyz1cwdbzqfyo38bq7o7o")
+	assert.NoError(t, err)
+	assert.NotNil(t, did)
+
 }
 
 func TestClientInvalidGateway(t *testing.T) {

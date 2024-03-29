@@ -41,9 +41,11 @@ func NewDHT(bootstrapPeers []string) (*DHT, error) {
 	if err != nil {
 		return nil, errutil.LoggingErrorMsg(err, "failed to create dht server")
 	}
-	if _, err = s.Bootstrap(); err != nil {
+	ts, err := s.Bootstrap()
+	if err != nil {
 		return nil, errutil.LoggingErrorMsg(err, "failed to bootstrap the dht")
 	}
+	logrus.WithField("bootstrap_peers", ts.NumResponses).Info("bootstrapped DHT successfully")
 	return &DHT{Server: s}, nil
 }
 

@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/TBD54566975/ssi-sdk/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
@@ -81,14 +82,12 @@ func run() error {
 
 	d, err := dht.NewDHT(cfg.DHTConfig.BootstrapPeers)
 	if err != nil {
-		logrus.WithError(err).Error("failed to instantiate dht")
-		return err
+		return util.LoggingErrorMsg(err, "failed to instantiate dht")
 	}
 
 	s, err := server.NewServer(cfg, shutdown, d)
 	if err != nil {
-		logrus.WithError(err).Error("could not start http services")
-		return err
+		return util.LoggingErrorMsg(err, "could not start http services")
 	}
 
 	serverErrors := make(chan error, 1)
