@@ -291,7 +291,7 @@ the public key, and `P` is the `JWK` `alg` identifier of the key.
   - The [[ref:Identity Key]] ****MUST**** always be at index `_k0` with `id` `0`.
 
 - [Verification Methods](https://www.w3.org/TR/did-core/#verification-methods) ****MAY**** have an _optional_ **controller** 
-propertyrepresented by `c=C` where `C` is the identifier of the verification method's controller (e.g. `t=N;k=O;c=C`). If 
+property represented by `c=C` where `C` is the identifier of the verification method's controller (e.g. `t=N;k=O;c=C`). If 
 omitted, it is assumed that the controller of the Verification Method is the [[ref:Identity Key]].
 
 ::: note
