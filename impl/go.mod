@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/TBD54566975/ssi-sdk v0.0.4-alpha.0.20240321215515-97ccd06a631d
 	github.com/allegro/bigcache/v3 v3.1.0
-	github.com/anacrolix/dht/v2 v2.20.0
+	github.com/anacrolix/dht/v2 v2.21.1
 	github.com/anacrolix/log v0.14.0
 	github.com/anacrolix/torrent v1.52.5
 	github.com/gin-contrib/cors v1.4.0

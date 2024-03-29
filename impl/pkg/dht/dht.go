@@ -41,8 +41,10 @@ func NewDHT(bootstrapPeers []string) (*DHT, error) {
 	if err != nil {
 		return nil, errutil.LoggingErrorMsg(err, "failed to create dht server")
 	}
-	if _, err = s.Bootstrap(); err != nil {
-		return nil, errutil.LoggingErrorMsg(err, "failed to bootstrap the dht")
+	if tried, err := s.Bootstrap(); err != nil {
+		return nil, errutil.LoggingErrorMsg(err, "error bootstrapping")
+	} else {
+		logrus.WithField("bootstrap_peers", tried.NumResponses).Info("bootstrapped DHT successfully")
 	}
 	return &DHT{Server: s}, nil
 }
@@ -76,6 +78,11 @@ func NewTestDHT(t *testing.T, bootstrapPeers ...dht.Addr) *DHT {
 func (d *DHT) Put(ctx context.Context, request bep44.Put) (string, error) {
 	ctx, span := telemetry.GetTracer().Start(ctx, "DHT.Put")
 	defer span.End()
+
+	// Check if there are any nodes in the DHT
+	if len(d.Server.Nodes()) == 0 {
+		logrus.Warn("no nodes available in the DHT for publishing")
+	}
 
 	t, err := getput.Put(ctx, request.Target(), d.Server, nil, func(int64) bep44.Put {
 		return request

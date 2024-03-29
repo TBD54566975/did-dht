@@ -13,6 +13,7 @@ import (
 
 func TestClient(t *testing.T) {
 	client, err := NewGatewayClient("https://diddht.tbddev.org")
+
 	require.NoError(t, err)
 	require.NotNil(t, client)
 
