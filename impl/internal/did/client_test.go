@@ -38,7 +38,6 @@ func TestClient(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, doc, gotDID)
 
-	println(doc.ID)
 	since := time.Since(start)
 	t.Logf("time to put and get: %s", since)
 }
