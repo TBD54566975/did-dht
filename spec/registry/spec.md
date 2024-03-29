@@ -42,6 +42,7 @@ For each key type a default algorithm is provided to be used with the key's `JWK
 | 0     | [Ed25519](https://ed25519.cr.yp.to/)                   | [EdDSA](https://datatracker.ietf.org/doc/draft-ietf-jose-fully-specified-algorithms/) [[ref:Fully-Specified Algorithms for JOSE and COSE]] |
 | 1     | [secp256k1](https://datatracker.ietf.org/doc/html/rfc8812#section-3.1) | [ES256K](https://www.rfc-editor.org/rfc/rfc8812.html) [[spec:RFC8812]] |
 | 2     | [secp256r1](https://neuromancer.sk/std/secg/secp256r1) / [P-256](https://neuromancer.sk/std/nist/P-256) | [ES256](https://www.rfc-editor.org/rfc/rfc7518.html) [[spec:RFC7518]] |
+| 3     | [X25519](https://www.rfc-editor.org/rfc/rfc7748) [[spec:RFC7748]] | [ECDH-ES+A256KW](https://datatracker.ietf.org/doc/html/rfc7518#section-4.6) [[spec:RFC7518]] |
 
 ::: note
 All keys are represented as JWKs [[spec:RFC7517]] in their **uncompressed** form.
