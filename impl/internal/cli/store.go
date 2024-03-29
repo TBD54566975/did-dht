@@ -10,14 +10,14 @@ import (
 )
 
 const (
-	diddhtDir  = "/.diddht"
-	diddhtPath = diddhtDir + "/diddht.json"
+	didDHTDir  = "/.diddht"
+	didDHTPath = didDHTDir + "/diddht.json"
 )
 
 // Read reads the diddht file and returns the identities.
 func Read() (internal.Identities, error) {
 	homeDir, _ := os.UserHomeDir()
-	diddhtFile := homeDir + diddhtPath
+	diddhtFile := homeDir + didDHTPath
 	if _, err := os.Stat(diddhtFile); os.IsNotExist(err) {
 		return nil, util.LoggingErrorMsg(err, "failed to find diddht file")
 	}
@@ -33,14 +33,14 @@ func Read() (internal.Identities, error) {
 // Write writes the given identity to the diddht file.
 func Write(id string, identity internal.Identity) error {
 	homeDir, _ := os.UserHomeDir()
-	diddhtFile := homeDir + diddhtPath
+	didDHTFile := homeDir + didDHTPath
 	var identities internal.Identities
 	var err error
-	if _, err = os.Stat(diddhtFile); os.IsNotExist(err) {
-		if err = os.Mkdir(homeDir+diddhtDir, 0700); err != nil {
+	if _, err = os.Stat(didDHTFile); os.IsNotExist(err) {
+		if err = os.Mkdir(homeDir+didDHTDir, 0700); err != nil {
 			return util.LoggingErrorMsg(err, "failed to create diddht directory")
 		}
-		if _, err = os.Create(homeDir + diddhtPath); err != nil {
+		if _, err = os.Create(homeDir + didDHTPath); err != nil {
 			return util.LoggingErrorMsg(err, "failed to create diddht file")
 		}
 		identities = internal.Identities{id: identity}
@@ -60,7 +60,7 @@ func Write(id string, identity internal.Identity) error {
 		return util.LoggingErrorMsg(err, "failed to marshal identities")
 	}
 
-	f, _ := os.OpenFile(diddhtFile, os.O_WRONLY, os.ModeAppend)
+	f, _ := os.OpenFile(didDHTFile, os.O_WRONLY, os.ModeAppend)
 	if _, err = f.WriteString(string(identitiesBytes)); err != nil {
 		return util.LoggingErrorMsg(err, "failed to write identities to diddht file")
 	}

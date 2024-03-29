@@ -8,6 +8,7 @@ import (
 	"github.com/TBD54566975/ssi-sdk/util"
 	"github.com/anacrolix/dht/v2/bep44"
 	"github.com/anacrolix/torrent/bencode"
+	"github.com/tv42/zbase32"
 )
 
 type Record struct {
@@ -85,7 +86,7 @@ func (r Record) BEP44() bep44.Put {
 
 func (r Record) String() string {
 	e := base64.RawURLEncoding
-	return fmt.Sprintf("pkarr.Record{K=%s V=%s Sig=%s Seq=%d}", e.EncodeToString(r.Key[:]), e.EncodeToString(r.Value), e.EncodeToString(r.Signature[:]), r.SequenceNumber)
+	return fmt.Sprintf("pkarr.Record{K=%s V=%s Sig=%s Seq=%d}", zbase32.EncodeToString(r.Key[:]), e.EncodeToString(r.Value), e.EncodeToString(r.Signature[:]), r.SequenceNumber)
 }
 
 func RecordFromBEP44(putMsg *bep44.Put) Record {
