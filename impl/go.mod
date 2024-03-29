@@ -3,7 +3,7 @@ module github.com/TBD54566975/did-dht-method
 go 1.22
 
 require (
-	github.com/BurntSushi/toml v0.3.1
+	github.com/BurntSushi/toml v1.3.2
 	github.com/TBD54566975/ssi-sdk v0.0.4-alpha.0.20240321215515-97ccd06a631d
 	github.com/allegro/bigcache/v3 v3.1.0
 	github.com/anacrolix/dht/v2 v2.21.1
