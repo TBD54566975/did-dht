@@ -81,7 +81,7 @@ func (d *DHT) Put(ctx context.Context, request bep44.Put) (string, error) {
 
 	// Check if there are any nodes in the DHT
 	if len(d.Server.Nodes()) == 0 {
-		return "", errutil.LoggingNewError("no nodes available in the DHT")
+		logrus.Warn("no nodes available in the DHT for publishing")
 	}
 
 	t, err := getput.Put(ctx, request.Target(), d.Server, nil, func(int64) bep44.Put {
