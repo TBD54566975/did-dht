@@ -55,10 +55,10 @@ docker run \
 
 | Language   | Client | Server | Link |
 | ---------- | ------ | ------ | ---- |
-| Go         | Yes    | Yes    | [did-dht-go](./impl) |
-| Typescript | Yes    | No     | [did-dht-ts](https://github.com/TBD54566975/web5-js/blob/main/packages/dids/src/did-dht.ts) |
-| Kotlin     | Yes    | No     | [did-dht-kotlin](https://github.com/TBD54566975/web5-kt/tree/main/dids/src/main/kotlin/web5/sdk/dids/methods/dht) |
-| Swift      | Yes    | No     | Coming soon! |
+| Go         | Yes    | Yes    | [did-dht-method](./impl), [web5-go](https://github.com/TBD54566975/web5-go/tree/main/dids/diddht) |
+| Typescript | Yes    | No     | [web5-js](https://github.com/TBD54566975/web5-js/blob/main/packages/dids/src/methods/did-dht.ts) |
+| Kotlin     | Yes    | No     | [web5-kt](https://github.com/TBD54566975/web5-kt/tree/main/dids/src/main/kotlin/web5/sdk/dids/methods/dht) |
+| Swift      | Yes    | No     | [web5-swift](https://github.com/TBD54566975/web5-swift/blob/main/Sources/Web5/Dids/Methods/DIDDHT.swift) |
 | Rust       | Yes    | No     | Coming soon! |
 
 ## Project Resources
