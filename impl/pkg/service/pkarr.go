@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/tv42/zbase32"
 
 	ssiutil "github.com/TBD54566975/ssi-sdk/util"
 	"github.com/allegro/bigcache/v3"
@@ -88,7 +89,11 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr
 	// return here and put it in the DHT asynchronously
 	// TODO(gabe): consider a background process to monitor failures
 	go func() {
-		if _, err = s.dht.Put(ctx, record.BEP44()); err != nil {
+		// Create a new context with a timeout so that the parent context does not cancel the put
+		putCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if _, err = s.dht.Put(putCtx, record.BEP44()); err != nil {
 			logrus.WithError(err).Error("error from dht.Put")
 		}
 	}()
@@ -197,6 +202,7 @@ func (s *PkarrService) republish() {
 		logrus.WithField("record_count", len(allRecords)).Info("Republishing record")
 
 		for _, record := range allRecords {
+			logrus.Infof("Republishing record: %s", zbase32.EncodeToString(record.Key[:]))
 			if _, err = s.dht.Put(ctx, record.BEP44()); err != nil {
 				logrus.WithError(err).Error("failed to republish record")
 				errCnt++
