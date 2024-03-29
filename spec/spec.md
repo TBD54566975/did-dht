@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Latest Update:** March 22, 2024
+**Latest Update:** March 28, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -171,9 +171,12 @@ which would be undecetable by a client.
 
 Currently, [[ref:Mainline]] exclusively supports the [[ref:Ed25519]] key type. In turn, [[ref:Ed25519]] is required by DID DHT and is 
 used to uniquely identify DID DHT Documents. DID DHT identifiers are formed by concatenating the `did:dht:` prefix with a [[ref:z-base-32]]
-encoded Identity Key, which acts as its [[ref:suffix]]. Identity Keys always have the identifier `0` as both its Verification Method `id` and
-JWK `kid` [[spec:RFC7517]]. While the system requires at least one [[ref:Ed25519]], a DID DHT Document can include any number of additional keys.
-However, these additional key's types ****MUST**** be registered in the [Key Type Index](registry/index.html##key-type-index).
+encoded Identity Key, which acts as its [[ref:suffix]]. Identity Keys ****MUST**** have the identifier `0` as both its Verification Method 
+`id` and JWK `kid` [[spec:RFC7517]]. Identity Keys ****MUST**** have the [Verification Relationships](#verification-relationships) 
+_Authentication_, _Assertion_, _Capabilitiy Invocation_, and _Capability Delegation_.
+
+While the system requires at least one [[ref:Ed25519]], a DID DHT Document can include any number of additional keys. Additional key 
+types ****MUST**** be registered in the [Key Type Index](registry/index.html##key-type-index).
 
 As a unique consequence of the requirement of the Identity Key, DID DHT Documents are able to be partially-resolved without contacting
 [[ref:Maineline]] or [[ref:Gateway]] servers, though it is ****RECOMMENDED**** that deterministic resolution is only used as a fallback mechanism.
