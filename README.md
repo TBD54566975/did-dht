@@ -2,7 +2,7 @@
 [![go version 1.22.1](https://img.shields.io/badge/go_version-1.22.1-brightgreen)](https://go.dev/)
 [![license Apache 2](https://img.shields.io/badge/license-Apache%202-black)](https://github.com/TBD54566975/did-dht-method/blob/main/LICENSE)
 [![issues](https://img.shields.io/github/issues/TBD54566975/did-dht-method)](https://github.com/TBD54566975/did-dht-method/issues)
-![push](https://github.com/TBD54566975/did-dht-method/workflows/did-dht-ci/badge.svg?branch=main&event=push)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/tbd54566975/did-dht-method/ci.yml)
 
 # did-dht-method
 
