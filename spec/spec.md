@@ -1191,7 +1191,6 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
 | _cnt.did. | TXT  | 7200 | did:example:abcd                                                                                       |
 | _aka.did. | TXT  | 7200 | did:example:efgh,did:example:ijkl                                                                      |
 | _k0.did.  | TXT  | 7200 | id=0;t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE;c=did:example:abcd                              |
-| _k1.did.  | TXT  | 7200 | t=1;k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9                                                     |
 | _k1.did.  | TXT  | 7200 | t=1;k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9;a=ES256K                                            |
 | _s0.did.  | TXT  | 7200 | id=service-1;t=TestService;se=https://test-service.com/1,https://test-service.com/2                    |
 | _typ.did. | TXT  | 7200 | id=1,2,3                                                                                               |
