@@ -11,7 +11,7 @@ require (
 	github.com/anacrolix/torrent v1.52.5
 	github.com/gin-contrib/cors v1.7.1
 	github.com/gin-gonic/gin v1.9.1
-	github.com/go-co-op/gocron v1.35.2
+	github.com/go-co-op/gocron v1.37.0
 	github.com/goccy/go-json v0.10.2
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/joho/godotenv v1.5.1
