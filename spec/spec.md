@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Latest Update:** March 28, 2024
+**Latest Update:** March 29, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -184,7 +184,7 @@ Similarly, the requirement of an Identity Key enables [interoperability with oth
 
 ### DIDs as DNS Records
 
-In this scheme, we encode the [[ref:DID Document]] as multiple [DNS TXT records](https://en.wikipedia.org/wiki/TXT_record).
+In this scheme, we encode the [[ref:DID Document]] as [DNS Resource Records](https://en.wikipedia.org/wiki/Domain_Name_System#Resource_records).
 Comprising a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then stored in the [[ref:DHT]].
 
 | Name         | Type | TTL    | Rdata                                                        |
@@ -202,6 +202,8 @@ The recommended TTL value is 7200 seconds (2 hours), the default TTL for [[ref:M
 
 - The root record's name ****MUST**** be of the form, `_did.<ID>.`, where `ID` is the [[ref:Pkarr]] identifier
 associated with the DID (i.e. `did:dht:<ID>` becomes `_did.<ID>.`).
+
+- The root record's **type** is `TXT`, indicating a Text record.
 
 - The root record's value identifies the [property mapping](#property-mapping) for the document, along with
 versioning information.
@@ -240,7 +242,7 @@ commas (`,`).
 - Additional properties not defined by this specification ****MAY**** be represented in a [[ref:DID Document]] and
 its corresponding DNS packet if the properties [are registered in the additional properties registry](registry/index.html#additional-properties).
 
-The subsequent instructions serve as a reference for mapping DID Document properties to [DNS TXT records](https://en.wikipedia.org/wiki/TXT_record):
+The subsequent instructions serve as a reference for mapping DID Document properties to [DNS Resource Records](https://en.wikipedia.org/wiki/Domain_Name_System#Resource_records):
 
 #### Identifiers
 
@@ -248,7 +250,7 @@ The subsequent instructions serve as a reference for mapping DID Document proper
 
 A [DID controller](https://www.w3.org/TR/did-core/#did-controller) ****MAY**** be present in a `did:dht` document.
 
-If present, a DID controller ****MUST**** be represented as a `_cnt._did.` record in the form of a comma-separated
+If present, a DID controller ****MUST**** be represented as a `_cnt._did.` TXT record in the form of a comma-separated
 list of controller DID identifiers.
 
 To ensure that the DID controller is authorized to make changes to the DID Document, the controller for the [[ref:Identity Key]] Verification Method ****MUST**** be contained within the controller property.
@@ -263,7 +265,7 @@ To ensure that the DID controller is authorized to make changes to the DID Docum
 
 A `did:dht` document ****MAY**** have multiple identifiers using the [alsoKnownAs](https://www.w3.org/TR/did-core/#also-known-as) property.
 
-If present, alternate DID identifiers ****MUST**** be represented as `_aka_.did.` record in the form of a
+If present, alternate DID identifiers ****MUST**** be represented as `_aka_.did.` TXT record in the form of a
 comma-separated list of DID identifiers.
 
 **Example AKA Record**
@@ -276,6 +278,8 @@ comma-separated list of DID identifiers.
 
 - Each [Verification Method's](https://www.w3.org/TR/did-core/#verification-methods) **name** is represented 
 as a `_kN._did.` record where `N` is the zero-indexed positional index of a given Verification Method (e.g. `_k0`, `_k1`).
+
+- Each [Verification Method's]((https://www.w3.org/TR/did-core/#verification-methods)) record **type** is `TXT`, indicating a Text record.
 
 - Each [Verification Method's](https://www.w3.org/TR/did-core/#verification-methods) **rdata** is represented by the form
 `id=M;t=N;k=O;a=P` where `M` is the Verification Method's `id`, `N` is the index of the key's type from the
@@ -334,6 +338,8 @@ represented as a comma-separated list of key references.
 
 - Each [Service's](https://www.w3.org/TR/did-core/#services) **name** is represented as a `_sN._did.` record where `N` is
 the zero-indexed positional index of the Service (e.g. `_s0`, `_s1`).
+
+- The record **type** is `TXT`, indicating a Text record.
 
 - Each [Service's](https://www.w3.org/TR/did-core/#services) **data** is represented with the form `id=M;t=N;se=O`
 where `M` is the Service's ID, `N` is the Service's Type and `O` is the Service's URI.
@@ -456,7 +462,7 @@ To create a `did:dht`, the process is as follows:
 
 5. Submit the result of to the [[ref:DHT]] via a [[ref:Pkarr]] relay, or a [[ref:Gateway]], with the identifier created in step 1.
 
-This specification **does not** make use of JSON-LD. As such DID DHT Documents ****MUST NOT**** include the `@context` property.
+This specification **does not** make use of [JSON-LD](https://json-ld.org/). As such DID DHT Documents ****MUST NOT**** include the `@context` property.
 
 #### Read
 
@@ -472,6 +478,9 @@ relay or a [[ref:Gateway]].
     a. Expand all identifiers (i.e. Verification Methods, Services, etc.) to their fully-qualified 
     form (e.g. `did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#0` 
     as opposed to `0` or `#0`, `did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#service-1` as opposed to `#service-1`).
+
+4. If [NS records](#designating-authoritative-gateways) are present this process should be repeated, making the initial
+request against the given [[ref:Gateway]]. The document with the highest [[ref:sequence number]] is to be treated as authoritative.
 
 ::: note
 As a fallback, if a `did:dht` value cannot be resolved via the network, it can be expanded to a conformant [[ref:DID Document]]
@@ -508,16 +517,42 @@ record from their [[ref:Retained DID Set]].
 Add guidance for rotating to a new DID after deactivation.
 :::
 
+### Designating Authoritative Gateways
+
+[Gateways](#gateways) provide additional benfits to `did:dht`, such as the ability to [resolve historical DID Documents](#historical-resolution),
+or support [type indexing](#type-indexing). To enable the usage of these additional features, `did:dht` documents need to be published to 
+Gateway(s) that with the necessary capabilities. Whether it's accessing historical states, engaging with type indexes, or utilizing other
+specialized features, the [resolution process](#resolving-a-did) must be directed towards a [[ref:Gateway]] that maintains this supplementary data.
+
+To facilitate the discovery of authoritative [[ref:Gateways]] for a `did:dht` and to ensure consistent access to a DID's state 
+across different [[ref:Gateways]], DID controllers may designate one or more [[ref:Gateways]] as authoritative sources for their DID. This
+designation is accomplished by incorporating [DNS NS records](https://en.wikipedia.org/wiki/List_of_DNS_record_types#NS) within the 
+DNS packet destined for storage in the DHT. A DID ****MAY**** have multiple NS records, enhancing redundancy and reliability. The format
+for these records is outlined as follows:
+
+- The record **name** is represented as `_did.<ID>.` record, where `ID` represents the unique identifier of the [[ref:DID Document]].
+
+- The record **type** is `NS`, indicating a Name Server record.
+
+- The record **data** is represented as a [Fully Qualified Domain Name (FQDN)](https://en.wikipedia.org/wiki/Fully_qualified_domain_name).
+
+| Name         | Type | TTL   | Rdata                                 |
+| ------------ | ---- | ----- | ------------------------------------- |
+| _did.`<ID>`. | NS   | 7200  | gateway1.example-did-dht-gateway.com. |
+| _did.`<ID>`. | NS   | 7200  | gateway2.example-did-dht-gateway.com. |
+
 ### Type Indexing
 
 Type indexing is an **OPTIONAL** feature that enables DIDs to become **discoverable**, by flagging themselves as being of
 a particular type. Types are not included as a part of the DID Document, but rather as part of the DNS packet. This allows
 for DIDs to be indexed by type by [[ref:Gateways]], and for DIDs to be resolved by type.
 
-DIDs can be indexed by type by adding a `_typ._did.` record to the DNS packet. A DID may have **AT MOST** one type index
+DIDs can be indexed by type by adding a `_typ._did.` record to the DNS packet. A DID ****MAY**** have **AT MOST** one type index
 record. This record is a TXT record with the following format:
 
 - The record **name** is represented as a `_typ._did.` record.
+
+- The record **type** is `TXT`, indicating a Text record.
 
 - The record **data** is represented with the form `id=0,1,2` where the value is a comma-separated list of integer types from
 the [type index](#type-indexing).
@@ -885,10 +920,13 @@ access-token-based approach.
 
 The process for resoloving a DID DHT Document via a [[ref:Gateway]] is outlined in the [read section above](#read).
 However, we provide additional guidance for [DID Resolvers](https://www.w3.org/TR/did-core/#dfn-did-resolvers) supplying
-[DID Document Metadata](https://www.w3.org/TR/did-core/#did-document-metadata) as follows:
+[DID Document Metadata](https://www.w3.org/TR/did-core/#did-document-metadata) and 
+[DID Resolution Metadata](https://www.w3.org/TR/did-core/#did-resolution-metadata) as follows:
+
+#### DID Document Metadata
 
 * The metadata's [`versionId` property](https://www.w3.org/TR/did-core/#dfn-versionid) ****MUST**** be set to the
-[[ref:DID Document]]'s current [[ref:sequence number]].
+[[ref:DID Document]] packet's current [[ref:sequence number]].
 
 * The metadata's [`created` property](https://www.w3.org/TR/did-core/#dfn-created) ****MUST**** be set to 
 [XML Datetime](https://www.w3.org/TR/xmlschema11-2/#dateTime) representation of the earliest known sequence number
@@ -900,6 +938,20 @@ for the DID.
 
 * If the [[ref:DID Document]] has [been deactivated](#deactivate) the 
 [`deactivated` property](https://www.w3.org/TR/did-core/#dfn-deactivated) ****MUST**** be set to `true`.
+
+#### DID Resolution Metadata
+
+* The metadata's `types` property ****MUST**** be set to an array of strings representing type values if 
+[type data](#type-indexing) is present in the [[ref:DID Document]]'s packet.
+
+* The metadata's `gateway` property ****MUST**** be set to a string representing the [[ref:Gateway]]'s URI
+from which the DID was resolved. This is useful in cases where a [DID Resolvers](https://www.w3.org/TR/did-core/#dfn-did-resolvers)
+performs resolution against an [Authoritative Gateway](#designating-authoritative-gateways).
+
+::: todo
+[](https://github.com/TBD54566975/did-dht-method/issues/136)
+Register `types` and `gateway` in the [DID Specification Registry](https://www.w3.org/TR/did-spec-registries/#did-document-metadata).
+::: 
 
 ## Security and Privacy Considerations
 
@@ -1026,7 +1078,8 @@ A minimal DID Document.
 
 #### Vector 2
 
-A DID Document with two keys ([[ref:Identity Key]] and an uncompressed secp256k1 key), a service with multiple endpoints, two types to index, an aka, and controller properties.
+A DID Document with two keys ([[ref:Identity Key]] and an uncompressed secp256k1 key), a service with multiple endpoints, a gateway, 
+two types to index, an aka, and controller properties.
 
 **Identity Public Key JWK:**
 
@@ -1055,7 +1108,7 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
 }
 ```
 
-**Key Purposes:** Assertion Method, Capability Invocation.
+**Key Purposes:** `Assertion Method`, `Capability Invocation`.
 
 **Service:**
 
@@ -1067,7 +1120,9 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
 }
 ```
 
-**Types:** 1, 2, 3.
+**Gateway:**: `gateway1.example-did-dht-gateway.com.`.
+
+**Types:** `1`, `2`, `3`.
 
 **DID Document:**
 
@@ -1131,6 +1186,7 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
 
 | Name      | Type | TTL  | Rdata       |
 | --------- | ---- | ---- | ----------- |
+| _did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo. | NS  | 7200 | gateway1.example-did-dht-gateway.com.                  |
 | _did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo. | TXT | 7200 | v=0;vm=k0,k1;svc=s0;auth=k0;asm=k0,k1;inv=k0,k1;del=k0 |
 | _cnt.did. | TXT  | 7200 | did:example:abcd                                                                                       |
 | _aka.did. | TXT  | 7200 | did:example:efgh,did:example:ijkl                                                                      |
