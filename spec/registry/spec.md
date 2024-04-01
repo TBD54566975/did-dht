@@ -9,7 +9,7 @@ The DID DHT Method Specification Registry 1.0
 
 **Draft Created:** November 20, 2023
 
-**Latest Update:** January 26, 2024
+**Latest Update:** March 28, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -35,12 +35,14 @@ All are welcome to propose changes to this registry.
 ### Key Type Index
 
 Corresponds to the mapping, for a DID Document's DNS packet representation, of a cryptographic key type to its index value.
+For each key type a default algorithm is provided to be used with the key's `JWK` [[spec:RFC7517]] representation.
 
-| Index | Key Type                                               |
-| ----- | ------------------------------------------------------ |
-| 0     | [Ed25519](https://ed25519.cr.yp.to/)                   |
-| 1     | [secp256k1](https://datatracker.ietf.org/doc/html/rfc8812#section-3.1) |
-| 2     | [secp256r1](https://neuromancer.sk/std/secg/secp256r1) / [P-256](https://neuromancer.sk/std/nist/P-256) |
+| Index | Key Type                                               | Default Algorithm |
+| ----- | ------------------------------------------------------ | ----------------- |
+| 0     | [Ed25519](https://ed25519.cr.yp.to/)                   | [EdDSA](https://datatracker.ietf.org/doc/draft-ietf-jose-fully-specified-algorithms/) [[ref:Fully-Specified Algorithms for JOSE and COSE]] |
+| 1     | [secp256k1](https://datatracker.ietf.org/doc/html/rfc8812#section-3.1) | [ES256K](https://www.rfc-editor.org/rfc/rfc8812.html) [[spec:RFC8812]] |
+| 2     | [secp256r1](https://neuromancer.sk/std/secg/secp256r1) / [P-256](https://neuromancer.sk/std/nist/P-256) | [ES256](https://www.rfc-editor.org/rfc/rfc7518.html) [[spec:RFC7518]] |
+| 3     | [X25519](https://www.rfc-editor.org/rfc/rfc7748) [[spec:RFC7748]] | [ECDH-ES+A256KW](https://datatracker.ietf.org/doc/html/rfc7518#section-4.6) [[spec:RFC7518]] |
 
 ::: note
 All keys are represented as JWKs [[spec:RFC7517]] in their **uncompressed** form.
@@ -207,5 +209,9 @@ JWK into a DID Document. J. Miller.
 [[def:z-base-32]]
 ~ [z-base-32](https://philzimmermann.com/docs/human-oriented-base-32-encoding.txt). Human-oriented base-32 encoding.
 Z. O'Whielacronx; November 2002.
+
+[[def:Fully-Specified Algorithms for JOSE and COSE]]
+~ [Fully-Specified Algorithms for JOSE and COSE](https://datatracker.ietf.org/doc/draft-ietf-jose-fully-specified-algorithms/).
+M. Jones, O. Steele; 28 February 2024. [Internet Engineering Task Force](https://ietf.org).
 
 [[spec]]

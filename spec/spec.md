@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Latest Update:** March 22, 2024
+**Latest Update:** March 28, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -171,9 +171,12 @@ which would be undecetable by a client.
 
 Currently, [[ref:Mainline]] exclusively supports the [[ref:Ed25519]] key type. In turn, [[ref:Ed25519]] is required by DID DHT and is 
 used to uniquely identify DID DHT Documents. DID DHT identifiers are formed by concatenating the `did:dht:` prefix with a [[ref:z-base-32]]
-encoded Identity Key, which acts as its [[ref:suffix]]. Identity Keys always have the identifier `0` as both its Verification Method `id` and
-JWK `kid` [[spec:RFC7517]]. While the system requires at least one [[ref:Ed25519]], a DID DHT Document can include any number of additional keys.
-However, these additional key's types ****MUST**** be registered in the [Key Type Index](registry/index.html##key-type-index).
+encoded Identity Key, which acts as its [[ref:suffix]]. Identity Keys ****MUST**** have the identifier `0` as both its Verification Method 
+`id` and JWK `kid` [[spec:RFC7517]]. Identity Keys ****MUST**** have the [Verification Relationships](#verification-relationships) 
+_Authentication_, _Assertion_, _Capabilitiy Invocation_, and _Capability Delegation_.
+
+While the system requires at least one [[ref:Ed25519]], a DID DHT Document can include any number of additional keys. Additional key 
+types ****MUST**** be registered in the [Key Type Index](registry/index.html##key-type-index).
 
 As a unique consequence of the requirement of the Identity Key, DID DHT Documents are able to be partially-resolved without contacting
 [[ref:Maineline]] or [[ref:Gateway]] servers, though it is ****RECOMMENDED**** that deterministic resolution is only used as a fallback mechanism.
@@ -275,18 +278,21 @@ comma-separated list of DID identifiers.
 as a `_kN._did.` record where `N` is the zero-indexed positional index of a given Verification Method (e.g. `_k0`, `_k1`).
 
 - Each [Verification Method's](https://www.w3.org/TR/did-core/#verification-methods) **rdata** is represented by the form
-`id=M;t=N;k=O` where `M` is the Verification Method's `id`, `N` is the index of the key's type from the
-[key type index](registry/index.html#key-type-index), and `N` is the unpadded base64URL [[spec:RFC4648]] representation of
-the public key.
+`id=M;t=N;k=O;a=P` where `M` is the Verification Method's `id`, `N` is the index of the key's type from the
+[key type index](registry/index.html#key-type-index), `N` is the unpadded base64URL [[spec:RFC4648]] representation of
+the public key, and `P` is the `JWK` `alg` identifier of the key.
 
   - Verification Method `id`s ****MAY**** be omitted. If omitted, they can be computed according to the 
   rules specified in the section on [representing keys](#representing-keys) when reconstructing the DID Document.
 
+  - `alg` identifiers ****MAY**** be ommitted. If omimtted, they are assigned to the default value specified in the 
+  [key type index](registry/index.html#key-type-index).
+
   - The [[ref:Identity Key]] ****MUST**** always be at index `_k0` with `id` `0`.
 
-- [Verification Methods](https://www.w3.org/TR/did-core/#verification-methods) ****MAY**** have an _optional_ **controller** property
-represented by `c=C` where `C` is the identifier of the verification method's controller (e.g. `t=N;k=O;c=C`). If omitted,
-it is assumed that the controller of the Verification Method is the [[ref:Identity Key]].
+- [Verification Methods](https://www.w3.org/TR/did-core/#verification-methods) ****MAY**** have an _optional_ **controller** 
+property represented by `c=C` where `C` is the identifier of the verification method's controller (e.g. `t=N;k=O;c=C`). If 
+omitted, it is assumed that the controller of the Verification Method is the [[ref:Identity Key]].
 
 ::: note
 Controllers are not cryptographically verified by [[ref:Gateways]] or this DID method. This means any DID may choose to list
@@ -363,7 +369,7 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
       "controller": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
       "publicKeyJwk": {
         "kid": "0",
-        "alg": "EdDSA",
+        "alg": "Ed25519",
         "crv": "Ed25519",
         "kty": "OKP",
         "x": "r96mnGNgWGOmjt6g_3_0nd4Kls5-kknrd4DdPW8qtfw"
@@ -414,7 +420,7 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
 | _did.`<ID>`. | TXT  | 7200  | v=0;vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;srv=s1                             |
 | _cnt.did.    | TXT  | 7200  | did:example:abcd                                                                   |
 | _aka.did.    | TXT  | 7200  | did:example:efgh,did:example:ijkl                                                  |
-| _k0._did.    | TXT  | 7200  | t=0;k=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc             |
+| _k0._did.    | TXT  | 7200  | t=0;k=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc;a=Ed25519   |
 | _k1._did.    | TXT  | 7200  | t=1;k=AyiNAz7y-XBr853PBAzgAOU_c0Hyw0Gb69Hr9jTC3MQ8                                 |
 | _s0._did.    | TXT  | 7200  | id=dwn;t=DecentralizedWebNode;se=https://example.com/dwn1,https://example.com/dwn2 |
 
@@ -436,7 +442,9 @@ To create a `did:dht`, the process is as follows:
     `JsonWebKey` defined by [[ref:VC-JOSE-COSE]].
 
     b. The document can include any number of other [core properties](https://www.w3.org/TR/did-core/#core-properties);
-    always representing key material as a `JWK` as per [[spec:RFC7517]].
+    always representing key material as a `JWK` as per [[spec:RFC7517]]. In addition to the properties required by the `JWK`
+    specification, the `alg` property ****MUST**** always be present. Default algorithms are defined per key type in
+    the [indexed types registry](registry/index.html#indexed-types).
 
 3. Map the output [[ref:DID Document]] to a DNS packet as outlined in [property mapping](#property-mapping).
 
@@ -698,7 +706,7 @@ DID by its type.
         "controller": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
         "publicKeyJwk": {
           "kid": "0",
-          "alg": "EdDSA",
+          "alg": "Ed25519",
           "crv": "Ed25519",
           "kty": "OKP",
           "x": "r96mnGNgWGOmjt6g_3_0nd4Kls5-kknrd4DdPW8qtfw"
@@ -967,11 +975,11 @@ A minimal DID Document.
 
 ```json
 {
-  "kty": "OKP",
+  "kid": "0",
+  "alg": "Ed25519",
   "crv": "Ed25519",
-  "x": "YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE",
-  "alg": "EdDSA",
-  "kid": "0"
+  "kty": "OKP",
+  "x": "YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE"
 }
 ```
 
@@ -986,11 +994,11 @@ A minimal DID Document.
       "type": "JsonWebKey",
       "controller": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo",
       "publicKeyJwk": {
-        "kty": "OKP",
+        "kid": "0",
+        "alg": "Ed25519",
         "crv": "Ed25519",
-        "x": "YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE",
-        "alg": "EdDSA",
-        "kid": "0"
+        "kty": "OKP",
+        "x": "YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE"
       }
     }
   ],
@@ -1024,11 +1032,11 @@ A DID Document with two keys ([[ref:Identity Key]] and an uncompressed secp256k1
 
 ```json
 {
-  "kty": "OKP",
+  "kid": "0",
+  "alg": "Ed25519",
   "crv": "Ed25519",
-  "x": "YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE",
-  "alg": "EdDSA",
-  "kid": "0"
+  "kty": "OKP",
+  "x": "YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE"
 }
 ```
 
@@ -1038,12 +1046,12 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
 
 ```json
 {
-  "kty": "EC",
-  "crv": "secp256k1",
-  "x": "1_o0IKHGNamet8-3VYNUTiKlhVK-LilcKrhJSPHSNP0",
-  "y": "qzU8qqh0wKB6JC_9HCu8pHE-ZPkDpw4AdJ-MsV2InVY",
+  "kid": "0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw",
   "alg": "ES256K",
-  "kid": "0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw"
+  "crv": "secp256k1",
+  "kty": "EC",
+  "x": "1_o0IKHGNamet8-3VYNUTiKlhVK-LilcKrhJSPHSNP0",
+  "y": "qzU8qqh0wKB6JC_9HCu8pHE-ZPkDpw4AdJ-MsV2InVY"
 }
 ```
 
@@ -1074,11 +1082,11 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
       "type": "JsonWebKey",
       "controller": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo",
       "publicKeyJwk": {
-        "kty": "OKP",
+        "kid": "0",
+        "alg": "Ed25519",
         "crv": "Ed25519",
-        "x": "YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE",
-        "alg": "EdDSA",
-        "kid": "0"
+        "kty": "OKP",
+        "x": "YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE"
       }
     },
     {
@@ -1086,12 +1094,12 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
       "type": "JsonWebKey",
       "controller": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
       "publicKeyJwk": {
-        "kty": "EC",
-        "crv": "secp256k1",
-        "x": "1_o0IKHGNamet8-3VYNUTiKlhVK-LilcKrhJSPHSNP0",
-        "y": "qzU8qqh0wKB6JC_9HCu8pHE-ZPkDpw4AdJ-MsV2InVY",
+        "kid": "0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw",
         "alg": "ES256K",
-        "kid": "0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw"
+        "crv": "secp256k1",
+        "kty": "EC",
+        "x": "1_o0IKHGNamet8-3VYNUTiKlhVK-LilcKrhJSPHSNP0",
+        "y": "qzU8qqh0wKB6JC_9HCu8pHE-ZPkDpw4AdJ-MsV2InVY"
       }
     }
   ],
@@ -1127,7 +1135,7 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
 | _cnt.did. | TXT  | 7200 | did:example:abcd                                                                                       |
 | _aka.did. | TXT  | 7200 | did:example:efgh,did:example:ijkl                                                                      |
 | _k0.did.  | TXT  | 7200 | id=0;t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE;c=did:example:abcd                              |
-| _k1.did.  | TXT  | 7200 | t=1;k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9                                                |
+| _k1.did.  | TXT  | 7200 | t=1;k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9;a=ES256K                                            |
 | _s0.did.  | TXT  | 7200 | id=service-1;t=TestService;se=https://test-service.com/1,https://test-service.com/2                    |
 | _typ.did. | TXT  | 7200 | id=1,2,3                                                                                               |
 
