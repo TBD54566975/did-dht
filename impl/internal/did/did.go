@@ -11,20 +11,22 @@ import (
 	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
 	"github.com/TBD54566975/ssi-sdk/cryptosuite"
 	"github.com/TBD54566975/ssi-sdk/did"
+	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/miekg/dns"
+	"github.com/pkg/errors"
 	"github.com/tv42/zbase32"
 )
 
 type (
-	DHT       string
-	TypeIndex int
+	DHT                  string
+	TypeIndex            int
+	AuthoritativeGateway string
 )
 
 const (
 	// Prefix did:dht prefix
-	Prefix                               = "did:dht"
-	DHTMethod      did.Method            = "dht"
-	JSONWebKeyType cryptosuite.LDKeyType = "JsonWebKey"
+	Prefix               = "did:dht"
+	DHTMethod did.Method = "dht"
 
 	// Version corresponds to the version fo the specification https://did-dht.com/#dids-as-dns-records
 	Version int = 0
@@ -65,6 +67,8 @@ func (DHT) Method() did.Method {
 }
 
 type CreateDIDDHTOpts struct {
+	// AuthoritativeGateways is a list of authoritative gateways for the DID Document
+	AuthoritativeGateways []string
 	// Controller is the DID Controller, can be a list of DIDs
 	Controller []string
 	// AlsoKnownAs is a list of alternative identifiers for the DID Document
@@ -137,7 +141,7 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 			if seenIDs[vm.VerificationMethod.ID] {
 				return nil, fmt.Errorf("verification method id %s is not unique", vm.VerificationMethod.ID)
 			}
-			if vm.VerificationMethod.Type != JSONWebKeyType {
+			if vm.VerificationMethod.Type != cryptosuite.JSONWebKeyType {
 				return nil, fmt.Errorf("verification method type %s is not supported", vm.VerificationMethod.Type)
 			}
 			if vm.VerificationMethod.PublicKeyJWK == nil {
@@ -204,12 +208,14 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 	// create the did document
 	kid := "0"
 	key0JWK, err := jwx.PublicKeyToPublicKeyJWK(&kid, pubKey)
+	// temporary workaround until https://github.com/TBD54566975/ssi-sdk/issues/520 is in place
+	key0JWK.ALG = string(crypto.Ed25519DSA)
 	if err != nil {
 		return nil, err
 	}
 	vm0 := did.VerificationMethod{
 		ID:           id + "#0",
-		Type:         JSONWebKeyType,
+		Type:         cryptosuite.JSONWebKeyType,
 		Controller:   id,
 		PublicKeyJWK: key0JWK,
 	}
@@ -233,10 +239,15 @@ func GetDIDDHTIdentifier(pubKey []byte) string {
 }
 
 // ToDNSPacket converts a DID DHT Document to a DNS packet with an optional list of types to include
-func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex) (*dns.Msg, error) {
+func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex, gateways []AuthoritativeGateway) (*dns.Msg, error) {
 	var records []dns.RR
 	var rootRecord []string
 	keyLookup := make(map[string]string)
+
+	suffix, err := d.Suffix()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get suffix while decoding DNS packet")
+	}
 
 	// first append the version to the root record
 	rootRecord = append(rootRecord, fmt.Sprintf("v=%d", Version))
@@ -281,15 +292,29 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex) (*dns.Msg, error) 
 		records = append(records, &akaAnswer)
 	}
 
+	// add all gateways
+	for _, gateway := range gateways {
+		gatewayAnswer := dns.TXT{
+			Hdr: dns.RR_Header{
+				Name:   fmt.Sprintf("_did.%s.", suffix),
+				Rrtype: dns.TypeNS,
+				Class:  dns.ClassINET,
+				Ttl:    7200,
+			},
+			Txt: []string{string(gateway)},
+		}
+		records = append(records, &gatewayAnswer)
+	}
+
 	// build all key records
 	var vmIDs []string
 	for i, vm := range doc.VerificationMethod {
 		recordIdentifier := fmt.Sprintf("k%d", i)
 		keyLookup[vm.ID] = recordIdentifier
 
-		keyType := keyTypeByAlg(crypto.SignatureAlgorithm(vm.PublicKeyJWK.ALG))
+		keyType := keyTypeForJWK(*vm.PublicKeyJWK)
 		if keyType < 0 {
-			return nil, fmt.Errorf("unsupported key type given alg: %s", vm.PublicKeyJWK.ALG)
+			return nil, fmt.Errorf("+unsupported key type given alg: %s", vm.PublicKeyJWK.ALG)
 		}
 
 		// convert the public key to a base64url encoded string
@@ -307,6 +332,13 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex) (*dns.Msg, error) 
 		keyBase64URL := base64.RawURLEncoding.EncodeToString(pubKeyBytes)
 		vmKeyFragment := vm.ID[strings.LastIndex(vm.ID, "#")+1:]
 		txtRecord := fmt.Sprintf("id=%s;t=%d;k=%s", vmKeyFragment, keyType, keyBase64URL)
+
+		// only include the alg if it's not the default alg for the key type
+		forKeyType := algIsDefaultForJWK(*vm.PublicKeyJWK)
+		if !forKeyType {
+			txtRecord += fmt.Sprintf(";a=%s", vm.PublicKeyJWK.ALG)
+		}
+
 		// note the controller if it differs from the DID
 		if vm.Controller != doc.ID {
 			// handle the case where the controller of the identity key is not the DID itself
@@ -409,7 +441,7 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex) (*dns.Msg, error) 
 	// add the root record
 	rootAnswer := dns.TXT{
 		Hdr: dns.RR_Header{
-			Name:   "_did.",
+			Name:   fmt.Sprintf("_did.%s.", suffix),
 			Rrtype: dns.TypeTXT,
 			Class:  dns.ClassINET,
 			Ttl:    7200,
@@ -472,18 +504,32 @@ func parseServiceData(serviceEndpoint any) string {
 }
 
 // FromDNSPacket converts a DNS packet to a DID DHT Document
-func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
+// Returns the DID Document, a list of types, a list of authoritative gateways, and an error
+func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, []AuthoritativeGateway, error) {
 	doc := did.Document{
 		ID: d.String(),
 	}
 
+	suffix, err := d.Suffix()
+	if err != nil {
+		return nil, nil, nil, errors.Wrap(err, "failed to get suffix while decoding DNS packet")
+	}
+
+	// track the authoritative gateways
+	var gateways []AuthoritativeGateway
+	// track the types
 	var types []TypeIndex
 	keyLookup := make(map[string]string)
 	for _, rr := range msg.Answer {
 		switch record := rr.(type) {
 		case *dns.TXT:
 			if strings.HasPrefix(record.Hdr.Name, "_cnt") {
-				doc.Controller = strings.Split(record.Txt[0], ",")
+				controllers := strings.Split(record.Txt[0], ",")
+				if len(controllers) == 1 {
+					doc.Controller = controllers[0]
+				} else {
+					doc.Controller = controllers
+				}
 			}
 			if strings.HasPrefix(record.Hdr.Name, "_aka") {
 				doc.AlsoKnownAs = strings.Split(record.Txt[0], ",")
@@ -494,6 +540,7 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 				keyType := keyTypeLookUp(data["t"])
 				keyBase64URL := data["k"]
 				controller := data["c"]
+				alg := data["a"]
 
 				// set the controller to the DID if it's not provided
 				if controller == "" {
@@ -503,21 +550,32 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 				// Convert keyBase64URL back to PublicKeyJWK
 				pubKeyBytes, err := base64.RawURLEncoding.DecodeString(keyBase64URL)
 				if err != nil {
-					return nil, nil, err
+					return nil, nil, nil, err
 				}
 				// as per the spec's guidance DNS representations use compressed keys, so we must unmarshall them as such
 				pubKey, err := crypto.BytesToPubKey(pubKeyBytes, keyType, crypto.ECDSAUnmarshalCompressed)
 				if err != nil {
-					return nil, nil, err
+					return nil, nil, nil, err
 				}
 				pubKeyJWK, err := jwx.PublicKeyToPublicKeyJWK(&vmID, pubKey)
 				if err != nil {
-					return nil, nil, err
+					return nil, nil, nil, err
+				}
+
+				// set the algorithm if it's not the default for the key type
+				if alg == "" {
+					defaultAlg := defaultAlgForJWK(*pubKeyJWK)
+					if defaultAlg == "" {
+						return nil, nil, nil, fmt.Errorf("unable to provide default alg for unsupported key type: %s", keyType)
+					}
+					pubKeyJWK.ALG = defaultAlg
+				} else {
+					pubKeyJWK.ALG = alg
 				}
 
 				// make sure the controller of the identity key matches the DID
 				if vmID == "0" && controller != d.String() {
-					return nil, nil, fmt.Errorf("controller of identity key must be the DID itself, instead it is: %s", controller)
+					return nil, nil, nil, fmt.Errorf("controller of identity key must be the DID itself, instead it is: %s", controller)
 				}
 
 				// if the verification method ID is not set, set it to the thumbprint
@@ -526,12 +584,12 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 				}
 
 				if vmID != "0" && pubKeyJWK.KID != vmID {
-					return nil, nil, fmt.Errorf("verification method JWK KID must be set to its thumbprint")
+					return nil, nil, nil, fmt.Errorf("verification method JWK KID must be set to its thumbprint")
 				}
 
 				vm := did.VerificationMethod{
 					ID:           d.String() + "#" + vmID,
-					Type:         JSONWebKeyType,
+					Type:         cryptosuite.JSONWebKeyType,
 					Controller:   d.String(),
 					PublicKeyJWK: pubKeyJWK,
 				}
@@ -573,17 +631,22 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 
 			} else if record.Hdr.Name == "_typ._did." {
 				if record.Txt[0] == "" || len(record.Txt) != 1 {
-					return nil, nil, fmt.Errorf("invalid types record")
+					return nil, nil, nil, fmt.Errorf("invalid types record")
 				}
 				typesStr := strings.Split(strings.TrimPrefix(record.Txt[0], "id="), ",")
 				for _, t := range typesStr {
 					tInt, err := strconv.Atoi(t)
 					if err != nil {
-						return nil, nil, err
+						return nil, nil, nil, err
 					}
 					types = append(types, TypeIndex(tInt))
 				}
-			} else if record.Hdr.Name == "_did." {
+			} else if record.Hdr.Name == fmt.Sprintf("_did.%s.", suffix) && record.Hdr.Rrtype == dns.TypeNS {
+				if record.Txt[0] == "" || len(record.Txt) != 1 {
+					return nil, nil, nil, fmt.Errorf("invalid gateways record: %s", record.String())
+				}
+				gateways = append(gateways, AuthoritativeGateway(record.Txt[0]))
+			} else if record.Hdr.Name == fmt.Sprintf("_did.%s.", suffix) && record.Hdr.Rrtype == dns.TypeTXT {
 				rootData := strings.Join(record.Txt, ";")
 				rootItems := strings.Split(rootData, ";")
 
@@ -600,7 +663,7 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 					switch key {
 					case "v":
 						if len(valueItems) != 1 || valueItems[0] != strconv.Itoa(Version) {
-							return nil, nil, fmt.Errorf("invalid version: %s", values)
+							return nil, nil, nil, fmt.Errorf("invalid version: %s", values)
 						}
 						seenVersion = true
 					case "auth":
@@ -626,13 +689,13 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 					}
 				}
 				if !seenVersion {
-					return nil, nil, fmt.Errorf("root record missing version identifier")
+					return nil, nil, nil, fmt.Errorf("root record missing version identifier")
 				}
 			}
 		}
 	}
 
-	return &doc, types, nil
+	return &doc, types, gateways, nil
 }
 
 func parseTxtData(data string) map[string]string {
@@ -647,6 +710,52 @@ func parseTxtData(data string) map[string]string {
 	return result
 }
 
+// algIsDefaultForJWK returns true if the given JWK ALG is the default for the given key type
+// according to the key type index https://did-dht.com/registry/#key-type-index
+func algIsDefaultForJWK(jwk jwx.PublicKeyJWK) bool {
+	// Ed25519 : Ed25519
+	if jwk.CRV == crypto.Ed25519.String() && jwk.KTY == jwa.OKP.String() {
+		return jwk.ALG == string(crypto.Ed25519DSA)
+	}
+	// secp256k1 : ES256K
+	if jwk.CRV == crypto.SECP256k1.String() && jwk.KTY == jwa.EC.String() {
+		return jwk.ALG == string(crypto.ES256K)
+	}
+	// P-256 : ES256
+	if jwk.CRV == crypto.P256.String() && jwk.KTY == jwa.EC.String() {
+		return jwk.ALG == string(crypto.ES256)
+	}
+	// X25519 : ECDH-ES+A256KW
+	if jwk.CRV == crypto.X25519.String() && jwk.KTY == jwa.OKP.String() {
+		return jwk.ALG == string(crypto.ECDHESA256KW)
+	}
+	return false
+}
+
+// defaultAlgForJWK returns the default signature algorithm for the given JWK based on the key type index
+// https://did-dht.com/registry/#key-type-index
+func defaultAlgForJWK(jwk jwx.PublicKeyJWK) string {
+	// Ed25519 : Ed25519
+	if jwk.CRV == crypto.Ed25519.String() && jwk.KTY == jwa.OKP.String() {
+		return string(crypto.Ed25519DSA)
+	}
+	// secp256k1 : ES256K
+	if jwk.CRV == crypto.SECP256k1.String() && jwk.KTY == jwa.EC.String() {
+		return string(crypto.ES256K)
+	}
+	// P-256 : ES256
+	if jwk.CRV == crypto.P256.String() && jwk.KTY == jwa.EC.String() {
+		return string(crypto.ES256)
+	}
+	// X25519 : ECDH-ES+A256KW
+	if jwk.CRV == crypto.X25519.String() && jwk.KTY == jwa.OKP.String() {
+		return string(crypto.ECDHESA256KW)
+	}
+	return ""
+}
+
+// keyTypeLookUp returns the key type for the given key type index
+// https://did-dht.com/registry/#key-type-index
 func keyTypeLookUp(keyType string) crypto.KeyType {
 	switch keyType {
 	case "0":
@@ -655,20 +764,31 @@ func keyTypeLookUp(keyType string) crypto.KeyType {
 		return crypto.SECP256k1
 	case "2":
 		return crypto.P256
+	case "3":
+		return crypto.X25519
 	default:
 		return ""
 	}
 }
 
-func keyTypeByAlg(alg crypto.SignatureAlgorithm) int {
-	switch alg {
-	case crypto.EdDSA:
+// keyTypeForJWK returns the key type index for the given JWK according to the key type index
+// https://did-dht.com/registry/#key-type-index
+func keyTypeForJWK(jwk jwx.PublicKeyJWK) int {
+	// Ed25519 : Ed25519 : 0
+	if jwk.CRV == crypto.Ed25519.String() && jwk.KTY == jwa.OKP.String() {
 		return 0
-	case crypto.ES256K:
-		return 1
-	case crypto.ES256:
-		return 2
-	default:
-		return -1
 	}
+	// secp256k1 : ES256K : 1
+	if jwk.CRV == crypto.SECP256k1.String() && jwk.KTY == jwa.EC.String() {
+		return 1
+	}
+	// P-256 : ES256 : 2
+	if jwk.CRV == crypto.P256.String() && jwk.KTY == jwa.EC.String() {
+		return 2
+	}
+	// X25519 : ECDH-ES+A256KW : 3
+	if jwk.CRV == crypto.X25519.String() && jwk.KTY == jwa.OKP.String() {
+		return 3
+	}
+	return -1
 }

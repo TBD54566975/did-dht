@@ -22,6 +22,11 @@ const (
 	vector2PublicKeyJWK2 string = "vector-2-public-key-jwk-2.json"
 	vector2DIDDocument   string = "vector-2-did-document.json"
 	vector2DNSRecords    string = "vector-2-dns-records.json"
+
+	vector3PublicKeyJWK1 string = "vector-3-public-key-jwk-1.json"
+	vector3PublicKeyJWK2 string = "vector-3-public-key-jwk-2.json"
+	vector3DIDDocument   string = "vector-3-did-document.json"
+	vector3DNSRecords    string = "vector-3-dns-records.json"
 )
 
 func getTestData(fileName string) ([]byte, error) {

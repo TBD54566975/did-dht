@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Latest Update:** March 29, 2024
+**Latest Update:** April 1, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -1078,8 +1078,8 @@ A minimal DID Document.
 
 #### Vector 2
 
-A DID Document with two keys ([[ref:Identity Key]] and an uncompressed secp256k1 key), a service with multiple endpoints, a gateway, 
-two types to index, an aka, and controller properties.
+A DID Document with two keys ([[ref:Identity Key]] and an uncompressed secp256k1 key), a service with multiple
+endpoints, a gateway, two types to index, an aka, and controller properties.
 
 **Identity Public Key JWK:**
 
@@ -1191,9 +1191,100 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
 | _cnt.did. | TXT  | 7200 | did:example:abcd                                                                                       |
 | _aka.did. | TXT  | 7200 | did:example:efgh,did:example:ijkl                                                                      |
 | _k0.did.  | TXT  | 7200 | id=0;t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE;c=did:example:abcd                              |
-| _k1.did.  | TXT  | 7200 | t=1;k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9;a=ES256K                                            |
+| _k1.did.  | TXT  | 7200 | t=1;k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9                                                     |
 | _s0.did.  | TXT  | 7200 | id=service-1;t=TestService;se=https://test-service.com/1,https://test-service.com/2                    |
 | _typ.did. | TXT  | 7200 | id=1,2,3                                                                                               |
+
+#### Vector 3
+
+A DID Document with two keys -- the [[ref:Identity Key]] and an X25519 key used with a different `alg` value than
+what is specified in the registry. The DID also has two gateway records.
+
+**Identity Public Key JWK:**
+
+```json
+{
+  "kid": "0",
+  "alg": "Ed25519",
+  "crv": "Ed25519",
+  "kty": "OKP",
+  "x": "sTyTLYw-n1NI9X-84NaCuis1wZjAA8lku6f6Et5201g"
+}
+```
+
+**X25519 Public Key JWK:**
+
+```json
+{
+  "kid": "WVy5IWMa36AoyAXZDvPd5j9zxt2t-GjifDEV-DwgIdQ",
+  "alg": "ECDH-ES+A128KW",
+  "crv": "X25519",
+  "kty": "OKP",
+  "x": "3POE0_i2mGeZ2qiQCA3KcLfi1fZo0311CXFSIwt1nB4"
+}
+```
+
+**Key Purposes:** `Key Agreement`.
+
+**Gateways:**: `gateway1.example-did-dht-gateway.com.`, `gateway2.example-did-dht-gateway.com.`.
+
+**DID Document:**
+
+```json
+{
+  "id": "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy",
+  "verificationMethod": [
+    {
+      "id": "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy#0",
+      "type": "JsonWebKey",
+      "controller": "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy",
+      "publicKeyJwk": {
+        "kid": "0",
+        "alg": "Ed25519",
+        "crv": "Ed25519",
+        "kty": "OKP",
+        "x": "sTyTLYw-n1NI9X-84NaCuis1wZjAA8lku6f6Et5201g"
+      }
+    },
+    {
+      "id": "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy#WVy5IWMa36AoyAXZDvPd5j9zxt2t-GjifDEV-DwgIdQ",
+      "type": "JsonWebKey",
+      "controller": "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy",
+      "publicKeyJwk": {
+        "kid": "WVy5IWMa36AoyAXZDvPd5j9zxt2t-GjifDEV-DwgIdQ",
+        "alg": "ECDH-ES+A128KW",
+        "crv": "X25519",
+        "kty": "OKP",
+        "x": "3POE0_i2mGeZ2qiQCA3KcLfi1fZo0311CXFSIwt1nB4"
+      }
+    }
+  ],
+  "authentication": [
+    "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy#0"
+  ],
+  "assertionMethod": [
+    "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy#0"
+  ],
+  "keyAgreement": [
+    "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy#WVy5IWMa36AoyAXZDvPd5j9zxt2t-GjifDEV-DwgIdQ"
+  ],
+  "capabilityInvocation": [
+    "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy#0"
+  ],
+  "capabilityDelegation": [
+    "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy#0"
+  ]
+}
+```
+
+**DNS Resource Records:**
+
+| Name      | Type | TTL  | Rdata       |
+| --------- | ---- | ---- | ----------- |
+| _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | NS  | 7200 | gateway1.example-did-dht-gateway.com.                              |
+| _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | TXT | 7200 | v=0;vm=k0,k1;auth=k0;asm=k0;agm=k1;inv=k0;del=k0                   |
+| _k0.did.  | TXT  | 7200 | id=0;t=0;k=sTyTLYw-n1NI9X-84NaCuis1wZjAA8lku6f6Et5201g                                                             |
+| _k1.did.  | TXT  | 7200 | id=WVy5IWMa36AoyAXZDvPd5j9zxt2t-GjifDEV-DwgIdQ;t=3;k=3POE0_i2mGeZ2qiQCA3KcLfi1fZo0311CXFSIwt1nB4;a=ECDH-ES+A128KW   |
 
 ### Open API Definition
 

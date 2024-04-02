@@ -11,7 +11,7 @@
         "kty": "OKP",
         "crv": "Ed25519",
         "x": "YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE",
-        "alg": "EdDSA",
+        "alg": "Ed25519",
         "kid": "0"
       }
     },

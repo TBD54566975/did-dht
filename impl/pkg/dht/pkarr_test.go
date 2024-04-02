@@ -6,6 +6,7 @@ import (
 
 	"github.com/TBD54566975/ssi-sdk/crypto"
 	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
+	"github.com/TBD54566975/ssi-sdk/cryptosuite"
 	didsdk "github.com/TBD54566975/ssi-sdk/did"
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/assert"
@@ -71,7 +72,7 @@ func TestGetPutDIDDHT(t *testing.T) {
 			{
 				VerificationMethod: didsdk.VerificationMethod{
 					ID:           "key1",
-					Type:         did.JSONWebKeyType,
+					Type:         cryptosuite.JSONWebKeyType,
 					Controller:   "did:dht:123456789abcdefghi",
 					PublicKeyJWK: pubKeyJWK,
 				},
@@ -97,7 +98,7 @@ func TestGetPutDIDDHT(t *testing.T) {
 	require.NotEmpty(t, doc)
 
 	didID := did.DHT(doc.ID)
-	didDocPacket, err := didID.ToDNSPacket(*doc, nil)
+	didDocPacket, err := didID.ToDNSPacket(*doc, nil, nil)
 	require.NoError(t, err)
 
 	putReq, err := CreatePKARRPublishRequest(privKey, *didDocPacket)
@@ -116,7 +117,7 @@ func TestGetPutDIDDHT(t *testing.T) {
 	require.NotEmpty(t, gotMsg.Answer)
 
 	d := did.DHT("did:dht:" + gotID)
-	gotDoc, _, err := d.FromDNSPacket(gotMsg)
+	gotDoc, _, _, err := d.FromDNSPacket(gotMsg)
 	require.NoError(t, err)
 	require.NotEmpty(t, gotDoc)
 }
