@@ -1198,7 +1198,7 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
 #### Vector 3
 
 A DID Document with two keys -- the [[ref:Identity Key]] and an X25519 key used with a different `alg` value than
-what is specified in the registry. The DID also has a gateway record.
+what is specified in the registry. The DID also has two gateway records.
 
 **Identity Public Key JWK:**
 
@@ -1226,7 +1226,7 @@ what is specified in the registry. The DID also has a gateway record.
 
 **Key Purposes:** `Key Agreement`.
 
-**Gateway:**: `gateway1.example-did-dht-gateway.com.`.
+**Gateways:**: `gateway1.example-did-dht-gateway.com.`, `gateway2.example-did-dht-gateway.com.`.
 
 **DID Document:**
 
@@ -1284,7 +1284,7 @@ what is specified in the registry. The DID also has a gateway record.
 | _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | NS  | 7200 | gateway1.example-did-dht-gateway.com.                              |
 | _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | TXT | 7200 | v=0;vm=k0,k1;auth=k0;asm=k0;agm=k1;inv=k0;del=k0                   |
 | _k0.did.  | TXT  | 7200 | id=0;t=0;k=sTyTLYw-n1NI9X-84NaCuis1wZjAA8lku6f6Et5201g                                                             |
-| _k1.did.  | TXT  | 7200 | id=WVy5IWMa36AoyAXZDvPd5j9zxt2t-GjifDEV-DwgIdQ;t=3;k=3POE0_i2mGeZ2qiQCA3KcLfi1fZo0311CXFSIwt1nB4;alg=ECDH-ES+A128KW |
+| _k1.did.  | TXT  | 7200 | id=WVy5IWMa36AoyAXZDvPd5j9zxt2t-GjifDEV-DwgIdQ;t=3;k=3POE0_i2mGeZ2qiQCA3KcLfi1fZo0311CXFSIwt1nB4;a=ECDH-ES+A128KW   |
 
 ### Open API Definition
 

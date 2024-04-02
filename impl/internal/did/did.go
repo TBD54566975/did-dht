@@ -65,6 +65,8 @@ func (DHT) Method() did.Method {
 }
 
 type CreateDIDDHTOpts struct {
+	// AuthoritativeGateways is a list of authoritative gateways for the DID Document
+	AuthoritativeGateways []string
 	// Controller is the DID Controller, can be a list of DIDs
 	Controller []string
 	// AlsoKnownAs is a list of alternative identifiers for the DID Document
@@ -311,9 +313,9 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex) (*dns.Msg, error) 
 		txtRecord := fmt.Sprintf("id=%s;t=%d;k=%s", vmKeyFragment, keyType, keyBase64URL)
 
 		// only include the alg if it's not the default alg for the key type
-		forKeyType := algIsDefaultForKeyType(*vm.PublicKeyJWK)
+		forKeyType := algIsDefaultForJWK(*vm.PublicKeyJWK)
 		if !forKeyType {
-			txtRecord += fmt.Sprintf(";alg=%s", vm.PublicKeyJWK.ALG)
+			txtRecord += fmt.Sprintf(";a=%s", vm.PublicKeyJWK.ALG)
 		}
 
 		// note the controller if it differs from the DID
@@ -492,7 +494,12 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 		switch record := rr.(type) {
 		case *dns.TXT:
 			if strings.HasPrefix(record.Hdr.Name, "_cnt") {
-				doc.Controller = strings.Split(record.Txt[0], ",")
+				controllers := strings.Split(record.Txt[0], ",")
+				if len(controllers) == 1 {
+					doc.Controller = controllers[0]
+				} else {
+					doc.Controller = controllers
+				}
 			}
 			if strings.HasPrefix(record.Hdr.Name, "_aka") {
 				doc.AlsoKnownAs = strings.Split(record.Txt[0], ",")
@@ -503,6 +510,7 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 				keyType := keyTypeLookUp(data["t"])
 				keyBase64URL := data["k"]
 				controller := data["c"]
+				alg := data["a"]
 
 				// set the controller to the DID if it's not provided
 				if controller == "" {
@@ -522,6 +530,17 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 				pubKeyJWK, err := jwx.PublicKeyToPublicKeyJWK(&vmID, pubKey)
 				if err != nil {
 					return nil, nil, err
+				}
+
+				// set the algorithm if it's not the default for the key type
+				if alg == "" {
+					defaultAlg := defaultAlgForJWK(*pubKeyJWK)
+					if defaultAlg == "" {
+						return nil, nil, fmt.Errorf("unable to provide default alg for unsupported key type: %s", keyType)
+					}
+					pubKeyJWK.ALG = defaultAlg
+				} else {
+					pubKeyJWK.ALG = alg
 				}
 
 				// make sure the controller of the identity key matches the DID
@@ -656,9 +675,9 @@ func parseTxtData(data string) map[string]string {
 	return result
 }
 
-// algIsDefaultForKeyType returns true if the given JWK ALG is the default for the given key type
+// algIsDefaultForJWK returns true if the given JWK ALG is the default for the given key type
 // according to the key type index https://did-dht.com/registry/#key-type-index
-func algIsDefaultForKeyType(jwk jwx.PublicKeyJWK) bool {
+func algIsDefaultForJWK(jwk jwx.PublicKeyJWK) bool {
 	// Ed25519 : Ed25519
 	if jwk.CRV == crypto.Ed25519.String() && jwk.KTY == jwa.OKP.String() {
 		return jwk.ALG == string(crypto.Ed25519DSA)
@@ -676,6 +695,28 @@ func algIsDefaultForKeyType(jwk jwx.PublicKeyJWK) bool {
 		return jwk.ALG == string(crypto.ECDHESA256KW)
 	}
 	return false
+}
+
+// defaultAlgForJWK returns the default signature algorithm for the given JWK based on the key type index
+// https://did-dht.com/registry/#key-type-index
+func defaultAlgForJWK(jwk jwx.PublicKeyJWK) string {
+	// Ed25519 : Ed25519
+	if jwk.CRV == crypto.Ed25519.String() && jwk.KTY == jwa.OKP.String() {
+		return string(crypto.Ed25519DSA)
+	}
+	// secp256k1 : ES256K
+	if jwk.CRV == crypto.SECP256k1.String() && jwk.KTY == jwa.EC.String() {
+		return string(crypto.ES256K)
+	}
+	// P-256 : ES256
+	if jwk.CRV == crypto.P256.String() && jwk.KTY == jwa.EC.String() {
+		return string(crypto.ES256)
+	}
+	// X25519 : ECDH-ES+A256KW
+	if jwk.CRV == crypto.X25519.String() && jwk.KTY == jwa.OKP.String() {
+		return string(crypto.ECDHESA256KW)
+	}
+	return ""
 }
 
 // keyTypeLookUp returns the key type for the given key type index
