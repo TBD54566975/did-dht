@@ -13,12 +13,14 @@ import (
 	"github.com/TBD54566975/ssi-sdk/did"
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/miekg/dns"
+	"github.com/pkg/errors"
 	"github.com/tv42/zbase32"
 )
 
 type (
-	DHT       string
-	TypeIndex int
+	DHT                  string
+	TypeIndex            int
+	AuthoritativeGateway string
 )
 
 const (
@@ -237,10 +239,15 @@ func GetDIDDHTIdentifier(pubKey []byte) string {
 }
 
 // ToDNSPacket converts a DID DHT Document to a DNS packet with an optional list of types to include
-func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex) (*dns.Msg, error) {
+func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex, gateways []AuthoritativeGateway) (*dns.Msg, error) {
 	var records []dns.RR
 	var rootRecord []string
 	keyLookup := make(map[string]string)
+
+	suffix, err := d.Suffix()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get suffix while decoding DNS packet")
+	}
 
 	// first append the version to the root record
 	rootRecord = append(rootRecord, fmt.Sprintf("v=%d", Version))
@@ -283,6 +290,20 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex) (*dns.Msg, error) 
 			Txt: []string{akaTxt},
 		}
 		records = append(records, &akaAnswer)
+	}
+
+	// add all gateways
+	for _, gateway := range gateways {
+		gatewayAnswer := dns.TXT{
+			Hdr: dns.RR_Header{
+				Name:   fmt.Sprintf("_did.%s.", suffix),
+				Rrtype: dns.TypeNS,
+				Class:  dns.ClassINET,
+				Ttl:    7200,
+			},
+			Txt: []string{string(gateway)},
+		}
+		records = append(records, &gatewayAnswer)
 	}
 
 	// build all key records
@@ -420,7 +441,7 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex) (*dns.Msg, error) 
 	// add the root record
 	rootAnswer := dns.TXT{
 		Hdr: dns.RR_Header{
-			Name:   "_did.",
+			Name:   fmt.Sprintf("_did.%s.", suffix),
 			Rrtype: dns.TypeTXT,
 			Class:  dns.ClassINET,
 			Ttl:    7200,
@@ -483,11 +504,20 @@ func parseServiceData(serviceEndpoint any) string {
 }
 
 // FromDNSPacket converts a DNS packet to a DID DHT Document
-func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
+// Returns the DID Document, a list of types, a list of authoritative gateways, and an error
+func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, []AuthoritativeGateway, error) {
 	doc := did.Document{
 		ID: d.String(),
 	}
 
+	suffix, err := d.Suffix()
+	if err != nil {
+		return nil, nil, nil, errors.Wrap(err, "failed to get suffix while decoding DNS packet")
+	}
+
+	// track the authoritative gateways
+	var gateways []AuthoritativeGateway
+	// track the types
 	var types []TypeIndex
 	keyLookup := make(map[string]string)
 	for _, rr := range msg.Answer {
@@ -520,23 +550,23 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 				// Convert keyBase64URL back to PublicKeyJWK
 				pubKeyBytes, err := base64.RawURLEncoding.DecodeString(keyBase64URL)
 				if err != nil {
-					return nil, nil, err
+					return nil, nil, nil, err
 				}
 				// as per the spec's guidance DNS representations use compressed keys, so we must unmarshall them as such
 				pubKey, err := crypto.BytesToPubKey(pubKeyBytes, keyType, crypto.ECDSAUnmarshalCompressed)
 				if err != nil {
-					return nil, nil, err
+					return nil, nil, nil, err
 				}
 				pubKeyJWK, err := jwx.PublicKeyToPublicKeyJWK(&vmID, pubKey)
 				if err != nil {
-					return nil, nil, err
+					return nil, nil, nil, err
 				}
 
 				// set the algorithm if it's not the default for the key type
 				if alg == "" {
 					defaultAlg := defaultAlgForJWK(*pubKeyJWK)
 					if defaultAlg == "" {
-						return nil, nil, fmt.Errorf("unable to provide default alg for unsupported key type: %s", keyType)
+						return nil, nil, nil, fmt.Errorf("unable to provide default alg for unsupported key type: %s", keyType)
 					}
 					pubKeyJWK.ALG = defaultAlg
 				} else {
@@ -545,7 +575,7 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 
 				// make sure the controller of the identity key matches the DID
 				if vmID == "0" && controller != d.String() {
-					return nil, nil, fmt.Errorf("controller of identity key must be the DID itself, instead it is: %s", controller)
+					return nil, nil, nil, fmt.Errorf("controller of identity key must be the DID itself, instead it is: %s", controller)
 				}
 
 				// if the verification method ID is not set, set it to the thumbprint
@@ -554,7 +584,7 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 				}
 
 				if vmID != "0" && pubKeyJWK.KID != vmID {
-					return nil, nil, fmt.Errorf("verification method JWK KID must be set to its thumbprint")
+					return nil, nil, nil, fmt.Errorf("verification method JWK KID must be set to its thumbprint")
 				}
 
 				vm := did.VerificationMethod{
@@ -601,17 +631,22 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 
 			} else if record.Hdr.Name == "_typ._did." {
 				if record.Txt[0] == "" || len(record.Txt) != 1 {
-					return nil, nil, fmt.Errorf("invalid types record")
+					return nil, nil, nil, fmt.Errorf("invalid types record")
 				}
 				typesStr := strings.Split(strings.TrimPrefix(record.Txt[0], "id="), ",")
 				for _, t := range typesStr {
 					tInt, err := strconv.Atoi(t)
 					if err != nil {
-						return nil, nil, err
+						return nil, nil, nil, err
 					}
 					types = append(types, TypeIndex(tInt))
 				}
-			} else if record.Hdr.Name == "_did." {
+			} else if record.Hdr.Name == fmt.Sprintf("_did.%s.", suffix) && record.Hdr.Rrtype == dns.TypeNS {
+				if record.Txt[0] == "" || len(record.Txt) != 1 {
+					return nil, nil, nil, fmt.Errorf("invalid gateways record: %s", record.String())
+				}
+				gateways = append(gateways, AuthoritativeGateway(record.Txt[0]))
+			} else if record.Hdr.Name == fmt.Sprintf("_did.%s.", suffix) && record.Hdr.Rrtype == dns.TypeTXT {
 				rootData := strings.Join(record.Txt, ";")
 				rootItems := strings.Split(rootData, ";")
 
@@ -628,7 +663,7 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 					switch key {
 					case "v":
 						if len(valueItems) != 1 || valueItems[0] != strconv.Itoa(Version) {
-							return nil, nil, fmt.Errorf("invalid version: %s", values)
+							return nil, nil, nil, fmt.Errorf("invalid version: %s", values)
 						}
 						seenVersion = true
 					case "auth":
@@ -654,13 +689,13 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 					}
 				}
 				if !seenVersion {
-					return nil, nil, fmt.Errorf("root record missing version identifier")
+					return nil, nil, nil, fmt.Errorf("root record missing version identifier")
 				}
 			}
 		}
 	}
 
-	return &doc, types, nil
+	return &doc, types, gateways, nil
 }
 
 func parseTxtData(data string) map[string]string {

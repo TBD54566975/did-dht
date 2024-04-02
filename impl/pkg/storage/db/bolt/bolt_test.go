@@ -5,10 +5,11 @@ import (
 	"os"
 	"testing"
 
+	"github.com/goccy/go-json"
+
 	"github.com/TBD54566975/did-dht-method/internal/did"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
 	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
-	"github.com/goccy/go-json"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -114,7 +115,7 @@ func TestReadWrite(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, doc)
 
-	packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil)
+	packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil, nil)
 	require.NoError(t, err)
 	require.NotEmpty(t, packet)
 
@@ -153,7 +154,7 @@ func TestDBPagination(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, doc)
 
-		packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil)
+		packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil, nil)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, packet)
 
@@ -174,7 +175,7 @@ func TestDBPagination(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, doc)
 
-	packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil)
+	packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, packet)
 

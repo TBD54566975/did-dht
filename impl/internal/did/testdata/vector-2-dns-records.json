@@ -1,6 +1,18 @@
 [
   {
-    "name": "_did.",
+    "name": "_did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo.",
+    "type": "NS",
+    "ttl": "7200",
+    "rdata": "gateway1.example-did-dht-gateway.com."
+  },
+  {
+    "name": "_did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo.",
+    "type": "NS",
+    "ttl": "7200",
+    "rdata": "gateway2.example-did-dht-gateway.com."
+  },
+  {
+    "name": "_did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo.",
     "type": "TXT",
     "ttl": "7200",
     "rdata": "v=0;vm=k0,k1;svc=s0;auth=k0;asm=k0,k1;inv=k0,k1;del=k0"

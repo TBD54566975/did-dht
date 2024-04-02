@@ -11,9 +11,10 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/TBD54566975/did-dht-method/internal/did"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -97,7 +98,7 @@ func generateDIDPutRequest() (string, []byte, error) {
 		return "", nil, err
 	}
 
-	packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil)
+	packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil, nil)
 	if err != nil {
 		return "", nil, err
 	}

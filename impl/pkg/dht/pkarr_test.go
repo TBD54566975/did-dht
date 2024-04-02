@@ -98,7 +98,7 @@ func TestGetPutDIDDHT(t *testing.T) {
 	require.NotEmpty(t, doc)
 
 	didID := did.DHT(doc.ID)
-	didDocPacket, err := didID.ToDNSPacket(*doc, nil)
+	didDocPacket, err := didID.ToDNSPacket(*doc, nil, nil)
 	require.NoError(t, err)
 
 	putReq, err := CreatePKARRPublishRequest(privKey, *didDocPacket)
@@ -117,7 +117,7 @@ func TestGetPutDIDDHT(t *testing.T) {
 	require.NotEmpty(t, gotMsg.Answer)
 
 	d := did.DHT("did:dht:" + gotID)
-	gotDoc, _, err := d.FromDNSPacket(gotMsg)
+	gotDoc, _, _, err := d.FromDNSPacket(gotMsg)
 	require.NoError(t, err)
 	require.NotEmpty(t, gotDoc)
 }

@@ -126,14 +126,15 @@ func TestToDNSPacket(t *testing.T) {
 		require.NotEmpty(t, doc)
 
 		didID := DHT(doc.ID)
-		packet, err := didID.ToDNSPacket(*doc, nil)
+		packet, err := didID.ToDNSPacket(*doc, nil, nil)
 		require.NoError(t, err)
 		require.NotEmpty(t, packet)
 
-		decodedDoc, types, err := didID.FromDNSPacket(packet)
+		decodedDoc, types, gateways, err := didID.FromDNSPacket(packet)
 		require.NoError(t, err)
 		require.NotEmpty(t, decodedDoc)
 		require.Empty(t, types)
+		require.Empty(t, gateways)
 
 		jsonDoc, err := json.Marshal(doc)
 		require.NoError(t, err)
@@ -144,22 +145,24 @@ func TestToDNSPacket(t *testing.T) {
 		assert.JSONEq(t, string(jsonDoc), string(jsonDecodedDoc))
 	})
 
-	t.Run("doc with types - test to dns packet round trip", func(t *testing.T) {
+	t.Run("doc with types and a gateway - test to dns packet round trip", func(t *testing.T) {
 		privKey, doc, err := GenerateDIDDHT(CreateDIDDHTOpts{})
 		require.NoError(t, err)
 		require.NotEmpty(t, privKey)
 		require.NotEmpty(t, doc)
 
 		didID := DHT(doc.ID)
-		packet, err := didID.ToDNSPacket(*doc, []TypeIndex{1, 2, 3})
+		packet, err := didID.ToDNSPacket(*doc, []TypeIndex{1, 2, 3}, []AuthoritativeGateway{"gateway1.example-did-dht-gateway.com."})
 		require.NoError(t, err)
 		require.NotEmpty(t, packet)
 
-		decodedDoc, types, err := didID.FromDNSPacket(packet)
+		decodedDoc, types, gateways, err := didID.FromDNSPacket(packet)
 		require.NoError(t, err)
 		require.NotEmpty(t, decodedDoc)
 		require.NotEmpty(t, types)
 		require.Equal(t, types, []TypeIndex{1, 2, 3})
+		require.NotEmpty(t, gateways)
+		require.Equal(t, gateways, []AuthoritativeGateway{"gateway1.example-did-dht-gateway.com."})
 
 		assert.EqualValues(t, *doc, *decodedDoc)
 	})
@@ -202,14 +205,15 @@ func TestToDNSPacket(t *testing.T) {
 		require.NotEmpty(t, doc)
 
 		didID := DHT(doc.ID)
-		packet, err := didID.ToDNSPacket(*doc, nil)
+		packet, err := didID.ToDNSPacket(*doc, nil, nil)
 		require.NoError(t, err)
 		require.NotEmpty(t, packet)
 
-		decodedDoc, types, err := didID.FromDNSPacket(packet)
+		decodedDoc, types, gateways, err := didID.FromDNSPacket(packet)
 		require.NoError(t, err)
 		require.NotEmpty(t, decodedDoc)
 		require.Empty(t, types)
+		require.Empty(t, gateways)
 
 		decodedJSON, err := json.Marshal(decodedDoc)
 		require.NoError(t, err)
@@ -252,7 +256,7 @@ func TestVectors(t *testing.T) {
 		assert.JSONEq(t, string(expectedDIDDocJSON), string(docJSON))
 
 		didID := DHT(doc.ID)
-		packet, err := didID.ToDNSPacket(*doc, nil)
+		packet, err := didID.ToDNSPacket(*doc, nil, nil)
 		require.NoError(t, err)
 		require.NotEmpty(t, packet)
 
@@ -285,10 +289,11 @@ func TestVectors(t *testing.T) {
 		}
 
 		// Make sure going back to DID Document is consistent
-		decodedDoc, types, err := didID.FromDNSPacket(packet)
+		decodedDoc, types, gateways, err := didID.FromDNSPacket(packet)
 		require.NoError(t, err)
 		require.NotEmpty(t, decodedDoc)
 		require.Empty(t, types)
+		require.Empty(t, gateways)
 
 		decodedDocJSON, err := json.Marshal(decodedDoc)
 		require.NoError(t, err)
@@ -345,7 +350,8 @@ func TestVectors(t *testing.T) {
 		assert.JSONEq(t, string(expectedDIDDocJSON), string(docJSON))
 
 		didID := DHT(doc.ID)
-		packet, err := didID.ToDNSPacket(*doc, []TypeIndex{1, 2, 3})
+		packet, err := didID.ToDNSPacket(*doc, []TypeIndex{1, 2, 3},
+			[]AuthoritativeGateway{"gateway1.example-did-dht-gateway.com.", "gateway2.example-did-dht-gateway.com."})
 		require.NoError(t, err)
 		require.NotEmpty(t, packet)
 
@@ -378,11 +384,13 @@ func TestVectors(t *testing.T) {
 		}
 
 		// Make sure going back to DID Document is consistent
-		decodedDoc, types, err := didID.FromDNSPacket(packet)
+		decodedDoc, types, gateways, err := didID.FromDNSPacket(packet)
 		require.NoError(t, err)
 		require.NotEmpty(t, decodedDoc)
 		require.NotEmpty(t, types)
 		require.Equal(t, types, []TypeIndex{1, 2, 3})
+		require.NotEmpty(t, gateways)
+		require.Equal(t, gateways, []AuthoritativeGateway{"gateway1.example-did-dht-gateway.com.", "gateway2.example-did-dht-gateway.com."})
 
 		decodedDocJSON, err := json.Marshal(decodedDoc)
 		require.NoError(t, err)
@@ -426,7 +434,7 @@ func TestVectors(t *testing.T) {
 		assert.JSONEq(t, string(expectedDIDDocJSON), string(docJSON))
 
 		didID := DHT(doc.ID)
-		packet, err := didID.ToDNSPacket(*doc, nil)
+		packet, err := didID.ToDNSPacket(*doc, nil, []AuthoritativeGateway{"gateway1.example-did-dht-gateway.com."})
 		require.NoError(t, err)
 		require.NotEmpty(t, packet)
 
@@ -459,10 +467,12 @@ func TestVectors(t *testing.T) {
 		}
 
 		// Make sure going back to DID Document is consistent
-		decodedDoc, types, err := didID.FromDNSPacket(packet)
+		decodedDoc, types, gateways, err := didID.FromDNSPacket(packet)
 		require.NoError(t, err)
 		require.NotEmpty(t, decodedDoc)
 		require.Empty(t, types)
+		require.NotEmpty(t, gateways)
+		require.Equal(t, gateways, []AuthoritativeGateway{"gateway1.example-did-dht-gateway.com."})
 
 		decodedDocJSON, err := json.Marshal(decodedDoc)
 		require.NoError(t, err)
