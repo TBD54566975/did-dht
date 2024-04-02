@@ -6,6 +6,7 @@ import (
 
 	"github.com/TBD54566975/ssi-sdk/crypto"
 	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
+	"github.com/TBD54566975/ssi-sdk/cryptosuite"
 	didsdk "github.com/TBD54566975/ssi-sdk/did"
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/assert"
@@ -71,7 +72,7 @@ func TestGetPutDIDDHT(t *testing.T) {
 			{
 				VerificationMethod: didsdk.VerificationMethod{
 					ID:           "key1",
-					Type:         did.JSONWebKeyType,
+					Type:         cryptosuite.JSONWebKeyType,
 					Controller:   "did:dht:123456789abcdefghi",
 					PublicKeyJWK: pubKeyJWK,
 				},

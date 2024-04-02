@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/TBD54566975/ssi-sdk/cryptosuite"
 	"github.com/goccy/go-json"
 
 	"github.com/TBD54566975/ssi-sdk/crypto"
@@ -55,7 +56,7 @@ func TestGenerateDIDDHT(t *testing.T) {
 				{
 					VerificationMethod: did.VerificationMethod{
 						ID:           "key1",
-						Type:         JSONWebKeyType,
+						Type:         cryptosuite.JSONWebKeyType,
 						Controller:   "did:dht:123456789abcdefghi",
 						PublicKeyJWK: pubKeyJWK,
 					},
@@ -173,7 +174,7 @@ func TestToDNSPacket(t *testing.T) {
 				{
 					VerificationMethod: did.VerificationMethod{
 						ID:           "key1",
-						Type:         JSONWebKeyType,
+						Type:         cryptosuite.JSONWebKeyType,
 						PublicKeyJWK: pubKeyJWK,
 					},
 					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
@@ -277,7 +278,7 @@ func TestVectors(t *testing.T) {
 				{
 					VerificationMethod: did.VerificationMethod{
 						ID:           secpJWK.KID,
-						Type:         JSONWebKeyType,
+						Type:         cryptosuite.JSONWebKeyType,
 						PublicKeyJWK: &secpJWK,
 					},
 					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
@@ -323,6 +324,63 @@ func TestVectors(t *testing.T) {
 			assert.Contains(t, s, expectedRecord.Record)
 		}
 	})
+
+	t.Run("test vector 3", func(t *testing.T) {
+		var pubKeyJWK jwx.PublicKeyJWK
+		retrieveTestVectorAs(t, vector3PublicKeyJWK1, &pubKeyJWK)
+
+		pubKey, err := pubKeyJWK.ToPublicKey()
+		require.NoError(t, err)
+
+		var x25519JWK jwx.PublicKeyJWK
+		retrieveTestVectorAs(t, vector3PublicKeyJWK2, &x25519JWK)
+
+		doc, err := CreateDIDDHTDID(pubKey.(ed25519.PublicKey), CreateDIDDHTOpts{
+			VerificationMethods: []VerificationMethod{
+				{
+					VerificationMethod: did.VerificationMethod{
+						ID:           x25519JWK.KID,
+						Type:         cryptosuite.JSONWebKeyType,
+						PublicKeyJWK: &x25519JWK,
+					},
+					Purposes: []did.PublicKeyPurpose{did.KeyAgreement},
+				},
+			},
+		})
+		require.NoError(t, err)
+		require.NotEmpty(t, doc)
+
+		var expectedDIDDocument did.Document
+		retrieveTestVectorAs(t, vector3DIDDocument, &expectedDIDDocument)
+
+		docJSON, err := json.Marshal(doc)
+		require.NoError(t, err)
+
+		expectedDIDDocJSON, err := json.Marshal(expectedDIDDocument)
+		require.NoError(t, err)
+
+		assert.JSONEq(t, string(expectedDIDDocJSON), string(docJSON))
+
+		didID := DHT(doc.ID)
+		packet, err := didID.ToDNSPacket(*doc, nil)
+		require.NoError(t, err)
+		require.NotEmpty(t, packet)
+
+		println(packet.String())
+
+		var expectedDNSRecords map[string]testVectorDNSRecord
+		retrieveTestVectorAs(t, vector3DNSRecords, &expectedDNSRecords)
+
+		for _, record := range packet.Answer {
+			expectedRecord, ok := expectedDNSRecords[record.Header().Name]
+			require.True(t, ok, "record not found: %s", record.Header().Name)
+
+			s := record.String()
+			assert.Contains(t, s, expectedRecord.RecordType)
+			assert.Contains(t, s, expectedRecord.TTL)
+			assert.Contains(t, s, expectedRecord.Record)
+		}
+	})
 }
 
 func TestMisc(t *testing.T) {
@@ -353,7 +411,7 @@ func TestMisc(t *testing.T) {
 				{
 					VerificationMethod: did.VerificationMethod{
 						ID:           secpJWK.KID,
-						Type:         JSONWebKeyType,
+						Type:         cryptosuite.JSONWebKeyType,
 						PublicKeyJWK: &secpJWK,
 					},
 					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
@@ -378,7 +436,7 @@ func TestMisc(t *testing.T) {
 			VerificationMethods: []VerificationMethod{
 				{
 					VerificationMethod: did.VerificationMethod{
-						Type:         JSONWebKeyType,
+						Type:         cryptosuite.JSONWebKeyType,
 						PublicKeyJWK: &secpJWK,
 					},
 					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
@@ -404,7 +462,7 @@ func TestMisc(t *testing.T) {
 				{
 					VerificationMethod: did.VerificationMethod{
 						ID:           secpJWK.KID,
-						Type:         JSONWebKeyType,
+						Type:         cryptosuite.JSONWebKeyType,
 						PublicKeyJWK: &secpJWK,
 					},
 					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
@@ -430,7 +488,7 @@ func TestMisc(t *testing.T) {
 				{
 					VerificationMethod: did.VerificationMethod{
 						ID:           "#key-1",
-						Type:         JSONWebKeyType,
+						Type:         cryptosuite.JSONWebKeyType,
 						PublicKeyJWK: &secpJWK,
 					},
 					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
@@ -456,7 +514,7 @@ func TestMisc(t *testing.T) {
 				{
 					VerificationMethod: did.VerificationMethod{
 						ID:           secpJWK.KID,
-						Type:         JSONWebKeyType,
+						Type:         cryptosuite.JSONWebKeyType,
 						PublicKeyJWK: &secpJWK,
 					},
 					Purposes: []did.PublicKeyPurpose{did.Authentication, did.KeyAgreement, did.CapabilityDelegation},
@@ -493,7 +551,7 @@ func TestCreationFailures(t *testing.T) {
 				{
 					VerificationMethod: did.VerificationMethod{
 						ID:           "#0",
-						Type:         JSONWebKeyType,
+						Type:         cryptosuite.JSONWebKeyType,
 						PublicKeyJWK: &secpJWK,
 					},
 					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
@@ -518,7 +576,7 @@ func TestCreationFailures(t *testing.T) {
 				{
 					VerificationMethod: did.VerificationMethod{
 						ID:           secpJWK.KID,
-						Type:         JSONWebKeyType,
+						Type:         cryptosuite.JSONWebKeyType,
 						PublicKeyJWK: &secpJWK,
 					},
 					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
@@ -526,7 +584,7 @@ func TestCreationFailures(t *testing.T) {
 				{
 					VerificationMethod: did.VerificationMethod{
 						ID:           secpJWK.KID,
-						Type:         JSONWebKeyType,
+						Type:         cryptosuite.JSONWebKeyType,
 						PublicKeyJWK: &secpJWK,
 					},
 					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
@@ -578,7 +636,7 @@ func TestCreationFailures(t *testing.T) {
 				{
 					VerificationMethod: did.VerificationMethod{
 						ID:           secpJWK.KID,
-						Type:         JSONWebKeyType,
+						Type:         cryptosuite.JSONWebKeyType,
 						PublicKeyJWK: nil,
 					},
 					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
@@ -604,7 +662,7 @@ func TestCreationFailures(t *testing.T) {
 				{
 					VerificationMethod: did.VerificationMethod{
 						ID:           secpJWK.KID,
-						Type:         JSONWebKeyType,
+						Type:         cryptosuite.JSONWebKeyType,
 						PublicKeyJWK: &secpJWK,
 					},
 					Purposes: []did.PublicKeyPurpose{"fake purpose"},

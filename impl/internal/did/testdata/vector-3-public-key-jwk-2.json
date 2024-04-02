@@ -1,0 +1,7 @@
+{
+  "kty": "OKP",
+  "crv": "X25519",
+  "x": "3POE0_i2mGeZ2qiQCA3KcLfi1fZo0311CXFSIwt1nB4",
+  "alg": "ECDH-ES+A128KW",
+  "kid": "WVy5IWMa36AoyAXZDvPd5j9zxt2t-GjifDEV-DwgIdQ"
+}

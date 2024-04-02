@@ -11,6 +11,7 @@ import (
 	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
 	"github.com/TBD54566975/ssi-sdk/cryptosuite"
 	"github.com/TBD54566975/ssi-sdk/did"
+	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/miekg/dns"
 	"github.com/tv42/zbase32"
 )
@@ -22,9 +23,8 @@ type (
 
 const (
 	// Prefix did:dht prefix
-	Prefix                               = "did:dht"
-	DHTMethod      did.Method            = "dht"
-	JSONWebKeyType cryptosuite.LDKeyType = "JsonWebKey"
+	Prefix               = "did:dht"
+	DHTMethod did.Method = "dht"
 
 	// Version corresponds to the version fo the specification https://did-dht.com/#dids-as-dns-records
 	Version int = 0
@@ -137,7 +137,7 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 			if seenIDs[vm.VerificationMethod.ID] {
 				return nil, fmt.Errorf("verification method id %s is not unique", vm.VerificationMethod.ID)
 			}
-			if vm.VerificationMethod.Type != JSONWebKeyType {
+			if vm.VerificationMethod.Type != cryptosuite.JSONWebKeyType {
 				return nil, fmt.Errorf("verification method type %s is not supported", vm.VerificationMethod.Type)
 			}
 			if vm.VerificationMethod.PublicKeyJWK == nil {
@@ -204,12 +204,14 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 	// create the did document
 	kid := "0"
 	key0JWK, err := jwx.PublicKeyToPublicKeyJWK(&kid, pubKey)
+	// temporary workaround until https://github.com/TBD54566975/ssi-sdk/issues/520 is in place
+	key0JWK.ALG = string(crypto.Ed25519DSA)
 	if err != nil {
 		return nil, err
 	}
 	vm0 := did.VerificationMethod{
 		ID:           id + "#0",
-		Type:         JSONWebKeyType,
+		Type:         cryptosuite.JSONWebKeyType,
 		Controller:   id,
 		PublicKeyJWK: key0JWK,
 	}
@@ -287,9 +289,9 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex) (*dns.Msg, error) 
 		recordIdentifier := fmt.Sprintf("k%d", i)
 		keyLookup[vm.ID] = recordIdentifier
 
-		keyType := keyTypeByAlg(crypto.SignatureAlgorithm(vm.PublicKeyJWK.ALG))
+		keyType := keyTypeForJWK(*vm.PublicKeyJWK)
 		if keyType < 0 {
-			return nil, fmt.Errorf("unsupported key type given alg: %s", vm.PublicKeyJWK.ALG)
+			return nil, fmt.Errorf("+unsupported key type given alg: %s", vm.PublicKeyJWK.ALG)
 		}
 
 		// convert the public key to a base64url encoded string
@@ -307,6 +309,13 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex) (*dns.Msg, error) 
 		keyBase64URL := base64.RawURLEncoding.EncodeToString(pubKeyBytes)
 		vmKeyFragment := vm.ID[strings.LastIndex(vm.ID, "#")+1:]
 		txtRecord := fmt.Sprintf("id=%s;t=%d;k=%s", vmKeyFragment, keyType, keyBase64URL)
+
+		// only include the alg if it's not the default alg for the key type
+		forKeyType := algIsDefaultForKeyType(*vm.PublicKeyJWK)
+		if !forKeyType {
+			txtRecord += fmt.Sprintf(";alg=%s", vm.PublicKeyJWK.ALG)
+		}
+
 		// note the controller if it differs from the DID
 		if vm.Controller != doc.ID {
 			// handle the case where the controller of the identity key is not the DID itself
@@ -531,7 +540,7 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, error) {
 
 				vm := did.VerificationMethod{
 					ID:           d.String() + "#" + vmID,
-					Type:         JSONWebKeyType,
+					Type:         cryptosuite.JSONWebKeyType,
 					Controller:   d.String(),
 					PublicKeyJWK: pubKeyJWK,
 				}
@@ -647,6 +656,30 @@ func parseTxtData(data string) map[string]string {
 	return result
 }
 
+// algIsDefaultForKeyType returns true if the given JWK ALG is the default for the given key type
+// according to the key type index https://did-dht.com/registry/#key-type-index
+func algIsDefaultForKeyType(jwk jwx.PublicKeyJWK) bool {
+	// Ed25519 : Ed25519
+	if jwk.CRV == crypto.Ed25519.String() && jwk.KTY == jwa.OKP.String() {
+		return jwk.ALG == string(crypto.Ed25519DSA)
+	}
+	// secp256k1 : ES256K
+	if jwk.CRV == crypto.SECP256k1.String() && jwk.KTY == jwa.EC.String() {
+		return jwk.ALG == string(crypto.ES256K)
+	}
+	// P-256 : ES256
+	if jwk.CRV == crypto.P256.String() && jwk.KTY == jwa.EC.String() {
+		return jwk.ALG == string(crypto.ES256)
+	}
+	// X25519 : ECDH-ES+A256KW
+	if jwk.CRV == crypto.X25519.String() && jwk.KTY == jwa.OKP.String() {
+		return jwk.ALG == string(crypto.ECDHESA256KW)
+	}
+	return false
+}
+
+// keyTypeLookUp returns the key type for the given key type index
+// https://did-dht.com/registry/#key-type-index
 func keyTypeLookUp(keyType string) crypto.KeyType {
 	switch keyType {
 	case "0":
@@ -655,20 +688,31 @@ func keyTypeLookUp(keyType string) crypto.KeyType {
 		return crypto.SECP256k1
 	case "2":
 		return crypto.P256
+	case "3":
+		return crypto.X25519
 	default:
 		return ""
 	}
 }
 
-func keyTypeByAlg(alg crypto.SignatureAlgorithm) int {
-	switch alg {
-	case crypto.EdDSA:
+// keyTypeForJWK returns the key type index for the given JWK according to the key type index
+// https://did-dht.com/registry/#key-type-index
+func keyTypeForJWK(jwk jwx.PublicKeyJWK) int {
+	// Ed25519 : Ed25519 : 0
+	if jwk.CRV == crypto.Ed25519.String() && jwk.KTY == jwa.OKP.String() {
 		return 0
-	case crypto.ES256K:
-		return 1
-	case crypto.ES256:
-		return 2
-	default:
-		return -1
 	}
+	// secp256k1 : ES256K : 1
+	if jwk.CRV == crypto.SECP256k1.String() && jwk.KTY == jwa.EC.String() {
+		return 1
+	}
+	// P-256 : ES256 : 2
+	if jwk.CRV == crypto.P256.String() && jwk.KTY == jwa.EC.String() {
+		return 2
+	}
+	// X25519 : ECDH-ES+A256KW : 3
+	if jwk.CRV == crypto.X25519.String() && jwk.KTY == jwa.OKP.String() {
+		return 3
+	}
+	return -1
 }
