@@ -24,10 +24,6 @@ github.com/RoaringBitmap/roaring v0.4.17/go.mod h1:D3qVegWTmfCaX4Bl5CrBE9hfrSrrX
 github.com/RoaringBitmap/roaring v0.4.23/go.mod h1:D0gp8kJQgE1A4LQ5wFLggQEyvDi06Mq5mKs52e1TwOo=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
-github.com/TBD54566975/ssi-sdk v0.0.4-alpha.0.20240401231222-6550aeed8a9d h1:M/dYJOKyLNBDh97VYAyLvzO7sS01K1eIBwNcAK2SFDQ=
-github.com/TBD54566975/ssi-sdk v0.0.4-alpha.0.20240401231222-6550aeed8a9d/go.mod h1:nyTjplXnrari2nQg63ztI4C0rgMb7Jjn3gfn0OM656g=
-github.com/TBD54566975/ssi-sdk v0.0.4-alpha.0.20240402005210-f282aecaa186 h1:XIaS0WBSrg2wU00Cx45NO9H3x3ca7WEI35sSef6NC5c=
-github.com/TBD54566975/ssi-sdk v0.0.4-alpha.0.20240402005210-f282aecaa186/go.mod h1:nyTjplXnrari2nQg63ztI4C0rgMb7Jjn3gfn0OM656g=
 github.com/TBD54566975/ssi-sdk v0.0.4-alpha.0.20240402005820-2c6b20991baa h1:1kJozfMxe8fRI0jjKUbKhj7/o16d1oTDOfZJLOMTU28=
 github.com/TBD54566975/ssi-sdk v0.0.4-alpha.0.20240402005820-2c6b20991baa/go.mod h1:nyTjplXnrari2nQg63ztI4C0rgMb7Jjn3gfn0OM656g=
 github.com/alecthomas/assert/v2 v2.0.0-alpha3 h1:pcHeMvQ3OMstAWgaeaXIAL8uzB9xMm2zlxt+/4ml8lk=
@@ -607,8 +603,8 @@ golang.org/x/net v0.0.0-20190620200207-3b0461eec859/go.mod h1:z5CRVTTTmAJ677TzLL
 golang.org/x/net v0.0.0-20210226172049-e18ecbb05110/go.mod h1:m0MpNAwzfU5UDzcl9v0D8zg8gWTRqZa9RBIspLL5mdg=
 golang.org/x/net v0.0.0-20220722155237-a158d28d115b/go.mod h1:XRhObCWvk6IyKnWLug+ECip1KBveYUHfp+8e9klMJ9c=
 golang.org/x/net v0.7.0/go.mod h1:2Tu9+aMcznHK/AK1HMvgo6xiTLG5rD5rZLDS+rp2Bjs=
-golang.org/x/net v0.22.0 h1:9sGLhx7iRIHEiX0oAJ3MRZMUCElJgy7Br1nO+AMN3Tc=
-golang.org/x/net v0.22.0/go.mod h1:JKghWKKOSdJwpW2GEx0Ja7fmaKnMsbu+MWVZTokSYmg=
+golang.org/x/net v0.23.0 h1:7EYJ93RZ9vYSZAIb2x3lnuvqO5zneoD6IvWjuhfxjTs=
+golang.org/x/net v0.23.0/go.mod h1:JKghWKKOSdJwpW2GEx0Ja7fmaKnMsbu+MWVZTokSYmg=
 golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
 golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421/go.mod h1:gOpvHmFTYa4IltrdGE7lF6nIHvwfUNPOp7c8zoXwtLw=
 golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=

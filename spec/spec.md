@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Latest Update:** April 1, 2024
+**Latest Update:** April 3, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -184,8 +184,8 @@ Similarly, the requirement of an Identity Key enables [interoperability with oth
 
 ### DIDs as DNS Records
 
-In this scheme, we encode the [[ref:DID Document]] as [DNS Resource Records](https://en.wikipedia.org/wiki/Domain_Name_System#Resource_records).
-Comprising a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then stored in the [[ref:DHT]].
+In this scheme, we encode the [[ref:DID Document]] as [DNS Resource Records](https://en.wikipedia.org/wiki/Domain_Name_System#Resource_records). These resource records make up a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then 
+stored in the [[ref:DHT]].
 
 | Name         | Type | TTL    | Rdata                                                        |
 | ------------ | ---- | ------ | ------------------------------------------------------------ |
@@ -200,26 +200,51 @@ Comprising a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then stored 
 The recommended TTL value is 7200 seconds (2 hours), the default TTL for [[ref:Mainline]] records.
 :::
 
-- The root record's name ****MUST**** be of the form, `_did.<ID>.`, where `ID` is the [[ref:Pkarr]] identifier
+- The [Root Record](#root-record) serves as a "map" to reconstruct a [[ref:DID Document]] from a DNS packet.
+This record contains a _version_ number, indicating the version of this specification a given record is created against.
+
+- Additional records like `srv` (services), `vm` ([Verification Methods](#verification-methods)), and 
+[Verification Relationships](#verification-relationships) (e.g., authentication, assertion, etc.) are 
+represented as additional records in the format `<ID>._did.`. These records contain the zero-indexed value of 
+each `key` or `service` as attributes.
+
+- All resource record names, aside from the [Root Record](#root-record) and optional 
+[Authoritative Gateway Records](#designating-authoritative-gateways), ****MUST**** end in `_did.`.
+
+- The DNS packet ****MUST**** set the _Authoritative Answer_ flag since this is always an _Authoritative_ packet.
+
+- `TXT` records ****MAY**** exceed 255 characters as per [[spec:RFC1035]]. Records exceeding 255 characters are
+represented as multiple strings, which upon DID Document reconstructin, can be concatenated to a single value.
+
+#### Root Record
+
+The root record is a special record which serves as instructions on how to reconstruct a [[ref:DID Document]],
+by providing a [property mapping](#property-mapping) for a [[ref:DID Document]], along with containing pertinent
+metadata such as a version identifier.
+
+- The root record's **name** ****MUST**** be of the form, `_did.<ID>.`, where `ID` is the [[ref:Pkarr]] identifier
 associated with the DID (i.e. `did:dht:<ID>` becomes `_did.<ID>.`).
 
 - The root record's **type** is `TXT`, indicating a Text record.
 
-- The root record's value identifies the [property mapping](#property-mapping) for the document, along with
-versioning information.
+- The root record's **rdata** is represented by the form `v=M;vm=N;auth=O;asm=P;inv=Q;del=R;srv=S` where 
+`M` is the version of the DNS packet representation defined by this specification. `N` is the set 
+[Verification Method](#verification-methods) identifiers (e.g. `k0,k1`) present in the document, always
+containing at least `k0`. `O`, `P`, `Q`, and `R` contain the set of Verification Method resource 
+aliases (e.g. `k0`) for each [Verification Relationship](#verification-relationships). `S` contains
+the set of Service resource aliases (e.g. `s0`) for each [Service](#services).
 
-- The root record ****MUST**** include a version number. The version of the DNS packet representation for
-the `did:dht` method is represented by a property `v=V` where `V` is a monotonically increasing version number.
-The version number for this specification version is **0** (e.g. `v=0`). The version number is not present
-in the corresponding DID Document.
+Additionally:
 
-- Additional records like `srv` (services), `vm` (verification methods), and verification relationships
-(e.g., authentication, assertion, etc.) are represented as additional records in the format `<ID>._did.`.
-These records contain the zero-indexed value of each `key` or `service` as attributes.
+  - A version number ****MUST**** be present. The version number for this specification version 
+  is **0** (e.g. `v=0`). The version number is not present in the corresponding DID Document.
 
-- All resource record names, aside from the root record, ****MUST**** end in `_did.`.
+  - The `vm` property ****MUST**** always contain _at least_ the [[ref:Identity Key]] represented by `k0`.
 
-- The DNS packet ****MUST**** set the _Authoritative Answer_ flag since this is always an _Authoritative_ packet.
+  - Verification Relationships (`auth`, `asm`, `inv`, `del`, `srv`) without any members ****MUST**** be omitted.
+
+  - If there are no [Services](#services) the `srv` property ****MUST**** be omitted.
+
 
 **Example Root Record**
 
@@ -229,7 +254,7 @@ These records contain the zero-indexed value of each `key` or `service` as attri
 
 ### Property Mapping
 
-The following section describes mapping a [[ref:DID Document]] to a DNS packet.
+The following section describes mapping a [[ref:DID Document]] to a DNS packet's **rdata**.
 
 - Resource names are aliased with zero-indexed values (e.g. `k0`, `k1`, `s0`, `s1`).
 
@@ -250,8 +275,11 @@ The subsequent instructions serve as a reference for mapping DID Document proper
 
 A [DID controller](https://www.w3.org/TR/did-core/#did-controller) ****MAY**** be present in a `did:dht` document.
 
-If present, a DID controller ****MUST**** be represented as a `_cnt._did.` TXT record in the form of a comma-separated
-list of controller DID identifiers.
+- The [Controller](https://www.w3.org/TR/did-core/#did-controller) record's **name** is represented as a `_cnt._did.`.
+
+- The [Controller](https://www.w3.org/TR/did-core/#did-controller) record's **type** is `TXT`, indicating a Text record.
+
+- The [Controller](https://www.w3.org/TR/did-core/#did-controller) record's **data** is represented as a comma-separatedlist of controller DID identifiers.
 
 To ensure that the DID controller is authorized to make changes to the DID Document, the controller for the [[ref:Identity Key]] Verification Method ****MUST**** be contained within the controller property.
 
@@ -265,8 +293,11 @@ To ensure that the DID controller is authorized to make changes to the DID Docum
 
 A `did:dht` document ****MAY**** have multiple identifiers using the [alsoKnownAs](https://www.w3.org/TR/did-core/#also-known-as) property.
 
-If present, alternate DID identifiers ****MUST**** be represented as `_aka_.did.` TXT record in the form of a
-comma-separated list of DID identifiers.
+- The [Also Known As](https://www.w3.org/TR/did-core/#also-known-as) record's **name** is represented as a `_aka._did.`.
+
+- The [Also Known As](https://www.w3.org/TR/did-core/#also-known-as) record's **type** is `TXT`, indicating a Text record.
+
+- The [Also Known As](https://www.w3.org/TR/did-core/#also-known-as) record's **data** is represented as a comma-separated list of DID identifiers.
 
 **Example AKA Record**
 
@@ -276,12 +307,12 @@ comma-separated list of DID identifiers.
 
 #### Verification Methods
 
-- Each [Verification Method's](https://www.w3.org/TR/did-core/#verification-methods) **name** is represented 
+- Each [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) record's **name** is represented 
 as a `_kN._did.` record where `N` is the zero-indexed positional index of a given Verification Method (e.g. `_k0`, `_k1`).
 
-- Each [Verification Method's]((https://www.w3.org/TR/did-core/#verification-methods)) record **type** is `TXT`, indicating a Text record.
+- Each [Verification Method]((https://www.w3.org/TR/did-core/#verification-methods)) record's **type** is `TXT`, indicating a Text record.
 
-- Each [Verification Method's](https://www.w3.org/TR/did-core/#verification-methods) **rdata** is represented by the form
+- Each [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) record's **rdata** is represented by the form
 `id=M;t=N;k=O;a=P` where `M` is the Verification Method's `id`, `N` is the index of the key's type from the
 [key type index](registry/index.html#key-type-index), `N` is the unpadded base64URL [[spec:RFC4648]] representation of
 the public key, and `P` is the `JWK` `alg` identifier of the key.
@@ -307,7 +338,7 @@ assert the veracity of their relations.
 #### Verification Relationships
 
 - Each [Verification Relationship](https://www.w3.org/TR/did-core/#verification-relationships) is represented as a part
-of the root `_did.<ID>.` record (see: [Property Mapping](#property-mapping)).
+of the root `_did.<ID>.` record (see: [Root Record](#root-record)).
 
 The following table acts as a map between Verification Relationship types and their record name:
 
@@ -336,12 +367,12 @@ represented as a comma-separated list of key references.
 
 #### Services
 
-- Each [Service's](https://www.w3.org/TR/did-core/#services) **name** is represented as a `_sN._did.` record where `N` is
+- Each [Service](https://www.w3.org/TR/did-core/#services) record's **name** is represented as a `_sN._did.` record where `N` is
 the zero-indexed positional index of the Service (e.g. `_s0`, `_s1`).
 
-- The record **type** is `TXT`, indicating a Text record.
+- Each [Service](https://www.w3.org/TR/did-core/#services) record's **type** is `TXT`, indicating a Text record.
 
-- Each [Service's](https://www.w3.org/TR/did-core/#services) **data** is represented with the form `id=M;t=N;se=O`
+- Each [Service](https://www.w3.org/TR/did-core/#services) record's **data** is represented with the form `id=M;t=N;se=O`
 where `M` is the Service's ID, `N` is the Service's Type and `O` is the Service's URI.
 
   - Multiple service endpoints can be represented as an array (e.g. `id=dwn;t=DecentralizedWebNode;se=https://dwn.org/dwn1,https://dwn.org/dwn2`)
@@ -530,11 +561,11 @@ designation is accomplished by incorporating [DNS NS records](https://en.wikiped
 DNS packet destined for storage in the DHT. A DID ****MAY**** have multiple NS records, enhancing redundancy and reliability. The format
 for these records is outlined as follows:
 
-- The record **name** is represented as `_did.<ID>.` record, where `ID` represents the unique identifier of the [[ref:DID Document]].
+- Each Gateway record's **name** is represented as `_did.<ID>.` record, where `ID` represents the unique identifier of the [[ref:DID Document]].
 
-- The record **type** is `NS`, indicating a Name Server record.
+- Each Gateway record's **type** is `NS`, indicating a Name Server record.
 
-- The record **data** is represented as a [Fully Qualified Domain Name (FQDN)](https://en.wikipedia.org/wiki/Fully_qualified_domain_name).
+- Each Gateway record's **data** is represented as a [Fully Qualified Domain Name (FQDN)](https://en.wikipedia.org/wiki/Fully_qualified_domain_name).
 
 | Name         | Type | TTL   | Rdata                                 |
 | ------------ | ---- | ----- | ------------------------------------- |
@@ -548,13 +579,13 @@ a particular type. Types are not included as a part of the DID Document, but rat
 for DIDs to be indexed by type by [[ref:Gateways]], and for DIDs to be resolved by type.
 
 DIDs can be indexed by type by adding a `_typ._did.` record to the DNS packet. A DID ****MAY**** have **AT MOST** one type index
-record. This record is a TXT record with the following format:
+record. This record is of the following format:
 
-- The record **name** is represented as a `_typ._did.` record.
+- The Type Index record's **name** is represented as a `_typ._did.` record.
 
-- The record **type** is `TXT`, indicating a Text record.
+- The Type Index record's **type** is `TXT`, indicating a Text record.
 
-- The record **data** is represented with the form `id=0,1,2` where the value is a comma-separated list of integer types from
+- The Type Index record's **data** is represented with the form `id=0,1,2` where the value is a comma-separated list of integer types from
 the [type index](#type-indexing).
 
 **Example Type Index Record**
@@ -800,7 +831,8 @@ follows the same process as [updating a DID](#register-or-update-a-did), but wit
 [section on deactivation](#deactivate).
 
 Upon receiving a request to deactivate a DID, the Gateway ****MUST**** verify the signature of the request, and if valid,
-stop republishing the DHT. If the DNS Packets contain a `_typ._did.` record, the Gateway ****MUST**** remove the type index.
+stop republishing the DHT. If the DNS Packets contain a `_typ._did.` record, the Gateway ****MUST**** stop indexing the
+type(s) for the DID.
 
 #### Type Indexing
 
@@ -986,7 +1018,7 @@ such as a [gossip protocol](https://en.wikipedia.org/wiki/Gossip_protocol).
 
 ### Data Authenticity
 
-To enter into the DHT using [[ref:BEP44]] records ****MUST*** be signed by an [[ref:Ed25519]] private key, known as the
+To enter into the DHT using [[ref:BEP44]] records ****MUST**** be signed by an [[ref:Ed25519]] private key, known as the
 [[ref:Identity Key]]. When retrieving records either through a [[ref:Mainline Server]] or a [[ref:Gateway]] is it 
 ****RECOMMENDED**** that one verifies the cryptographic integrity of the record themselves instead of trusting a server
 to have done the validation. Servers that do not return a signature value ****MUST NOT**** be trusted.
@@ -1187,7 +1219,7 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
 | Name      | Type | TTL  | Rdata       |
 | --------- | ---- | ---- | ----------- |
 | _did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo. | NS  | 7200 | gateway1.example-did-dht-gateway.com.                  |
-| _did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo. | TXT | 7200 | v=0;vm=k0,k1;svc=s0;auth=k0;asm=k0,k1;inv=k0,k1;del=k0 |
+| _did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo. | TXT | 7200 | v=0;vm=k0,k1;auth=k0;asm=k0,k1;inv=k0,k1;del=k0;svc=s0 |
 | _cnt.did. | TXT  | 7200 | did:example:abcd                                                                                       |
 | _aka.did. | TXT  | 7200 | did:example:efgh,did:example:ijkl                                                                      |
 | _k0.did.  | TXT  | 7200 | id=0;t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE;c=did:example:abcd                              |
@@ -1198,7 +1230,7 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
 #### Vector 3
 
 A DID Document with two keys -- the [[ref:Identity Key]] and an X25519 key used with a different `alg` value than
-what is specified in the registry. The DID also has two gateway records.
+what is specified in the registry. The DID also has two gateway records and a service with an endpoint greater than 255 characters.
 
 **Identity Public Key JWK:**
 
@@ -1225,6 +1257,16 @@ what is specified in the registry. The DID also has two gateway records.
 ```
 
 **Key Purposes:** `Key Agreement`.
+
+**Service:**
+
+```json
+{
+  "id": "service-1",
+  "type": "TestLongService",
+  "serviceEndpoint": ["https://test-lllllllllllllllllllllllllllllllllllooooooooooooooooooooonnnnnnnnnnnnnnnnnnngggggggggggggggggggggggggggggggggggggsssssssssssssssssssssssssseeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrvvvvvvvvvvvvvvvvvvvviiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiccccccccccccccccccccccccccccccceeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.com/1"]
+}
+```
 
 **Gateways:**: `gateway1.example-did-dht-gateway.com.`, `gateway2.example-did-dht-gateway.com.`.
 
@@ -1273,6 +1315,13 @@ what is specified in the registry. The DID also has two gateway records.
   ],
   "capabilityDelegation": [
     "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy#0"
+  ],
+  "service": [
+    {
+      "id": "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy#service-1",
+      "type": "TestLongService",
+      "serviceEndpoint": ["https://test-lllllllllllllllllllllllllllllllllllooooooooooooooooooooonnnnnnnnnnnnnnnnnnngggggggggggggggggggggggggggggggggggggsssssssssssssssssssssssssseeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrvvvvvvvvvvvvvvvvvvvviiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiccccccccccccccccccccccccccccccceeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.com/1"]
+    }
   ]
 }
 ```
@@ -1282,9 +1331,10 @@ what is specified in the registry. The DID also has two gateway records.
 | Name      | Type | TTL  | Rdata       |
 | --------- | ---- | ---- | ----------- |
 | _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | NS  | 7200 | gateway1.example-did-dht-gateway.com.                              |
-| _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | TXT | 7200 | v=0;vm=k0,k1;auth=k0;asm=k0;agm=k1;inv=k0;del=k0                   |
+| _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | TXT | 7200 | v=0;vm=k0,k1;auth=k0;asm=k0;agm=k1;inv=k0;del=k0;svc=s0            |
 | _k0.did.  | TXT  | 7200 | id=0;t=0;k=sTyTLYw-n1NI9X-84NaCuis1wZjAA8lku6f6Et5201g                                                             |
 | _k1.did.  | TXT  | 7200 | id=WVy5IWMa36AoyAXZDvPd5j9zxt2t-GjifDEV-DwgIdQ;t=3;k=3POE0_i2mGeZ2qiQCA3KcLfi1fZo0311CXFSIwt1nB4;a=ECDH-ES+A128KW   |
+| _s0.did.  | TXT  | 7200 | id=service-1;t=TestLongService;se=https://test-lllllllllllllllllllllllllllllllllllooooooooooooooooooooonnnnnnnnnnnnnnnnnnngggggggggggggggggggggggggggggggggggggsssssssssssssssssssssssssseeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrvvvvvvvvvvvvvvvvvvvviiiiiiiiiiiiiiii iiiiiiiiiiiiiiiccccccccccccccccccccccccccccccceeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.com/1 |
 
 ### Open API Definition
 

@@ -1,18 +1,11 @@
 # Server Implementation
 
-- Heavily a work-in-progress
-- Designed to be run as a single instance
-
 ## Config
 
 ### TOML Config File
 
-Config is managed using a [TOML](https://toml.io/en/) [file](../../config/dev.toml). There are sets of configuration values for the server
-(e.g. which port to listen on), the services (e.g. which database to use), and each service.
-
-Each service may define specific configuration, such as which DID methods are enabled for the DID service.
-
-A full config example is [provided here](../../config/kitchensink.toml).
+Config is managed using a [TOML](https://toml.io/en/) [file](../../config/dev.toml). There are sets of configuration value
+s for the server (e.g. which port to listen on) and each sub-component (e.g. which database to use).
 
 ## Usage
 
@@ -60,10 +53,13 @@ docker build \
 and then
 
 ```sh
-docker run --publish 8305:8305 did-dht
+docker run \
+    --publish 8305:8305 \
+    --publish 6881:6881/udp \
+    did-dht
 ```
 
 ### Postgres
 
-To use a postgres database as the storage backend, set configuration option `storage_uri` to a `postgres://` URI with the database
-connection string. The schema will be created or updated as needed while the program starts.
+To use a postgres database as the storage backend, set configuration option `storage_uri` to a `postgres://` URI with
+the database connection string. The schema will be created or updated as needed while the program starts.

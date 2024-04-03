@@ -1,5 +1,5 @@
 [![godoc did-dht-method](https://img.shields.io/badge/godoc-did_dht_method-blue)](https://github.com/TBD54566975/did-dht-method/impl)
-[![go version 1.22.1](https://img.shields.io/badge/go_version-1.22.1-brightgreen)](https://go.dev/)
+[![go version 1.22.2](https://img.shields.io/badge/go_version-1.22.2-brightgreen)](https://go.dev/)
 [![license Apache 2](https://img.shields.io/badge/license-Apache%202-black)](https://github.com/TBD54566975/did-dht-method/blob/main/LICENSE)
 [![issues](https://img.shields.io/github/issues/TBD54566975/did-dht-method)](https://github.com/TBD54566975/did-dht-method/issues)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/tbd54566975/did-dht-method/ci.yml)
@@ -59,6 +59,7 @@ docker run \
 | Typescript | Yes    | No     | [web5-js](https://github.com/TBD54566975/web5-js/blob/main/packages/dids/src/methods/did-dht.ts) |
 | Kotlin     | Yes    | No     | [web5-kt](https://github.com/TBD54566975/web5-kt/tree/main/dids/src/main/kotlin/web5/sdk/dids/methods/dht) |
 | Swift      | Yes    | No     | [web5-swift](https://github.com/TBD54566975/web5-swift/blob/main/Sources/Web5/Dids/Methods/DIDDHT.swift) |
+| Dart       | Yes    | No     | [web5-dart](https://github.com/TBD54566975/web5-dart/tree/main/packages/web5/lib/src/dids/did_dht) |
 | Rust       | Yes    | No     | Coming soon! |
 
 ## Project Resources
