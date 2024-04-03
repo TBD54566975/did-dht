@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Latest Update:** April 1, 2024
+**Latest Update:** April 2, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -184,8 +184,8 @@ Similarly, the requirement of an Identity Key enables [interoperability with oth
 
 ### DIDs as DNS Records
 
-In this scheme, we encode the [[ref:DID Document]] as [DNS Resource Records](https://en.wikipedia.org/wiki/Domain_Name_System#Resource_records).
-Comprising a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then stored in the [[ref:DHT]].
+In this scheme, we encode the [[ref:DID Document]] as [DNS Resource Records](https://en.wikipedia.org/wiki/Domain_Name_System#Resource_records). These resource records make up a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then 
+stored in the [[ref:DHT]].
 
 | Name         | Type | TTL    | Rdata                                                        |
 | ------------ | ---- | ------ | ------------------------------------------------------------ |
@@ -200,26 +200,48 @@ Comprising a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then stored 
 The recommended TTL value is 7200 seconds (2 hours), the default TTL for [[ref:Mainline]] records.
 :::
 
-- The root record's name ****MUST**** be of the form, `_did.<ID>.`, where `ID` is the [[ref:Pkarr]] identifier
+- The [Root Record](#root-record) serves as a "map" to reconstruct a [[ref:DID Document]] from a DNS packet.
+This record contains a _version_ number, indicating the version of this specification a given record is created against.
+
+- Additional records like `srv` (services), `vm` ([Verification Methods](#verification-methods)), and 
+[Verification Relationships](#verification-relationships) (e.g., authentication, assertion, etc.) are 
+represented as additional records in the format `<ID>._did.`. These records contain the zero-indexed value of 
+each `key` or `service` as attributes.
+
+- All resource record names, aside from the [Root Record](#root-record) and optional 
+[Authoritative Gateway Records](#designating-authoritative-gateways), ****MUST**** end in `_did.`.
+
+- The DNS packet ****MUST**** set the _Authoritative Answer_ flag since this is always an _Authoritative_ packet.
+
+#### Root Record
+
+The root record is a special record which serves as instructions on how to reconstruct a [[ref:DID Document]],
+by providing a [property mapping](#property-mapping) for a [[ref:DID Document]], along with containing pertinent
+metadata such as a version identifier.
+
+- The root record's **name** ****MUST**** be of the form, `_did.<ID>.`, where `ID` is the [[ref:Pkarr]] identifier
 associated with the DID (i.e. `did:dht:<ID>` becomes `_did.<ID>.`).
 
 - The root record's **type** is `TXT`, indicating a Text record.
 
-- The root record's value identifies the [property mapping](#property-mapping) for the document, along with
-versioning information.
+- The root record's **rdata** is represented by the form `v=M;vm=N;auth=O;asm=P;inv=Q;del=R;srv=S` where 
+`M` is the version of the DNS packet representation defined by this specification. `N` is the set 
+[Verification Method](#verification-methods) identifiers (e.g. `k0,k1`) present in the document, always
+containing at least `k0`. `O`, `P`, `Q`, and `R` contain the set of Verification Method resource 
+aliases (e.g. `k0`) for each [Verification Relationship](#verification-relationships). `S` contains
+the set of Service resource aliases (e.g. `s0`) for each [Service](#services).
 
-- The root record ****MUST**** include a version number. The version of the DNS packet representation for
-the `did:dht` method is represented by a property `v=V` where `V` is a monotonically increasing version number.
-The version number for this specification version is **0** (e.g. `v=0`). The version number is not present
-in the corresponding DID Document.
+Additionally:
 
-- Additional records like `srv` (services), `vm` (verification methods), and verification relationships
-(e.g., authentication, assertion, etc.) are represented as additional records in the format `<ID>._did.`.
-These records contain the zero-indexed value of each `key` or `service` as attributes.
+  - A version number ****MUST**** be present. The version number for this specification version 
+  is **0** (e.g. `v=0`). The version number is not present in the corresponding DID Document.
 
-- All resource record names, aside from the root record, ****MUST**** end in `_did.`.
+  - The `vm` property ****MUST**** always contain _at least_ the [[ref:Identity Key]] represented by `k0`.
 
-- The DNS packet ****MUST**** set the _Authoritative Answer_ flag since this is always an _Authoritative_ packet.
+  - Verification Relationships (`auth`, `asm`, `inv`, `del`, `srv`) without any members ****MUST**** be omitted.
+
+  - If there are no [Services](#services) the `srv` property ****MUST**** be omitted.
+
 
 **Example Root Record**
 
@@ -229,7 +251,7 @@ These records contain the zero-indexed value of each `key` or `service` as attri
 
 ### Property Mapping
 
-The following section describes mapping a [[ref:DID Document]] to a DNS packet.
+The following section describes mapping a [[ref:DID Document]] to a DNS packet's **rdata**.
 
 - Resource names are aliased with zero-indexed values (e.g. `k0`, `k1`, `s0`, `s1`).
 
@@ -265,7 +287,7 @@ To ensure that the DID controller is authorized to make changes to the DID Docum
 
 A `did:dht` document ****MAY**** have multiple identifiers using the [alsoKnownAs](https://www.w3.org/TR/did-core/#also-known-as) property.
 
-If present, alternate DID identifiers ****MUST**** be represented as `_aka_.did.` TXT record in the form of a
+If present, alternate DID identifiers ****MUST**** be represented as `_aka_.did.` `TXT` record in the form of a
 comma-separated list of DID identifiers.
 
 **Example AKA Record**
@@ -307,7 +329,7 @@ assert the veracity of their relations.
 #### Verification Relationships
 
 - Each [Verification Relationship](https://www.w3.org/TR/did-core/#verification-relationships) is represented as a part
-of the root `_did.<ID>.` record (see: [Property Mapping](#property-mapping)).
+of the root `_did.<ID>.` record (see: [Root Record](#root-record)).
 
 The following table acts as a map between Verification Relationship types and their record name:
 
@@ -800,7 +822,8 @@ follows the same process as [updating a DID](#register-or-update-a-did), but wit
 [section on deactivation](#deactivate).
 
 Upon receiving a request to deactivate a DID, the Gateway ****MUST**** verify the signature of the request, and if valid,
-stop republishing the DHT. If the DNS Packets contain a `_typ._did.` record, the Gateway ****MUST**** remove the type index.
+stop republishing the DHT. If the DNS Packets contain a `_typ._did.` record, the Gateway ****MUST**** stop indexing the
+type(s) for the DID.
 
 #### Type Indexing
 
@@ -986,7 +1009,7 @@ such as a [gossip protocol](https://en.wikipedia.org/wiki/Gossip_protocol).
 
 ### Data Authenticity
 
-To enter into the DHT using [[ref:BEP44]] records ****MUST*** be signed by an [[ref:Ed25519]] private key, known as the
+To enter into the DHT using [[ref:BEP44]] records ****MUST**** be signed by an [[ref:Ed25519]] private key, known as the
 [[ref:Identity Key]]. When retrieving records either through a [[ref:Mainline Server]] or a [[ref:Gateway]] is it 
 ****RECOMMENDED**** that one verifies the cryptographic integrity of the record themselves instead of trusting a server
 to have done the validation. Servers that do not return a signature value ****MUST NOT**** be trusted.
