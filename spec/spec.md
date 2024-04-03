@@ -213,6 +213,9 @@ each `key` or `service` as attributes.
 
 - The DNS packet ****MUST**** set the _Authoritative Answer_ flag since this is always an _Authoritative_ packet.
 
+- `TXT` records ****MAY**** exceed 255 characters as per [[spec:RFC1035]]. Records exceeding 255 characters are
+represented as multiple strings, which upon DID Document reconstructin, can be concatenated to a single value.
+
 #### Root Record
 
 The root record is a special record which serves as instructions on how to reconstruct a [[ref:DID Document]],
@@ -272,8 +275,11 @@ The subsequent instructions serve as a reference for mapping DID Document proper
 
 A [DID controller](https://www.w3.org/TR/did-core/#did-controller) ****MAY**** be present in a `did:dht` document.
 
-If present, a DID controller ****MUST**** be represented as a `_cnt._did.` TXT record in the form of a comma-separated
-list of controller DID identifiers.
+- The [Controller](https://www.w3.org/TR/did-core/#did-controller) record's **name** is represented as a `_cnt._did.`.
+
+- The [Controller](https://www.w3.org/TR/did-core/#did-controller) record's **type** is `TXT`, indicating a Text record.
+
+- The [Controller](https://www.w3.org/TR/did-core/#did-controller) record's **data** is represented as a comma-separatedlist of controller DID identifiers.
 
 To ensure that the DID controller is authorized to make changes to the DID Document, the controller for the [[ref:Identity Key]] Verification Method ****MUST**** be contained within the controller property.
 
@@ -287,8 +293,11 @@ To ensure that the DID controller is authorized to make changes to the DID Docum
 
 A `did:dht` document ****MAY**** have multiple identifiers using the [alsoKnownAs](https://www.w3.org/TR/did-core/#also-known-as) property.
 
-If present, alternate DID identifiers ****MUST**** be represented as `_aka_.did.` `TXT` record in the form of a
-comma-separated list of DID identifiers.
+- The [Also Known As](https://www.w3.org/TR/did-core/#also-known-as) record's **name** is represented as a `_aka._did.`.
+
+- The [Also Known As](https://www.w3.org/TR/did-core/#also-known-as) record's **type** is `TXT`, indicating a Text record.
+
+- The [Also Known As](https://www.w3.org/TR/did-core/#also-known-as) record's **data** is represented as a comma-separated list of DID identifiers.
 
 **Example AKA Record**
 
@@ -298,12 +307,12 @@ comma-separated list of DID identifiers.
 
 #### Verification Methods
 
-- Each [Verification Method's](https://www.w3.org/TR/did-core/#verification-methods) **name** is represented 
+- Each [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) record's **name** is represented 
 as a `_kN._did.` record where `N` is the zero-indexed positional index of a given Verification Method (e.g. `_k0`, `_k1`).
 
-- Each [Verification Method's]((https://www.w3.org/TR/did-core/#verification-methods)) record **type** is `TXT`, indicating a Text record.
+- Each [Verification Method]((https://www.w3.org/TR/did-core/#verification-methods)) record's **type** is `TXT`, indicating a Text record.
 
-- Each [Verification Method's](https://www.w3.org/TR/did-core/#verification-methods) **rdata** is represented by the form
+- Each [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) record's **rdata** is represented by the form
 `id=M;t=N;k=O;a=P` where `M` is the Verification Method's `id`, `N` is the index of the key's type from the
 [key type index](registry/index.html#key-type-index), `N` is the unpadded base64URL [[spec:RFC4648]] representation of
 the public key, and `P` is the `JWK` `alg` identifier of the key.
@@ -358,12 +367,12 @@ represented as a comma-separated list of key references.
 
 #### Services
 
-- Each [Service's](https://www.w3.org/TR/did-core/#services) **name** is represented as a `_sN._did.` record where `N` is
+- Each [Service](https://www.w3.org/TR/did-core/#services) record's **name** is represented as a `_sN._did.` record where `N` is
 the zero-indexed positional index of the Service (e.g. `_s0`, `_s1`).
 
-- The record **type** is `TXT`, indicating a Text record.
+- Each [Service](https://www.w3.org/TR/did-core/#services) record's **type** is `TXT`, indicating a Text record.
 
-- Each [Service's](https://www.w3.org/TR/did-core/#services) **data** is represented with the form `id=M;t=N;se=O`
+- Each [Service](https://www.w3.org/TR/did-core/#services) record's **data** is represented with the form `id=M;t=N;se=O`
 where `M` is the Service's ID, `N` is the Service's Type and `O` is the Service's URI.
 
   - Multiple service endpoints can be represented as an array (e.g. `id=dwn;t=DecentralizedWebNode;se=https://dwn.org/dwn1,https://dwn.org/dwn2`)
@@ -552,11 +561,11 @@ designation is accomplished by incorporating [DNS NS records](https://en.wikiped
 DNS packet destined for storage in the DHT. A DID ****MAY**** have multiple NS records, enhancing redundancy and reliability. The format
 for these records is outlined as follows:
 
-- The record **name** is represented as `_did.<ID>.` record, where `ID` represents the unique identifier of the [[ref:DID Document]].
+- Each Gateway record's **name** is represented as `_did.<ID>.` record, where `ID` represents the unique identifier of the [[ref:DID Document]].
 
-- The record **type** is `NS`, indicating a Name Server record.
+- Each Gateway record's **type** is `NS`, indicating a Name Server record.
 
-- The record **data** is represented as a [Fully Qualified Domain Name (FQDN)](https://en.wikipedia.org/wiki/Fully_qualified_domain_name).
+- Each Gateway record's **data** is represented as a [Fully Qualified Domain Name (FQDN)](https://en.wikipedia.org/wiki/Fully_qualified_domain_name).
 
 | Name         | Type | TTL   | Rdata                                 |
 | ------------ | ---- | ----- | ------------------------------------- |
@@ -570,13 +579,13 @@ a particular type. Types are not included as a part of the DID Document, but rat
 for DIDs to be indexed by type by [[ref:Gateways]], and for DIDs to be resolved by type.
 
 DIDs can be indexed by type by adding a `_typ._did.` record to the DNS packet. A DID ****MAY**** have **AT MOST** one type index
-record. This record is a TXT record with the following format:
+record. This record is of the following format:
 
-- The record **name** is represented as a `_typ._did.` record.
+- The Type Index record's **name** is represented as a `_typ._did.` record.
 
-- The record **type** is `TXT`, indicating a Text record.
+- The Type Index record's **type** is `TXT`, indicating a Text record.
 
-- The record **data** is represented with the form `id=0,1,2` where the value is a comma-separated list of integer types from
+- The Type Index record's **data** is represented with the form `id=0,1,2` where the value is a comma-separated list of integer types from
 the [type index](#type-indexing).
 
 **Example Type Index Record**
