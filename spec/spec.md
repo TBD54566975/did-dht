@@ -1230,7 +1230,7 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
 #### Vector 3
 
 A DID Document with two keys -- the [[ref:Identity Key]] and an X25519 key used with a different `alg` value than
-what is specified in the registry. The DID also has two gateway records.
+what is specified in the registry. The DID also has two gateway records and a service with an endpoint greater than 255 characters.
 
 **Identity Public Key JWK:**
 
@@ -1257,6 +1257,16 @@ what is specified in the registry. The DID also has two gateway records.
 ```
 
 **Key Purposes:** `Key Agreement`.
+
+**Service:**
+
+```json
+{
+  "id": "service-1",
+  "type": "TestLongService",
+  "serviceEndpoint": ["https://test-lllllllllllllllllllllllllllllllllllooooooooooooooooooooonnnnnnnnnnnnnnnnnnngggggggggggggggggggggggggggggggggggggsssssssssssssssssssssssssseeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrvvvvvvvvvvvvvvvvvvvviiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiccccccccccccccccccccccccccccccceeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.com/1"]
+}
+```
 
 **Gateways:**: `gateway1.example-did-dht-gateway.com.`, `gateway2.example-did-dht-gateway.com.`.
 
@@ -1305,6 +1315,13 @@ what is specified in the registry. The DID also has two gateway records.
   ],
   "capabilityDelegation": [
     "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy#0"
+  ],
+  "service": [
+    {
+      "id": "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy#service-1",
+      "type": "TestLongService",
+      "serviceEndpoint": ["https://test-lllllllllllllllllllllllllllllllllllooooooooooooooooooooonnnnnnnnnnnnnnnnnnngggggggggggggggggggggggggggggggggggggsssssssssssssssssssssssssseeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrvvvvvvvvvvvvvvvvvvvviiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiccccccccccccccccccccccccccccccceeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.com/1"]
+    }
   ]
 }
 ```
@@ -1314,9 +1331,10 @@ what is specified in the registry. The DID also has two gateway records.
 | Name      | Type | TTL  | Rdata       |
 | --------- | ---- | ---- | ----------- |
 | _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | NS  | 7200 | gateway1.example-did-dht-gateway.com.                              |
-| _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | TXT | 7200 | v=0;vm=k0,k1;auth=k0;asm=k0;agm=k1;inv=k0;del=k0                   |
+| _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | TXT | 7200 | v=0;vm=k0,k1;auth=k0;asm=k0;agm=k1;inv=k0;del=k0;srv=s0            |
 | _k0.did.  | TXT  | 7200 | id=0;t=0;k=sTyTLYw-n1NI9X-84NaCuis1wZjAA8lku6f6Et5201g                                                             |
 | _k1.did.  | TXT  | 7200 | id=WVy5IWMa36AoyAXZDvPd5j9zxt2t-GjifDEV-DwgIdQ;t=3;k=3POE0_i2mGeZ2qiQCA3KcLfi1fZo0311CXFSIwt1nB4;a=ECDH-ES+A128KW   |
+| _s0.did.  | TXT  | 7200 | id=service-1;t=TestLongService;se=                   |
 
 ### Open API Definition
 
