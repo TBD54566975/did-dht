@@ -59,6 +59,7 @@ docker run \
 | Typescript | Yes    | No     | [web5-js](https://github.com/TBD54566975/web5-js/blob/main/packages/dids/src/methods/did-dht.ts) |
 | Kotlin     | Yes    | No     | [web5-kt](https://github.com/TBD54566975/web5-kt/tree/main/dids/src/main/kotlin/web5/sdk/dids/methods/dht) |
 | Swift      | Yes    | No     | [web5-swift](https://github.com/TBD54566975/web5-swift/blob/main/Sources/Web5/Dids/Methods/DIDDHT.swift) |
+| Dart       | Yes    | No     | [web5-dart](https://github.com/TBD54566975/web5-dart/tree/main/packages/web5/lib/src/dids/did_dht) |
 | Rust       | Yes    | No     | Coming soon! |
 
 ## Project Resources
