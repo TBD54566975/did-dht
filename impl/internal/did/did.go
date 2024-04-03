@@ -798,14 +798,19 @@ func keyTypeForJWK(jwk jwx.PublicKeyJWK) int {
 	return -1
 }
 
-// chunkTextRecord splits a text record into chunks of 255 characters
+// chunkTextRecord splits a text record into chunks of 255 characters, taking into account multi-byte characters
 func chunkTextRecord(record string) []string {
 	var chunks []string
-	for len(record) > 255 {
-		chunks = append(chunks, record[:255])
-		record = record[255:]
+	runeArray := []rune(record) // Convert to rune slice to properly handle multi-byte characters
+	for len(runeArray) > 0 {
+		if len(runeArray) <= 255 {
+			chunks = append(chunks, string(runeArray))
+			break
+		}
+
+		chunks = append(chunks, string(runeArray[:255]))
+		runeArray = runeArray[255:]
 	}
-	chunks = append(chunks, record)
 	return chunks
 }
 
