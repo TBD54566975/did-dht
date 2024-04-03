@@ -6,11 +6,11 @@
       "type": "JsonWebKey",
       "controller": "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy",
       "publicKeyJwk": {
-        "kty": "OKP",
-        "crv": "Ed25519",
-        "x": "sTyTLYw-n1NI9X-84NaCuis1wZjAA8lku6f6Et5201g",
+        "kid": "0",
         "alg": "Ed25519",
-        "kid": "0"
+        "crv": "Ed25519",
+        "kty": "OKP",
+        "x": "sTyTLYw-n1NI9X-84NaCuis1wZjAA8lku6f6Et5201g"
       }
     },
     {
@@ -18,11 +18,11 @@
       "type": "JsonWebKey",
       "controller": "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy",
       "publicKeyJwk": {
-        "kty": "OKP",
-        "crv": "X25519",
-        "x": "3POE0_i2mGeZ2qiQCA3KcLfi1fZo0311CXFSIwt1nB4",
+        "kid": "WVy5IWMa36AoyAXZDvPd5j9zxt2t-GjifDEV-DwgIdQ",
         "alg": "ECDH-ES+A128KW",
-        "kid": "WVy5IWMa36AoyAXZDvPd5j9zxt2t-GjifDEV-DwgIdQ"
+        "crv": "X25519",
+        "kty": "OKP",
+        "x": "3POE0_i2mGeZ2qiQCA3KcLfi1fZo0311CXFSIwt1nB4"
       }
     }
   ],
@@ -40,5 +40,12 @@
   ],
   "capabilityDelegation": [
     "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy#0"
+  ],
+  "service": [
+    {
+      "id": "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy#service-1",
+      "type": "TestLongService",
+      "serviceEndpoint": ["https://test-lllllllllllllllllllllllllllllllllllooooooooooooooooooooonnnnnnnnnnnnnnnnnnngggggggggggggggggggggggggggggggggggggsssssssssssssssssssssssssseeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrvvvvvvvvvvvvvvvvvvvviiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiccccccccccccccccccccccccccccccceeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.com/1"]
+    }
   ]
 }

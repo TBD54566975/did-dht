@@ -268,7 +268,7 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex, gateways []Authori
 				Class:  dns.ClassINET,
 				Ttl:    7200,
 			},
-			Txt: []string{controllerTxt},
+			Txt: chunkTextRecord(controllerTxt),
 		}
 		records = append(records, &controllerAnswer)
 	}
@@ -287,7 +287,7 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex, gateways []Authori
 				Class:  dns.ClassINET,
 				Ttl:    7200,
 			},
-			Txt: []string{akaTxt},
+			Txt: chunkTextRecord(akaTxt),
 		}
 		records = append(records, &akaAnswer)
 	}
@@ -301,7 +301,7 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex, gateways []Authori
 				Class:  dns.ClassINET,
 				Ttl:    7200,
 			},
-			Txt: []string{string(gateway)},
+			Txt: chunkTextRecord(string(gateway)),
 		}
 		records = append(records, &gatewayAnswer)
 	}
@@ -347,6 +347,10 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex, gateways []Authori
 			}
 			txtRecord += fmt.Sprintf(";c=%s", vm.Controller)
 		}
+
+		if len(txtRecord) > 255 {
+			return nil, fmt.Errorf("key value exceeds 255 characters")
+		}
 		keyRecord := dns.TXT{
 			Hdr: dns.RR_Header{
 				Name:   fmt.Sprintf("_%s._did.", recordIdentifier),
@@ -354,7 +358,7 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex, gateways []Authori
 				Class:  dns.ClassINET,
 				Ttl:    7200,
 			},
-			Txt: []string{txtRecord},
+			Txt: chunkTextRecord(txtRecord),
 		}
 
 		records = append(records, &keyRecord)
@@ -386,15 +390,11 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex, gateways []Authori
 				Class:  dns.ClassINET,
 				Ttl:    7200,
 			},
-			Txt: []string{svcTxt},
+			Txt: chunkTextRecord(svcTxt),
 		}
 
 		records = append(records, &serviceRecord)
 		svcIDs = append(svcIDs, recordIdentifier)
-	}
-	// add services to the root record
-	if len(svcIDs) != 0 {
-		rootRecord = append(rootRecord, fmt.Sprintf("svc=%s", strings.Join(svcIDs, ",")))
 	}
 
 	// add verification relationships to the root record
@@ -438,6 +438,11 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex, gateways []Authori
 		rootRecord = append(rootRecord, fmt.Sprintf("del=%s", strings.Join(capabilityDelegationIDs, ",")))
 	}
 
+	// add services to the root record
+	if len(svcIDs) != 0 {
+		rootRecord = append(rootRecord, fmt.Sprintf("svc=%s", strings.Join(svcIDs, ",")))
+	}
+
 	// add the root record
 	rootAnswer := dns.TXT{
 		Hdr: dns.RR_Header{
@@ -463,7 +468,7 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex, gateways []Authori
 				Class:  dns.ClassINET,
 				Ttl:    7200,
 			},
-			Txt: []string{"id=" + strings.Join(typesStr, ",")},
+			Txt: chunkTextRecord("id=" + strings.Join(typesStr, ",")),
 		}
 		records = append(records, &typesAnswer)
 	}
@@ -524,7 +529,8 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, []Authorit
 		switch record := rr.(type) {
 		case *dns.TXT:
 			if strings.HasPrefix(record.Hdr.Name, "_cnt") {
-				controllers := strings.Split(record.Txt[0], ",")
+				unchunkedTextRecord := unchunkTextRecord(record.Txt)
+				controllers := strings.Split(unchunkedTextRecord, ",")
 				if len(controllers) == 1 {
 					doc.Controller = controllers[0]
 				} else {
@@ -532,10 +538,12 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, []Authorit
 				}
 			}
 			if strings.HasPrefix(record.Hdr.Name, "_aka") {
-				doc.AlsoKnownAs = strings.Split(record.Txt[0], ",")
+				unchunkedTextRecord := unchunkTextRecord(record.Txt)
+				doc.AlsoKnownAs = strings.Split(unchunkedTextRecord, ",")
 			}
 			if strings.HasPrefix(record.Hdr.Name, "_k") {
-				data := parseTxtData(strings.Join(record.Txt, ","))
+				unchunkedTextRecord := unchunkTextRecord(record.Txt)
+				data := parseTxtData(unchunkedTextRecord)
 				vmID := data["id"]
 				keyType := keyTypeLookUp(data["t"])
 				keyBase64URL := data["k"]
@@ -598,20 +606,15 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, []Authorit
 				// add to key lookup (e.g.  "k1" -> "key1")
 				keyLookup[strings.Split(record.Hdr.Name, ".")[0][1:]] = vmID
 			} else if strings.HasPrefix(record.Hdr.Name, "_s") {
-				data := parseTxtData(strings.Join(record.Txt, ","))
+				unchunkedTextRecord := unchunkTextRecord(record.Txt)
+				data := parseTxtData(unchunkedTextRecord)
 				sID := data["id"]
 				serviceType := data["t"]
 				serviceEndpoint := data["se"]
-				var serviceEndpointValue any
-				if strings.Contains(serviceEndpoint, ",") {
-					serviceEndpointValue = strings.Split(serviceEndpoint, ",")
-				} else {
-					serviceEndpointValue = serviceEndpoint
-				}
 				service := did.Service{
 					ID:              d.String() + "#" + sID,
 					Type:            serviceType,
-					ServiceEndpoint: serviceEndpointValue,
+					ServiceEndpoint: strings.Split(serviceEndpoint, ","),
 				}
 				if data["sig"] != "" {
 					if strings.Contains(data["sig"], ",") {
@@ -630,10 +633,11 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, []Authorit
 				doc.Services = append(doc.Services, service)
 
 			} else if record.Hdr.Name == "_typ._did." {
-				if record.Txt[0] == "" || len(record.Txt) != 1 {
-					return nil, nil, nil, fmt.Errorf("invalid types record")
+				if record.Txt[0] == "" {
+					return nil, nil, nil, fmt.Errorf("types record is empty")
 				}
-				typesStr := strings.Split(strings.TrimPrefix(record.Txt[0], "id="), ",")
+				unchunkedTextRecord := unchunkTextRecord(record.Txt)
+				typesStr := strings.Split(strings.TrimPrefix(unchunkedTextRecord, "id="), ",")
 				for _, t := range typesStr {
 					tInt, err := strconv.Atoi(t)
 					if err != nil {
@@ -642,13 +646,14 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, []Authorit
 					types = append(types, TypeIndex(tInt))
 				}
 			} else if record.Hdr.Name == fmt.Sprintf("_did.%s.", suffix) && record.Hdr.Rrtype == dns.TypeNS {
-				if record.Txt[0] == "" || len(record.Txt) != 1 {
-					return nil, nil, nil, fmt.Errorf("invalid gateways record: %s", record.String())
+				if record.Txt[0] == "" {
+					return nil, nil, nil, fmt.Errorf("gateway record is empty")
 				}
-				gateways = append(gateways, AuthoritativeGateway(record.Txt[0]))
+				unchunkedTextRecord := unchunkTextRecord(record.Txt)
+				gateways = append(gateways, AuthoritativeGateway(unchunkedTextRecord))
 			} else if record.Hdr.Name == fmt.Sprintf("_did.%s.", suffix) && record.Hdr.Rrtype == dns.TypeTXT {
-				rootData := strings.Join(record.Txt, ";")
-				rootItems := strings.Split(rootData, ";")
+				unchunkedTextRecord := unchunkTextRecord(record.Txt)
+				rootItems := strings.Split(unchunkedTextRecord, ";")
 
 				seenVersion := false
 				for _, item := range rootItems {
@@ -791,4 +796,20 @@ func keyTypeForJWK(jwk jwx.PublicKeyJWK) int {
 		return 3
 	}
 	return -1
+}
+
+// chunkTextRecord splits a text record into chunks of 255 characters
+func chunkTextRecord(record string) []string {
+	var chunks []string
+	for len(record) > 255 {
+		chunks = append(chunks, record[:255])
+		record = record[255:]
+	}
+	chunks = append(chunks, record)
+	return chunks
+}
+
+// unchunkTextRecord joins chunks of a text record
+func unchunkTextRecord(chunks []string) string {
+	return strings.Join(chunks, "")
 }

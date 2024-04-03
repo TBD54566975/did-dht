@@ -188,7 +188,7 @@ func TestToDNSPacket(t *testing.T) {
 				{
 					ID:              "vcs",
 					Type:            "VerifiableCredentialService",
-					ServiceEndpoint: "https://example.com/vc/",
+					ServiceEndpoint: []string{"https://example.com/vc/"},
 					Sig:             []string{"1", "2"},
 					Enc:             "3",
 				},
@@ -227,10 +227,10 @@ func TestToDNSPacket(t *testing.T) {
 
 func TestVectors(t *testing.T) {
 	type testVectorDNSRecord struct {
-		Name       string `json:"name"`
-		RecordType string `json:"type"`
-		TTL        string `json:"ttl"`
-		Record     string `json:"rdata"`
+		Name       string   `json:"name"`
+		RecordType string   `json:"type"`
+		TTL        string   `json:"ttl"`
+		Record     []string `json:"rdata"`
 	}
 
 	t.Run("test vector 1", func(t *testing.T) {
@@ -275,7 +275,7 @@ func TestVectors(t *testing.T) {
 					s := record.String()
 					if strings.Contains(s, expectedRecord.RecordType) &&
 						strings.Contains(s, expectedRecord.TTL) &&
-						strings.Contains(s, expectedRecord.Record) {
+						strings.Contains(s, strings.Join(expectedRecord.Record, "")) {
 						matchedRecords[i] = true // Mark as matched
 						break
 					}
@@ -370,7 +370,7 @@ func TestVectors(t *testing.T) {
 					s := record.String()
 					if strings.Contains(s, expectedRecord.RecordType) &&
 						strings.Contains(s, expectedRecord.TTL) &&
-						strings.Contains(s, expectedRecord.Record) {
+						strings.Contains(s, strings.Join(expectedRecord.Record, "")) {
 						matchedRecords[i] = true // Mark as matched
 						break
 					}
@@ -418,6 +418,13 @@ func TestVectors(t *testing.T) {
 					Purposes: []did.PublicKeyPurpose{did.KeyAgreement},
 				},
 			},
+			Services: []did.Service{
+				{
+					ID:              "service-1",
+					Type:            "TestLongService",
+					ServiceEndpoint: []string{"https://test-lllllllllllllllllllllllllllllllllllooooooooooooooooooooonnnnnnnnnnnnnnnnnnngggggggggggggggggggggggggggggggggggggsssssssssssssssssssssssssseeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrvvvvvvvvvvvvvvvvvvvviiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiccccccccccccccccccccccccccccccceeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.com/1"},
+				},
+			},
 		})
 		require.NoError(t, err)
 		require.NotEmpty(t, doc)
@@ -432,7 +439,6 @@ func TestVectors(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.JSONEq(t, string(expectedDIDDocJSON), string(docJSON))
-
 		didID := DHT(doc.ID)
 		packet, err := didID.ToDNSPacket(*doc, nil, []AuthoritativeGateway{"gateway1.example-did-dht-gateway.com."})
 		require.NoError(t, err)
@@ -452,8 +458,13 @@ func TestVectors(t *testing.T) {
 				if record.Header().Name == expectedRecord.Name {
 					s := record.String()
 					if strings.Contains(s, expectedRecord.RecordType) &&
-						strings.Contains(s, expectedRecord.TTL) &&
-						strings.Contains(s, expectedRecord.Record) {
+						strings.Contains(s, expectedRecord.TTL) {
+						// make sure all parts of the record are contained within s
+						for _, r := range expectedRecord.Record {
+							if !strings.Contains(s, r) {
+								break
+							}
+						}
 						matchedRecords[i] = true // Mark as matched
 						break
 					}

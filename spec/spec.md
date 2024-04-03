@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Latest Update:** April 2, 2024
+**Latest Update:** April 3, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -1219,7 +1219,7 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
 | Name      | Type | TTL  | Rdata       |
 | --------- | ---- | ---- | ----------- |
 | _did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo. | NS  | 7200 | gateway1.example-did-dht-gateway.com.                  |
-| _did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo. | TXT | 7200 | v=0;vm=k0,k1;svc=s0;auth=k0;asm=k0,k1;inv=k0,k1;del=k0 |
+| _did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo. | TXT | 7200 | v=0;vm=k0,k1;auth=k0;asm=k0,k1;inv=k0,k1;del=k0;svc=s0 |
 | _cnt.did. | TXT  | 7200 | did:example:abcd                                                                                       |
 | _aka.did. | TXT  | 7200 | did:example:efgh,did:example:ijkl                                                                      |
 | _k0.did.  | TXT  | 7200 | id=0;t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE;c=did:example:abcd                              |
@@ -1331,10 +1331,10 @@ what is specified in the registry. The DID also has two gateway records and a se
 | Name      | Type | TTL  | Rdata       |
 | --------- | ---- | ---- | ----------- |
 | _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | NS  | 7200 | gateway1.example-did-dht-gateway.com.                              |
-| _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | TXT | 7200 | v=0;vm=k0,k1;auth=k0;asm=k0;agm=k1;inv=k0;del=k0;srv=s0            |
+| _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | TXT | 7200 | v=0;vm=k0,k1;auth=k0;asm=k0;agm=k1;inv=k0;del=k0;svc=s0            |
 | _k0.did.  | TXT  | 7200 | id=0;t=0;k=sTyTLYw-n1NI9X-84NaCuis1wZjAA8lku6f6Et5201g                                                             |
 | _k1.did.  | TXT  | 7200 | id=WVy5IWMa36AoyAXZDvPd5j9zxt2t-GjifDEV-DwgIdQ;t=3;k=3POE0_i2mGeZ2qiQCA3KcLfi1fZo0311CXFSIwt1nB4;a=ECDH-ES+A128KW   |
-| _s0.did.  | TXT  | 7200 | id=service-1;t=TestLongService;se=                   |
+| _s0.did.  | TXT  | 7200 | id=service-1;t=TestLongService;se=https://test-lllllllllllllllllllllllllllllllllllooooooooooooooooooooonnnnnnnnnnnnnnnnnnngggggggggggggggggggggggggggggggggggggsssssssssssssssssssssssssseeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrvvvvvvvvvvvvvvvvvvvviiiiiiiiiiiiiiii iiiiiiiiiiiiiiiccccccccccccccccccccccccccccccceeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.com/1 |
 
 ### Open API Definition
 
