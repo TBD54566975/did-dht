@@ -1,6 +1,7 @@
 package pkarr
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"github.com/TBD54566975/ssi-sdk/util"
 	"github.com/anacrolix/dht/v2/bep44"
 	"github.com/anacrolix/torrent/bencode"
+	"github.com/goccy/go-json"
 	"github.com/tv42/zbase32"
 )
 
@@ -24,6 +26,7 @@ type Response struct {
 	Sig [64]byte `validate:"required"`
 }
 
+// NewRecord returns a new Record with the given key, value, signature, and sequence number
 func NewRecord(k []byte, v []byte, sig []byte, seq int64) (*Record, error) {
 	record := Record{SequenceNumber: seq}
 
@@ -67,6 +70,7 @@ func (r Record) IsValid() error {
 	return nil
 }
 
+// Response returns the record as a Response
 func (r Record) Response() Response {
 	return Response{
 		V:   r.Value,
@@ -75,6 +79,7 @@ func (r Record) Response() Response {
 	}
 }
 
+// BEP44 returns the record as a BEP44 Put message
 func (r Record) BEP44() bep44.Put {
 	return bep44.Put{
 		V:   r.Value,
@@ -84,11 +89,27 @@ func (r Record) BEP44() bep44.Put {
 	}
 }
 
+// String returns a string representation of the record
 func (r Record) String() string {
 	e := base64.RawURLEncoding
 	return fmt.Sprintf("pkarr.Record{K=%s V=%s Sig=%s Seq=%d}", zbase32.EncodeToString(r.Key[:]), e.EncodeToString(r.Value), e.EncodeToString(r.Signature[:]), r.SequenceNumber)
 }
 
+// ID returns the base32 encoded key as a string
+func (r Record) ID() string {
+	return zbase32.EncodeToString(r.Key[:])
+}
+
+// Hash returns the SHA256 hash of the record as a string
+func (r Record) Hash() (string, error) {
+	recordBytes, err := json.Marshal(r)
+	if err != nil {
+		return "", err
+	}
+	return string(sha256.New().Sum(recordBytes)), nil
+}
+
+// RecordFromBEP44 returns a Record from a BEP44 Put message
 func RecordFromBEP44(putMsg *bep44.Put) Record {
 	return Record{
 		Key:            *putMsg.K,

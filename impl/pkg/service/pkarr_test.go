@@ -18,8 +18,8 @@ import (
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
 )
 
-func TestPKARRService(t *testing.T) {
-	svc := newPKARRService(t, "a")
+func TestPkarrService(t *testing.T) {
+	svc := newPkarrService(t, "a")
 
 	t.Run("test put bad record", func(t *testing.T) {
 		err := svc.PublishPkarr(context.Background(), "", pkarr.Record{})
@@ -128,7 +128,7 @@ func TestPKARRService(t *testing.T) {
 }
 
 func TestDHT(t *testing.T) {
-	svc1 := newPKARRService(t, "b")
+	svc1 := newPkarrService(t, "b")
 
 	// create and publish a record to service1
 	sk, doc, err := did.GenerateDIDDHT(did.CreateDIDDHTOpts{})
@@ -155,7 +155,7 @@ func TestDHT(t *testing.T) {
 	assert.Equal(t, putMsg.Seq, got.Seq)
 
 	// create service2 with service1 as a bootstrap peer
-	svc2 := newPKARRService(t, "c", anacrolixdht.NewAddr(svc1.dht.Addr()))
+	svc2 := newPkarrService(t, "c", anacrolixdht.NewAddr(svc1.dht.Addr()))
 
 	// get the record via service2
 	gotFrom2, err := svc2.GetPkarr(context.Background(), suffix)
@@ -188,7 +188,7 @@ func TestNoConfig(t *testing.T) {
 	assert.Nil(t, svc)
 }
 
-func newPKARRService(t *testing.T, id string, bootstrapPeers ...anacrolixdht.Addr) PkarrService {
+func newPkarrService(t *testing.T, id string, bootstrapPeers ...anacrolixdht.Addr) PkarrService {
 	defaultConfig := config.GetDefaultConfig()
 
 	db, err := storage.NewStorage(fmt.Sprintf("bolt://diddht-test-%s.db", id))

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -42,6 +43,13 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal, d *dht.DHT) (*Server
 	db, err := storage.NewStorage(cfg.ServerConfig.StorageURI)
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to instantiate storage")
+	}
+
+	recordCnt, err := db.RecordCount(context.Background())
+	if err != nil {
+		logrus.WithError(err).Error("failed to get record count")
+	} else {
+		logrus.WithField("record_count", recordCnt).Info("storage instantiated with record count")
 	}
 
 	pkarrService, err := service.NewPkarrService(cfg, db, d)

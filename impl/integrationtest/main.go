@@ -47,7 +47,7 @@ func run(server string) {
 				continue
 			}
 
-			if err := get(ctx, server, suffix); err != nil {
+			if err = get(ctx, server, suffix); err != nil {
 				logrus.WithError(err).Error("error making GET request")
 				continue
 			}
@@ -71,7 +71,7 @@ func put(ctx context.Context, server string) (string, error) {
 		return "", err
 	}
 
-	if err := doRequest(ctx, req); err != nil {
+	if err = doRequest(ctx, req); err != nil {
 		return "", err
 	}
 
@@ -84,7 +84,7 @@ func get(ctx context.Context, server string, suffix string) error {
 		return err
 	}
 
-	if err := doRequest(ctx, req); err != nil {
+	if err = doRequest(ctx, req); err != nil {
 		return err
 	}
 

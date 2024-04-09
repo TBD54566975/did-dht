@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"testing"
+	"time"
 
 	errutil "github.com/TBD54566975/ssi-sdk/util"
 	"github.com/anacrolix/dht/v2"
@@ -13,6 +14,7 @@ import (
 	"github.com/anacrolix/torrent/types/infohash"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 
 	dhtint "github.com/TBD54566975/did-dht-method/internal/dht"
 	"github.com/TBD54566975/did-dht-method/internal/util"
@@ -29,6 +31,9 @@ func NewDHT(bootstrapPeers []string) (*DHT, error) {
 	logrus.WithField("bootstrap_peers", len(bootstrapPeers)).Info("initializing DHT")
 
 	c := dht.NewDefaultServerConfig()
+	// change default expire to 24 hours
+	c.Exp = time.Hour * 24
+	c.NoSecurity = false
 	conn, err := net.ListenPacket("udp", "0.0.0.0:6881")
 	if err != nil {
 		return nil, errutil.LoggingErrorMsg(err, "failed to listen on udp port 6881")
@@ -37,6 +42,8 @@ func NewDHT(bootstrapPeers []string) (*DHT, error) {
 	c.Logger = log.NewLogger().WithFilterLevel(log.Debug)
 	c.Logger.SetHandlers(logHandler{})
 	c.StartingNodes = func() ([]dht.Addr, error) { return dht.ResolveHostPorts(bootstrapPeers) }
+	// set up rate limiter - 100 requests per second, 500 requests burst
+	c.SendLimiter = rate.NewLimiter(100, 500)
 	s, err := dht.NewServer(c)
 	if err != nil {
 		return nil, errutil.LoggingErrorMsg(err, "failed to create dht server")
@@ -84,14 +91,17 @@ func (d *DHT) Put(ctx context.Context, request bep44.Put) (string, error) {
 		logrus.Warn("no nodes available in the DHT for publishing")
 	}
 
+	key := util.Z32Encode(request.K[:])
 	t, err := getput.Put(ctx, request.Target(), d.Server, nil, func(int64) bep44.Put {
 		return request
 	})
 	if err != nil {
 		if t == nil {
-			return "", errutil.LoggingNewErrorf("failed to put key into dht: %v", err)
+			return "", errutil.LoggingNewErrorf("failed to put key[%s] into dht: %v", key, err)
 		}
-		return "", errutil.LoggingNewErrorf("failed to put key into dht, tried %d nodes, got %d responses", t.NumAddrsTried, t.NumResponses)
+		return "", errutil.LoggingNewErrorf("failed to put key[%s] into dht, tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
+	} else {
+		logrus.WithField("key", key).Debug("successfully put key into dht")
 	}
 	return util.Z32Encode(request.K[:]), nil
 }
