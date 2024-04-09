@@ -1,6 +1,7 @@
 package pkarr
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
@@ -13,17 +14,22 @@ import (
 	"github.com/tv42/zbase32"
 )
 
+type Response struct {
+	V   []byte   `validate:"required"`
+	Seq int64    `validate:"required"`
+	Sig [64]byte `validate:"required"`
+}
+
+// Equals returns true if the response is equal to the other response
+func (r Response) Equals(other Response) bool {
+	return r.Seq == other.Seq && bytes.Equal(r.V, other.V) && r.Sig == other.Sig
+}
+
 type Record struct {
 	Value          []byte   `json:"v" validate:"required"`
 	Key            [32]byte `json:"k" validate:"required"`
 	Signature      [64]byte `json:"sig" validate:"required"`
 	SequenceNumber int64    `json:"seq" validate:"required"`
-}
-
-type Response struct {
-	V   []byte   `validate:"required"`
-	Seq int64    `validate:"required"`
-	Sig [64]byte `validate:"required"`
 }
 
 // NewRecord returns a new Record with the given key, value, signature, and sequence number

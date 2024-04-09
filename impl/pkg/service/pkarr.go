@@ -72,14 +72,14 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr
 		return err
 	}
 
-	// Check if the message is already being processed to prevent duplicate requests from piling up
-	if ok := s.isMessageProcessing(record); ok {
-		logrus.Debugf("record already being processed: %s", id)
-		return nil
+	// check if the message is already in the cache
+	if got, err := s.cache.Get(id); err == nil {
+		var resp pkarr.Response
+		if err = json.Unmarshal(got, &resp); err == nil && record.Response().Equals(resp) {
+			logrus.WithField("record_id", id).Debug("resolved pkarr record from cache with matching response")
+			return nil
+		}
 	}
-
-	// mark the message as processing
-	s.markMessageProcessing(record)
 
 	// write to db and cache
 	if err := s.db.WriteRecord(ctx, record); err != nil {
@@ -102,46 +102,10 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr
 
 		if _, err = s.dht.Put(putCtx, record.BEP44()); err != nil {
 			logrus.WithError(err).Errorf("error from dht.Put for record: %s", id)
-		} else {
-			// mark the message as processed
-			s.markMessageProcessed(record)
 		}
 	}()
 
 	return nil
-}
-
-// isMessageProcessing checks if the message with the given ID has already been processed
-func (s *PkarrService) isMessageProcessing(record pkarr.Record) bool {
-	recordHash, err := record.Hash()
-	if err != nil {
-		logrus.WithError(err).Errorf("unable to calculate record[%s] hash", record.ID())
-		return false
-	}
-	got, err := s.cache.Get(recordHash)
-	return got != nil && err == nil
-}
-
-// markMessageProcessing marks the message with the given ID as processed
-func (s *PkarrService) markMessageProcessing(record pkarr.Record) {
-	recordHash, err := record.Hash()
-	if err != nil {
-		logrus.WithError(err).Errorf("unable to calculate record[%s] hash", record.ID())
-	}
-	if err = s.cache.Set(recordHash, []byte{0}); err != nil {
-		logrus.WithError(err).Errorf("failed to mark record[%s] as processing", record.ID())
-	}
-}
-
-// markMessageProcessed marks the message with the given ID as processed by removing it from the cache
-func (s *PkarrService) markMessageProcessed(record pkarr.Record) {
-	recordHash, err := record.Hash()
-	if err != nil {
-		logrus.WithError(err).Errorf("unable to calculate record[%s] hash", record.ID())
-	}
-	if err = s.cache.Delete(recordHash); err != nil {
-		logrus.WithError(err).Errorf("failed to mark record[%s] as processed", record.ID())
-	}
 }
 
 // GetPkarr returns the full Pkarr record (including sig data) for the given z-base-32 encoded ID
