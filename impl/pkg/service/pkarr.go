@@ -210,7 +210,7 @@ func (s *PkarrService) republish() {
 			return
 		}
 
-		logrus.WithField("record_count", len(allRecords)).Info("republishing records in batch: %d", batchCnt)
+		logrus.WithField("record_count", len(allRecords)).Infof("republishing records in batch: %d", batchCnt)
 		batchCnt++
 
 		for _, record := range allRecords {
@@ -232,5 +232,5 @@ func (s *PkarrService) republish() {
 		"success": len(allRecords) - errCnt,
 		"errors":  errCnt,
 		"total":   len(allRecords),
-	}).Info("republishing complete with [%d] batches", batchCnt)
+	}).Infof("republishing complete with [%d] batches", batchCnt)
 }
