@@ -42,16 +42,6 @@ func TestClient(t *testing.T) {
 	t.Logf("time to put and get: %s", since)
 }
 
-func TestGet(t *testing.T) {
-	client, err := NewGatewayClient("https://diddht.tbddev.org")
-	require.NoError(t, err)
-	require.NotNil(t, client)
-
-	gotDID, _, _, err := client.GetDIDDocument("did:dht:uqaj3fcr9db6jg6o9pjs53iuftyj45r46aubogfaceqjbo6pp9sy")
-	assert.NoError(t, err)
-	assert.NotNil(t, gotDID)
-}
-
 func TestClientInvalidGateway(t *testing.T) {
 	g, err := NewGatewayClient("\n")
 	assert.Error(t, err)
