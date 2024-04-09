@@ -17,7 +17,7 @@ const (
 	pkarrNamespace = "pkarr"
 )
 
-type BoltDB struct {
+type Bolt struct {
 	db *bolt.DB
 }
 
@@ -26,7 +26,7 @@ type boltRecord struct {
 }
 
 // NewBolt creates a BoltDB-based implementation of storage.Storage
-func NewBolt(path string) (*BoltDB, error) {
+func NewBolt(path string) (*Bolt, error) {
 	if path == "" {
 		return nil, errors.New("path is required")
 	}
@@ -35,12 +35,12 @@ func NewBolt(path string) (*BoltDB, error) {
 		return nil, err
 	}
 
-	return &BoltDB{db: db}, nil
+	return &Bolt{db: db}, nil
 }
 
 // WriteRecord writes the given record to the storage
 // TODO: don't overwrite existing records, store unique seq numbers
-func (s *BoltDB) WriteRecord(ctx context.Context, record pkarr.Record) error {
+func (b *Bolt) WriteRecord(ctx context.Context, record pkarr.Record) error {
 	ctx, span := telemetry.GetTracer().Start(ctx, "bolt.WriteRecord")
 	defer span.End()
 
@@ -50,15 +50,15 @@ func (s *BoltDB) WriteRecord(ctx context.Context, record pkarr.Record) error {
 		return err
 	}
 
-	return s.write(ctx, pkarrNamespace, encoded.K, recordBytes)
+	return b.write(ctx, pkarrNamespace, encoded.K, recordBytes)
 }
 
 // ReadRecord reads the record with the given id from the storage
-func (s *BoltDB) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, error) {
+func (b *Bolt) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, error) {
 	ctx, span := telemetry.GetTracer().Start(ctx, "bolt.ReadRecord")
 	defer span.End()
 
-	recordBytes, err := s.read(ctx, pkarrNamespace, encoding.EncodeToString(id))
+	recordBytes, err := b.read(ctx, pkarrNamespace, encoding.EncodeToString(id))
 	if err != nil {
 		return nil, err
 	}
@@ -80,11 +80,11 @@ func (s *BoltDB) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, erro
 }
 
 // ListRecords lists all records in the storage
-func (s *BoltDB) ListRecords(ctx context.Context, nextPageToken []byte, pagesize int) ([]pkarr.Record, []byte, error) {
+func (b *Bolt) ListRecords(ctx context.Context, nextPageToken []byte, pagesize int) ([]pkarr.Record, []byte, error) {
 	ctx, span := telemetry.GetTracer().Start(ctx, "bolt.ListRecords")
 	defer span.End()
 
-	boltRecords, err := s.readSeveral(ctx, pkarrNamespace, nextPageToken, pagesize)
+	boltRecords, err := b.readSeveral(ctx, pkarrNamespace, nextPageToken, pagesize)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -113,15 +113,15 @@ func (s *BoltDB) ListRecords(ctx context.Context, nextPageToken []byte, pagesize
 	return records, nextPageToken, nil
 }
 
-func (s *BoltDB) Close() error {
-	return s.db.Close()
+func (b *Bolt) Close() error {
+	return b.db.Close()
 }
 
-func (s *BoltDB) write(ctx context.Context, namespace string, key string, value []byte) error {
+func (b *Bolt) write(ctx context.Context, namespace string, key string, value []byte) error {
 	_, span := telemetry.GetTracer().Start(ctx, "bolt.write")
 	defer span.End()
 
-	return s.db.Update(func(tx *bolt.Tx) error {
+	return b.db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte(namespace))
 		if err != nil {
 			return err
@@ -133,12 +133,12 @@ func (s *BoltDB) write(ctx context.Context, namespace string, key string, value 
 	})
 }
 
-func (s *BoltDB) read(ctx context.Context, namespace, key string) ([]byte, error) {
+func (b *Bolt) read(ctx context.Context, namespace, key string) ([]byte, error) {
 	_, span := telemetry.GetTracer().Start(ctx, "bolt.read")
 	defer span.End()
 
 	var result []byte
-	err := s.db.View(func(tx *bolt.Tx) error {
+	err := b.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
 		if bucket == nil {
 			logrus.WithField("namespace", namespace).Info("namespace does not exist")
@@ -150,9 +150,9 @@ func (s *BoltDB) read(ctx context.Context, namespace, key string) ([]byte, error
 	return result, err
 }
 
-func (s *BoltDB) readAll(namespace string) (map[string][]byte, error) {
+func (b *Bolt) readAll(namespace string) (map[string][]byte, error) {
 	result := make(map[string][]byte)
-	err := s.db.View(func(tx *bolt.Tx) error {
+	err := b.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
 		if bucket == nil {
 			logrus.WithField("namespace", namespace).Warn("namespace does not exist")
@@ -167,12 +167,12 @@ func (s *BoltDB) readAll(namespace string) (map[string][]byte, error) {
 	return result, err
 }
 
-func (s *BoltDB) readSeveral(ctx context.Context, namespace string, after []byte, count int) ([]boltRecord, error) {
+func (b *Bolt) readSeveral(ctx context.Context, namespace string, after []byte, count int) ([]boltRecord, error) {
 	_, span := telemetry.GetTracer().Start(ctx, "bolt.readSeveral")
 	defer span.End()
 
 	var result []boltRecord
-	err := s.db.View(func(tx *bolt.Tx) error {
+	err := b.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
 		if bucket == nil {
 			logrus.WithField("namespace", namespace).Warn("namespace does not exist")
@@ -199,4 +199,22 @@ func (s *BoltDB) readSeveral(ctx context.Context, namespace string, after []byte
 		return nil
 	})
 	return result, err
+}
+
+// RecordCount returns the number of records in the storage for the pkarr namespace
+func (b *Bolt) RecordCount(ctx context.Context) (int, error) {
+	_, span := telemetry.GetTracer().Start(ctx, "bolt.RecordCount")
+	defer span.End()
+
+	var count int
+	err := b.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(pkarrNamespace))
+		if bucket == nil {
+			logrus.WithField("namespace", pkarrNamespace).Warn("namespace does not exist")
+			return nil
+		}
+		count = bucket.Stats().KeyN
+		return nil
+	})
+	return count, err
 }

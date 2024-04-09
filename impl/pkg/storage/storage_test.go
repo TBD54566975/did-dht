@@ -33,7 +33,7 @@ func TestNewStoragePostgres(t *testing.T) {
 func TestNewStorageBolt(t *testing.T) {
 	db, err := storage.NewStorage("bolt:///tmp/bolt.db")
 	require.NoError(t, err)
-	assert.IsType(t, &bolt.BoltDB{}, db)
+	assert.IsType(t, &bolt.Bolt{}, db)
 }
 
 func TestNewStorageUnsupported(t *testing.T) {

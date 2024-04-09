@@ -9,3 +9,6 @@ SELECT * FROM pkarr_records WHERE id > (SELECT id FROM pkarr_records WHERE pkarr
 
 -- name: ListRecordsFirstPage :many
 SELECT * FROM pkarr_records ORDER BY id ASC LIMIT $1;
+
+-- name: RecordCount :one
+SELECT count(*) AS exact_count FROM pkarr_records;

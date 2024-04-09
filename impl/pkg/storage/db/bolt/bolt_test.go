@@ -94,7 +94,7 @@ func TestBoltDB_PrefixAndKeys(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func getTestDB(t *testing.T) *BoltDB {
+func getTestDB(t *testing.T) *Bolt {
 	path := "test.db"
 	db, err := NewBolt(path)
 	assert.NoError(t, err)
@@ -109,6 +109,10 @@ func getTestDB(t *testing.T) *BoltDB {
 
 func TestReadWrite(t *testing.T) {
 	db := getTestDB(t)
+	ctx := context.Background()
+
+	beforeCnt, err := db.RecordCount(ctx)
+	require.NoError(t, err)
 
 	// create a did doc as a packet to store
 	sk, doc, err := did.GenerateDIDDHT(did.CreateDIDDHTOpts{})
@@ -125,7 +129,6 @@ func TestReadWrite(t *testing.T) {
 
 	r := pkarr.RecordFromBEP44(putMsg)
 
-	ctx := context.Background()
 	err = db.WriteRecord(ctx, r)
 	require.NoError(t, err)
 
@@ -136,6 +139,10 @@ func TestReadWrite(t *testing.T) {
 	assert.Equal(t, r.Value, r2.Value)
 	assert.Equal(t, r.Signature, r2.Signature)
 	assert.Equal(t, r.SequenceNumber, r2.SequenceNumber)
+
+	afterCnt, err := db.RecordCount(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, beforeCnt+1, afterCnt)
 }
 
 func TestDBPagination(t *testing.T) {
@@ -143,6 +150,9 @@ func TestDBPagination(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
+
+	beforeCnt, err := db.RecordCount(ctx)
+	require.NoError(t, err)
 
 	preTestRecords, _, err := db.ListRecords(ctx, nil, 10)
 	require.NoError(t, err)
@@ -198,6 +208,10 @@ func TestDBPagination(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Nil(t, nextPageToken)
 	assert.Len(t, page, 1+len(preTestRecords))
+
+	afterCnt, err := db.RecordCount(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, beforeCnt+11, afterCnt)
 }
 
 func TestNewBolt(t *testing.T) {

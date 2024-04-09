@@ -75,8 +75,7 @@ func run() error {
 	}
 
 	// create a channel of buffer size 1 to handle shutdown.
-	// buffer's size is 1 in order to ignore any additional ctrl+c
-	// spamming.
+	// buffer's size is 1 in order to ignore any additional ctrl+c spamming.
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 

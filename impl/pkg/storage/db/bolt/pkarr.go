@@ -4,11 +4,14 @@ import (
 	"encoding/base64"
 	"fmt"
 
+	"github.com/TBD54566975/ssi-sdk/util"
+
 	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
-	"github.com/sirupsen/logrus"
 )
 
-var encoding = base64.RawURLEncoding
+var (
+	encoding = base64.RawURLEncoding
+)
 
 type base64PkarrRecord struct {
 	// Up to an 1000 byte base64URL encoded string
@@ -48,8 +51,7 @@ func (b base64PkarrRecord) Decode() (*pkarr.Record, error) {
 	record, err := pkarr.NewRecord(k, v, sig, b.Seq)
 	if err != nil {
 		// TODO: do something useful if this happens
-		logrus.WithError(err).Warn("error loading record from database, skipping")
-		return nil, err
+		return nil, util.LoggingErrorMsg(err, "error loading record from database, skipping")
 	}
 	return record, nil
 }

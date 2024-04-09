@@ -72,16 +72,23 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr
 		return err
 	}
 
+	// check if the message is already in the cache
+	if got, err := s.cache.Get(id); err == nil {
+		var resp pkarr.Response
+		if err = json.Unmarshal(got, &resp); err == nil && record.Response().Equals(resp) {
+			logrus.WithField("record_id", id).Debug("resolved pkarr record from cache with matching response")
+			return nil
+		}
+	}
+
 	// write to db and cache
 	if err := s.db.WriteRecord(ctx, record); err != nil {
 		return err
 	}
-
 	recordBytes, err := json.Marshal(record.Response())
 	if err != nil {
 		return err
 	}
-
 	if err = s.cache.Set(id, recordBytes); err != nil {
 		return err
 	}
@@ -90,11 +97,11 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr
 	// TODO(gabe): consider a background process to monitor failures
 	go func() {
 		// Create a new context with a timeout so that the parent context does not cancel the put
-		putCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		putCtx, cancel := context.WithTimeout(context.Background(), time.Duration(s.cfg.PkarrConfig.PutTimeoutSeconds)*time.Second)
 		defer cancel()
 
 		if _, err = s.dht.Put(putCtx, record.BEP44()); err != nil {
-			logrus.WithError(err).Error("error from dht.Put")
+			logrus.WithError(err).Errorf("error from dht.Put for record: %s", id)
 		}
 	}()
 
@@ -109,12 +116,11 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response
 	// first do a cache lookup
 	if got, err := s.cache.Get(id); err == nil {
 		var resp pkarr.Response
-		err = json.Unmarshal(got, &resp)
-		if err == nil {
+		if err = json.Unmarshal(got, &resp); err == nil {
 			logrus.WithField("record_id", id).Debug("resolved pkarr record from cache")
 			return &resp, nil
 		}
-		logrus.WithError(err).WithField("record", id).Warn("failed to unmarshal pkarr record from cache, falling back to dht")
+		logrus.WithError(err).WithField("record", id).Warn("failed to get pkarr record from cache, falling back to dht")
 	}
 
 	// next do a dht lookup
@@ -182,9 +188,15 @@ func (s *PkarrService) republish() {
 	ctx, span := telemetry.GetTracer().Start(context.Background(), "PkarrService.republish")
 	defer span.End()
 
+	recordCnt, err := s.db.RecordCount(ctx)
+	if err != nil {
+		logrus.WithError(err).Error("failed to get record count")
+	} else {
+		logrus.WithField("record_count", recordCnt).Info("republishing records")
+	}
+
 	var nextPageToken []byte
 	var allRecords []pkarr.Record
-	var err error
 	errCnt := 0
 	successCnt := 0
 	for {
@@ -199,12 +211,13 @@ func (s *PkarrService) republish() {
 			return
 		}
 
-		logrus.WithField("record_count", len(allRecords)).Info("Republishing record")
+		logrus.WithField("record_count", len(allRecords)).Info("republishing records in batch")
 
 		for _, record := range allRecords {
-			logrus.Infof("Republishing record: %s", zbase32.EncodeToString(record.Key[:]))
+			recordID := zbase32.EncodeToString(record.Key[:])
+			logrus.Debugf("republishing record: %s", recordID)
 			if _, err = s.dht.Put(ctx, record.BEP44()); err != nil {
-				logrus.WithError(err).Error("failed to republish record")
+				logrus.WithError(err).Errorf("failed to republish record: %s", recordID)
 				errCnt++
 				continue
 			}

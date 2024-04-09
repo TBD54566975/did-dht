@@ -16,7 +16,8 @@ import (
 type Storage interface {
 	WriteRecord(ctx context.Context, record pkarr.Record) error
 	ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, error)
-	ListRecords(ctx context.Context, nextPageToken []byte, pagesize int) (records []pkarr.Record, nextPage []byte, err error)
+	ListRecords(ctx context.Context, nextPageToken []byte, pageSize int) (records []pkarr.Record, nextPage []byte, err error)
+	RecordCount(ctx context.Context) (int, error)
 	Close() error
 }
 

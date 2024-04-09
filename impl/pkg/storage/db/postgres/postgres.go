@@ -6,9 +6,9 @@ import (
 	"embed"
 	"fmt"
 
-	pgx "github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	goose "github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v3"
 	"github.com/sirupsen/logrus"
 
 	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
@@ -38,11 +38,11 @@ func (p Postgres) migrate() error {
 	defer db.Close()
 
 	goose.SetBaseFS(migrations)
-	if err := goose.SetDialect("postgres"); err != nil {
+	if err = goose.SetDialect("postgres"); err != nil {
 		return err
 	}
 
-	if err := goose.Up(db, "migrations"); err != nil {
+	if err = goose.Up(db, "migrations"); err != nil {
 		return err
 	}
 
@@ -158,4 +158,22 @@ func (p Postgres) Close() error {
 
 func (row PkarrRecord) Record() (*pkarr.Record, error) {
 	return pkarr.NewRecord(row.Key, row.Value, row.Sig, row.Seq)
+}
+
+func (p Postgres) RecordCount(ctx context.Context) (int, error) {
+	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.RecordCount")
+	defer span.End()
+
+	queries, db, err := p.connect(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer db.Close(ctx)
+
+	count, err := queries.RecordCount(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(count), nil
 }
