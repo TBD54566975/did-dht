@@ -197,8 +197,7 @@ func (s *PkarrService) republish() {
 
 	var nextPageToken []byte
 	var allRecords []pkarr.Record
-	errCnt := 0
-	successCnt := 0
+	errCnt, successCnt, batchCnt := 0, 0, 0
 	for {
 		allRecords, nextPageToken, err = s.db.ListRecords(ctx, nextPageToken, 1000)
 		if err != nil {
@@ -211,7 +210,8 @@ func (s *PkarrService) republish() {
 			return
 		}
 
-		logrus.WithField("record_count", len(allRecords)).Info("republishing records in batch")
+		logrus.WithField("record_count", len(allRecords)).Info("republishing records in batch: %d", batchCnt)
+		batchCnt++
 
 		for _, record := range allRecords {
 			recordID := zbase32.EncodeToString(record.Key[:])
@@ -232,5 +232,5 @@ func (s *PkarrService) republish() {
 		"success": len(allRecords) - errCnt,
 		"errors":  errCnt,
 		"total":   len(allRecords),
-	}).Info("Republishing complete")
+	}).Info("republishing complete with [%d] batches", batchCnt)
 }
