@@ -50,7 +50,7 @@ func TestPkarrService(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, packet)
 
-		putMsg, err := dht.CreatePKARRPublishRequest(sk, *packet)
+		putMsg, err := dht.CreatePkarrPublishRequest(sk, *packet)
 		require.NoError(t, err)
 		require.NotEmpty(t, putMsg)
 
@@ -77,7 +77,7 @@ func TestPkarrService(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, packet)
 
-		putMsg, err := dht.CreatePKARRPublishRequest(sk, *packet)
+		putMsg, err := dht.CreatePkarrPublishRequest(sk, *packet)
 		require.NoError(t, err)
 		require.NotEmpty(t, putMsg)
 
@@ -105,7 +105,7 @@ func TestPkarrService(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, packet)
 
-		putMsg, err := dht.CreatePKARRPublishRequest(sk, *packet)
+		putMsg, err := dht.CreatePkarrPublishRequest(sk, *packet)
 		require.NoError(t, err)
 		require.NotEmpty(t, putMsg)
 
@@ -138,7 +138,7 @@ func TestDHT(t *testing.T) {
 	packet, err := d.ToDNSPacket(*doc, nil, nil)
 	require.NoError(t, err)
 	require.NotEmpty(t, packet)
-	putMsg, err := dht.CreatePKARRPublishRequest(sk, *packet)
+	putMsg, err := dht.CreatePkarrPublishRequest(sk, *packet)
 	require.NoError(t, err)
 	require.NotEmpty(t, putMsg)
 	suffix, err := d.Suffix()

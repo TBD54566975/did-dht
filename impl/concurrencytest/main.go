@@ -119,7 +119,7 @@ func generateDIDPutRequest() (string, []byte, error) {
 		return "", nil, err
 	}
 
-	bep44Put, err := dht.CreatePKARRPublishRequest(sk, *packet)
+	bep44Put, err := dht.CreatePkarrPublishRequest(sk, *packet)
 	if err != nil {
 		return "", nil, err
 	}

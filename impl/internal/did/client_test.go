@@ -27,7 +27,7 @@ func TestClient(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, packet)
 
-	bep44Put, err := dht.CreatePKARRPublishRequest(sk, *packet)
+	bep44Put, err := dht.CreatePkarrPublishRequest(sk, *packet)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, bep44Put)
 

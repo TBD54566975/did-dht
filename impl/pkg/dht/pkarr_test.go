@@ -41,7 +41,7 @@ func TestGetPutPKARRDHT(t *testing.T) {
 		},
 		Answer: []dns.RR{&txtRecord},
 	}
-	put, err := CreatePKARRPublishRequest(privKey, msg)
+	put, err := CreatePkarrPublishRequest(privKey, msg)
 	require.NoError(t, err)
 
 	id, err := d.Put(context.Background(), *put)
@@ -52,7 +52,7 @@ func TestGetPutPKARRDHT(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, got)
 
-	gotMsg, err := ParsePKARRGetResponse(*got)
+	gotMsg, err := ParsePkarrGetResponse(*got)
 	require.NoError(t, err)
 	require.NotEmpty(t, gotMsg.Answer)
 
@@ -101,7 +101,7 @@ func TestGetPutDIDDHT(t *testing.T) {
 	didDocPacket, err := didID.ToDNSPacket(*doc, nil, nil)
 	require.NoError(t, err)
 
-	putReq, err := CreatePKARRPublishRequest(privKey, *didDocPacket)
+	putReq, err := CreatePkarrPublishRequest(privKey, *didDocPacket)
 	require.NoError(t, err)
 
 	gotID, err := dht.Put(context.Background(), *putReq)
@@ -112,7 +112,7 @@ func TestGetPutDIDDHT(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, got)
 
-	gotMsg, err := ParsePKARRGetResponse(*got)
+	gotMsg, err := ParsePkarrGetResponse(*got)
 	require.NoError(t, err)
 	require.NotEmpty(t, gotMsg.Answer)
 
