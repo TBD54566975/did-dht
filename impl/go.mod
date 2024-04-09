@@ -31,13 +31,13 @@ require (
 	github.com/toorop/gin-logrus v0.0.0-20210225092905-2c785434f26f
 	github.com/tv42/zbase32 v0.0.0-20220222190657-f76a9fc892fa
 	go.etcd.io/bbolt v1.3.9
-	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.49.0
+	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.50.0
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.49.0
 	go.opentelemetry.io/otel v1.25.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.24.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.23.1
 	go.opentelemetry.io/otel/sdk v1.25.0
-	go.opentelemetry.io/otel/sdk/metric v1.24.0
+	go.opentelemetry.io/otel/sdk/metric v1.25.0
 	go.opentelemetry.io/otel/trace v1.25.0
 	golang.org/x/term v0.19.0
 	golang.org/x/time v0.5.0
