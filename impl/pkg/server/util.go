@@ -46,7 +46,7 @@ func RespondBytes(c *gin.Context, data []byte, statusCode int) {
 
 // LoggingRespondError sends an error response back to the client as a safe error
 func LoggingRespondError(c *gin.Context, err error, statusCode int) {
-	logrus.WithError(err).Error()
+	logrus.WithContext(c).WithError(err).Error()
 	Respond(c, err, statusCode)
 }
 

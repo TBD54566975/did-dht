@@ -88,7 +88,7 @@ func (d *DHT) Put(ctx context.Context, request bep44.Put) (string, error) {
 
 	// Check if there are any nodes in the DHT
 	if len(d.Server.Nodes()) == 0 {
-		logrus.Warn("no nodes available in the DHT for publishing")
+		logrus.WithContext(ctx).Warn("no nodes available in the DHT for publishing")
 	}
 
 	key := util.Z32Encode(request.K[:])
@@ -101,7 +101,7 @@ func (d *DHT) Put(ctx context.Context, request bep44.Put) (string, error) {
 		}
 		return "", errutil.LoggingNewErrorf("failed to put key[%s] into dht, tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
 	} else {
-		logrus.WithField("key", key).Debug("successfully put key into dht")
+		logrus.WithContext(ctx).WithField("key", key).Debug("successfully put key into dht")
 	}
 	return util.Z32Encode(request.K[:]), nil
 }

@@ -141,7 +141,7 @@ func (b *Bolt) read(ctx context.Context, namespace, key string) ([]byte, error) 
 	err := b.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
 		if bucket == nil {
-			logrus.WithField("namespace", namespace).Info("namespace does not exist")
+			logrus.WithContext(ctx).WithField("namespace", namespace).Info("namespace does not exist")
 			return nil
 		}
 		result = bucket.Get([]byte(key))
@@ -175,7 +175,7 @@ func (b *Bolt) readSeveral(ctx context.Context, namespace string, after []byte, 
 	err := b.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(namespace))
 		if bucket == nil {
-			logrus.WithField("namespace", namespace).Warn("namespace does not exist")
+			logrus.WithContext(ctx).WithField("namespace", namespace).Warn("namespace does not exist")
 			return nil
 		}
 
@@ -210,7 +210,7 @@ func (b *Bolt) RecordCount(ctx context.Context) (int, error) {
 	err := b.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(pkarrNamespace))
 		if bucket == nil {
-			logrus.WithField("namespace", pkarrNamespace).Warn("namespace does not exist")
+			logrus.WithContext(ctx).WithField("namespace", pkarrNamespace).Warn("namespace does not exist")
 			return nil
 		}
 		count = bucket.Stats().KeyN

@@ -123,7 +123,7 @@ func TestReadWrite(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, packet)
 
-	putMsg, err := dht.CreatePKARRPublishRequest(sk, *packet)
+	putMsg, err := dht.CreatePkarrPublishRequest(sk, *packet)
 	require.NoError(t, err)
 	require.NotEmpty(t, putMsg)
 
@@ -168,7 +168,7 @@ func TestDBPagination(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, packet)
 
-		putMsg, err := dht.CreatePKARRPublishRequest(sk, *packet)
+		putMsg, err := dht.CreatePkarrPublishRequest(sk, *packet)
 		require.NoError(t, err)
 		require.NotEmpty(t, putMsg)
 
@@ -189,7 +189,7 @@ func TestDBPagination(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, packet)
 
-	putMsg, err := dht.CreatePKARRPublishRequest(sk, *packet)
+	putMsg, err := dht.CreatePkarrPublishRequest(sk, *packet)
 	require.NoError(t, err)
 	require.NotEmpty(t, putMsg)
 

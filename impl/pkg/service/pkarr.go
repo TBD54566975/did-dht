@@ -76,7 +76,7 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr
 	if got, err := s.cache.Get(id); err == nil {
 		var resp pkarr.Response
 		if err = json.Unmarshal(got, &resp); err == nil && record.Response().Equals(resp) {
-			logrus.WithField("record_id", id).Debug("resolved pkarr record from cache with matching response")
+			logrus.WithContext(ctx).WithField("record_id", id).Debug("resolved pkarr record from cache with matching response")
 			return nil
 		}
 	}
@@ -101,7 +101,7 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr
 		defer cancel()
 
 		if _, err = s.dht.Put(putCtx, record.BEP44()); err != nil {
-			logrus.WithError(err).Errorf("error from dht.Put for record: %s", id)
+			logrus.WithContext(ctx).WithError(err).Errorf("error from dht.Put for record: %s", id)
 		}
 	}()
 
@@ -117,17 +117,17 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response
 	if got, err := s.cache.Get(id); err == nil {
 		var resp pkarr.Response
 		if err = json.Unmarshal(got, &resp); err == nil {
-			logrus.WithField("record_id", id).Debug("resolved pkarr record from cache")
+			logrus.WithContext(ctx).WithField("record_id", id).Debug("resolved pkarr record from cache")
 			return &resp, nil
 		}
-		logrus.WithError(err).WithField("record", id).Warn("failed to get pkarr record from cache, falling back to dht")
+		logrus.WithContext(ctx).WithError(err).WithField("record", id).Warn("failed to get pkarr record from cache, falling back to dht")
 	}
 
 	// next do a dht lookup
 	got, err := s.dht.GetFull(ctx, id)
 	if err != nil {
 		// try to resolve from storage before returning and error
-		logrus.WithError(err).WithField("record", id).Warn("failed to get pkarr record from dht, attempting to resolve from storage")
+		logrus.WithContext(ctx).WithError(err).WithField("record", id).Warn("failed to get pkarr record from dht, attempting to resolve from storage")
 
 		rawID, err := util.Z32Decode(id)
 		if err != nil {
@@ -136,11 +136,11 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response
 
 		record, err := s.db.ReadRecord(ctx, rawID)
 		if err != nil || record == nil {
-			logrus.WithError(err).WithField("record", id).Error("failed to resolve pkarr record from storage")
+			logrus.WithContext(ctx).WithError(err).WithField("record", id).Error("failed to resolve pkarr record from storage")
 			return nil, err
 		}
 
-		logrus.WithField("record", id).Debug("resolved pkarr record from storage")
+		logrus.WithContext(ctx).WithField("record", id).Debug("resolved pkarr record from storage")
 		resp := record.Response()
 		if err = s.addRecordToCache(id, record.Response()); err != nil {
 			logrus.WithError(err).WithField("record", id).Error("failed to set pkarr record in cache")
@@ -166,7 +166,7 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response
 
 	// add the record to cache, do it here to avoid duplicate calculations
 	if err = s.addRecordToCache(id, resp); err != nil {
-		logrus.WithError(err).Errorf("failed to set pkarr record[%s] in cache", id)
+		logrus.WithContext(ctx).WithError(err).Errorf("failed to set pkarr record[%s] in cache", id)
 	}
 
 	return &resp, nil
@@ -197,8 +197,7 @@ func (s *PkarrService) republish() {
 
 	var nextPageToken []byte
 	var allRecords []pkarr.Record
-	errCnt := 0
-	successCnt := 0
+	errCnt, successCnt, batchCnt := 0, 0, 0
 	for {
 		allRecords, nextPageToken, err = s.db.ListRecords(ctx, nextPageToken, 1000)
 		if err != nil {
@@ -207,11 +206,12 @@ func (s *PkarrService) republish() {
 		}
 
 		if len(allRecords) == 0 {
-			logrus.Info("No records to republish")
+			logrus.Info("no records to republish")
 			return
 		}
 
-		logrus.WithField("record_count", len(allRecords)).Info("republishing records in batch")
+		logrus.WithField("record_count", len(allRecords)).Infof("republishing records in batch: %d", batchCnt)
+		batchCnt++
 
 		for _, record := range allRecords {
 			recordID := zbase32.EncodeToString(record.Key[:])
@@ -232,5 +232,5 @@ func (s *PkarrService) republish() {
 		"success": len(allRecords) - errCnt,
 		"errors":  errCnt,
 		"total":   len(allRecords),
-	}).Info("Republishing complete")
+	}).Infof("republishing complete with [%d] batches", batchCnt)
 }
