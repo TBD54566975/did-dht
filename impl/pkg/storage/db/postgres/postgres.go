@@ -135,7 +135,7 @@ func (p Postgres) ListRecords(ctx context.Context, nextPageToken []byte, limit i
 		record, err := pkarr.NewRecord(row.Key, row.Value, row.Sig, row.Seq)
 		if err != nil {
 			// TODO: do something useful if this happens
-			logrus.WithError(err).WithField("record_id", row.ID).Warn("error loading record from database, skipping")
+			logrus.WithContext(ctx).WithError(err).WithField("record_id", row.ID).Warn("error loading record from database, skipping")
 			continue
 		}
 

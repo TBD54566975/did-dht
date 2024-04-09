@@ -31,10 +31,7 @@ import (
 //	@license.name	Apache 2.0
 //	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
 func main() {
-	logrus.SetFormatter(&logrus.JSONFormatter{
-		DisableTimestamp: false,
-		PrettyPrint:      true,
-	})
+	logrus.SetFormatter(&logrus.JSONFormatter{})
 	logrus.SetReportCaller(true)
 
 	log := logrus.NewEntry(logrus.StandardLogger()).WithField("version", config.Version)
@@ -59,10 +56,10 @@ func run() error {
 		configPath = envConfigPath
 	}
 
-	logrus.WithField("path", configPath).Info("loading config from file")
+	logrus.WithContext(ctx).WithField("path", configPath).Info("loading config from file")
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
-		logrus.Fatalf("could not instantiate config: %s", err.Error())
+		logrus.WithContext(ctx).Fatalf("could not instantiate config: %s", err.Error())
 	}
 
 	// set up logger
@@ -91,7 +88,7 @@ func run() error {
 
 	serverErrors := make(chan error, 1)
 	go func() {
-		logrus.WithField("listen_address", s.Addr).Info("starting listener")
+		logrus.WithContext(ctx).WithField("listen_address", s.Addr).Info("starting listener")
 		serverErrors <- s.ListenAndServe()
 	}()
 
@@ -99,7 +96,7 @@ func run() error {
 	case err = <-serverErrors:
 		return errors.Wrap(err, "server error")
 	case sig := <-shutdown:
-		logrus.WithField("signal", sig.String()).Info("shutdown signal received")
+		logrus.WithContext(ctx).WithField("signal", sig.String()).Info("shutdown signal received")
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
