@@ -99,7 +99,7 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr
 	// TODO(gabe): consider a background process to monitor failures
 	go func() {
 		// Create a new context with a timeout so that the parent context does not cancel the put
-		putCtx, cancel := context.WithTimeout(context.Background(), time.Duration(s.cfg.PkarrConfig.PutTimeoutSeconds)*time.Second)
+		putCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
 		if _, err = s.dht.Put(putCtx, record.BEP44()); err != nil {
