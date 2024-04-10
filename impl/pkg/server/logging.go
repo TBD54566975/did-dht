@@ -63,7 +63,7 @@ func logger(logger logrus.FieldLogger, notLogged ...string) gin.HandlerFunc {
 		if len(c.Errors) > 0 {
 			entry.Error(c.Errors.ByType(gin.ErrorTypePrivate).String())
 		} else {
-			msg := fmt.Sprintf("%s - %s [%s] \"%s %s\" %d %d \"%s\" \"%s\" (%dms)", clientIP, hostname, time.Now().Format(timeFormat), c.Request.Method, path, statusCode, dataLength, referer, clientUserAgent, latency)
+			msg := fmt.Sprintf("%s - %s [%s] \"%s %s\" %d %d \"%s\" \"%s\" (%dms)\n", clientIP, hostname, time.Now().Format(timeFormat), c.Request.Method, path, statusCode, dataLength, referer, clientUserAgent, latency)
 			if statusCode >= http.StatusInternalServerError {
 				entry.Error(msg)
 			} else if statusCode >= http.StatusBadRequest {
@@ -72,8 +72,5 @@ func logger(logger logrus.FieldLogger, notLogged ...string) gin.HandlerFunc {
 				entry.Info(msg)
 			}
 		}
-
-		// Add a newline character after each log message
-		fmt.Println()
 	}
 }

@@ -1,8 +1,6 @@
 package dht
 
 import (
-	"fmt"
-
 	"github.com/anacrolix/log"
 	"github.com/sirupsen/logrus"
 )
@@ -10,21 +8,17 @@ import (
 type logHandler struct{}
 
 func (logHandler) Handle(record log.Record) {
-	logrus.SetFormatter(&logrus.JSONFormatter{})
-
 	entry := logrus.WithFields(logrus.Fields{"names": record.Names})
+	msg := record.Msg.String()
 
 	switch record.Level {
 	case log.Debug:
-		entry.Debug(record.Msg.String())
+		entry.Debugf("%s\n", msg)
 	case log.Info:
-		entry.Info(record.Msg.String())
+		entry.Infof("%s\n", msg)
 	case log.Warning:
-		entry.Warn(record.Msg.String())
+		entry.Warnf("%s\n", msg)
 	default:
-		entry.Error(record.Msg.String())
+		entry.Errorf("%s\n", msg)
 	}
-
-	// Add a newline character after each log message
-	fmt.Println()
 }
