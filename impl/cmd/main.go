@@ -31,7 +31,7 @@ import (
 //	@license.name	Apache 2.0
 //	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
 func main() {
-	logrus.SetFormatter(&logrus.JSONFormatter{})
+	logrus.SetFormatter(&logrus.JSONFormatter{PrettyPrint: true})
 	logrus.SetReportCaller(true)
 
 	log := logrus.NewEntry(logrus.StandardLogger()).WithField("version", config.Version)

@@ -12,7 +12,6 @@ import (
 	"github.com/sirupsen/logrus"
 	swaggerfiles "github.com/swaggo/files"
 	ginswagger "github.com/swaggo/gin-swagger"
-	ginlogrus "github.com/toorop/gin-logrus"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	"github.com/TBD54566975/did-dht-method/config"
@@ -85,7 +84,7 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal, d *dht.DHT) (*Server
 func setupHandler(env config.Environment) *gin.Engine {
 	middlewares := gin.HandlersChain{
 		gin.Recovery(),
-		ginlogrus.Logger(logrus.StandardLogger()),
+		logger(logrus.StandardLogger()),
 		gin.ErrorLogger(),
 		otelgin.Middleware(config.ServiceName),
 		CORS(),
