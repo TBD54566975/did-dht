@@ -29,9 +29,7 @@ import (
 func main() {
 	logrus.SetFormatter(&logrus.JSONFormatter{PrettyPrint: true})
 	logrus.SetReportCaller(true)
-
-	log := logrus.NewEntry(logrus.StandardLogger()).WithField("version", config.Version)
-	log.Info("starting up")
+	logrus.WithField("version", config.Version).Info("starting up")
 
 	if err := run(); err != nil {
 		logrus.WithError(err).Fatal("unexpected error running server")

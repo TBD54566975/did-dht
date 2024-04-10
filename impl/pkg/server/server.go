@@ -82,11 +82,10 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal, d *dht.DHT) (*Server
 }
 
 func setupHandler(env config.Environment) *gin.Engine {
-	stdLogger := logrus.StandardLogger()
-	stdLogger.SetFormatter(&logrus.JSONFormatter{})
+	gin.ForceConsoleColor()
 	middlewares := gin.HandlersChain{
 		gin.Recovery(),
-		logger(stdLogger),
+		logger(logrus.StandardLogger()),
 		gin.ErrorLogger(),
 		otelgin.Middleware(config.ServiceName),
 		CORS(),
