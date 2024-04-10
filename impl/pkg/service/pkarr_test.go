@@ -172,7 +172,7 @@ func TestNoConfig(t *testing.T) {
 	assert.Nil(t, svc)
 
 	svc, err = NewPkarrService(&config.Config{
-		PkarrConfig: config.PKARRServiceConfig{
+		PkarrConfig: config.PkarrServiceConfig{
 			CacheSizeLimitMB: -1,
 		},
 	}, nil, nil)
@@ -180,7 +180,7 @@ func TestNoConfig(t *testing.T) {
 	assert.Nil(t, svc)
 
 	svc, err = NewPkarrService(&config.Config{
-		PkarrConfig: config.PKARRServiceConfig{
+		PkarrConfig: config.PkarrServiceConfig{
 			RepublishCRON: "not a real cron expression",
 		},
 	}, nil, nil)

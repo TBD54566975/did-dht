@@ -2,6 +2,7 @@ package dht
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/anacrolix/dht/v2/exts/getput"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/torrent/types/infohash"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
@@ -97,9 +99,9 @@ func (d *DHT) Put(ctx context.Context, request bep44.Put) (string, error) {
 	})
 	if err != nil {
 		if t == nil {
-			return "", errutil.LoggingCtxNewErrorf(ctx, "failed to put key[%s] into dht: %v", key, err)
+			return "", fmt.Errorf("failed to put key[%s] into dht: %v", key, err)
 		}
-		return "", errutil.LoggingCtxNewErrorf(ctx, "failed to put key[%s] into dht, tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
+		return "", fmt.Errorf("failed to put key[%s] into dht, tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
 	} else {
 		logrus.WithContext(ctx).WithField("key", key).Debug("successfully put key into dht")
 	}
@@ -114,11 +116,11 @@ func (d *DHT) Get(ctx context.Context, key string) (*getput.GetResult, error) {
 
 	z32Decoded, err := util.Z32Decode(key)
 	if err != nil {
-		return nil, errutil.LoggingCtxErrorMsgf(ctx, err, "failed to decode key [%s]", key)
+		return nil, errors.Wrapf(err, "failed to decode key [%s]", key)
 	}
 	res, t, err := getput.Get(ctx, infohash.HashBytes(z32Decoded), d.Server, nil, nil)
 	if err != nil {
-		return nil, errutil.LoggingCtxNewErrorf(ctx, "failed to get key[%s] from dht; tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
+		return nil, fmt.Errorf("failed to get key[%s] from dht; tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
 	}
 	return &res, nil
 }
@@ -136,7 +138,7 @@ func (d *DHT) GetFull(ctx context.Context, key string) (*dhtint.FullGetResult, e
 	}
 	res, t, err := dhtint.Get(ctx, infohash.HashBytes(z32Decoded), d.Server, nil, nil)
 	if err != nil {
-		return nil, errutil.LoggingCtxNewErrorf(ctx, "failed to get key[%s] from dht; tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
+		return nil, fmt.Errorf("failed to get key[%s] from dht; tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
 	}
 	return &res, nil
 }

@@ -44,7 +44,7 @@ type Config struct {
 	Log          LogConfig          `toml:"log"`
 	ServerConfig ServerConfig       `toml:"server"`
 	DHTConfig    DHTServiceConfig   `toml:"dht"`
-	PkarrConfig  PKARRServiceConfig `toml:"pkarr"`
+	PkarrConfig  PkarrServiceConfig `toml:"pkarr"`
 }
 
 type ServerConfig struct {
@@ -60,11 +60,10 @@ type DHTServiceConfig struct {
 	BootstrapPeers []string `toml:"bootstrap_peers"`
 }
 
-type PKARRServiceConfig struct {
-	RepublishCRON     string `toml:"republish_cron"`
-	CacheTTLSeconds   int    `toml:"cache_ttl_seconds"`
-	CacheSizeLimitMB  int    `toml:"cache_size_limit_mb"`
-	PutTimeoutSeconds int    `toml:"put_timeout_seconds"`
+type PkarrServiceConfig struct {
+	RepublishCRON    string `toml:"republish_cron"`
+	CacheTTLSeconds  int    `toml:"cache_ttl_seconds"`
+	CacheSizeLimitMB int    `toml:"cache_size_limit_mb"`
 }
 
 type LogConfig struct {
@@ -84,11 +83,10 @@ func GetDefaultConfig() Config {
 		DHTConfig: DHTServiceConfig{
 			BootstrapPeers: GetDefaultBootstrapPeers(),
 		},
-		PkarrConfig: PKARRServiceConfig{
-			RepublishCRON:     "0 */2 * * *",
-			CacheTTLSeconds:   600,
-			CacheSizeLimitMB:  500,
-			PutTimeoutSeconds: 5,
+		PkarrConfig: PkarrServiceConfig{
+			RepublishCRON:    "0 */2 * * *",
+			CacheTTLSeconds:  600,
+			CacheSizeLimitMB: 500,
 		},
 		Log: LogConfig{
 			Level: logrus.InfoLevel.String(),
