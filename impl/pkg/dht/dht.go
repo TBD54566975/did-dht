@@ -10,7 +10,6 @@ import (
 	"github.com/anacrolix/dht/v2"
 	"github.com/anacrolix/dht/v2/bep44"
 	"github.com/anacrolix/dht/v2/exts/getput"
-	"github.com/anacrolix/log"
 	"github.com/anacrolix/torrent/types/infohash"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
@@ -39,7 +38,6 @@ func NewDHT(bootstrapPeers []string) (*DHT, error) {
 		return nil, errutil.LoggingErrorMsg(err, "failed to listen on udp port 6881")
 	}
 	c.Conn = conn
-	c.Logger = log.NewLogger().WithFilterLevel(log.Debug)
 	c.Logger.SetHandlers(logHandler{})
 	c.StartingNodes = func() ([]dht.Addr, error) { return dht.ResolveHostPorts(bootstrapPeers) }
 	// set up rate limiter - 100 requests per second, 500 requests burst
@@ -97,9 +95,9 @@ func (d *DHT) Put(ctx context.Context, request bep44.Put) (string, error) {
 	})
 	if err != nil {
 		if t == nil {
-			return "", errutil.LoggingNewErrorf("failed to put key[%s] into dht: %v", key, err)
+			return "", errutil.LoggingCtxNewErrorf(ctx, "failed to put key[%s] into dht: %v", key, err)
 		}
-		return "", errutil.LoggingNewErrorf("failed to put key[%s] into dht, tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
+		return "", errutil.LoggingCtxNewErrorf(ctx, "failed to put key[%s] into dht, tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
 	} else {
 		logrus.WithContext(ctx).WithField("key", key).Debug("successfully put key into dht")
 	}
@@ -114,11 +112,11 @@ func (d *DHT) Get(ctx context.Context, key string) (*getput.GetResult, error) {
 
 	z32Decoded, err := util.Z32Decode(key)
 	if err != nil {
-		return nil, errutil.LoggingErrorMsgf(err, "failed to decode key [%s]", key)
+		return nil, errutil.LoggingCtxErrorMsgf(ctx, err, "failed to decode key [%s]", key)
 	}
 	res, t, err := getput.Get(ctx, infohash.HashBytes(z32Decoded), d.Server, nil, nil)
 	if err != nil {
-		return nil, errutil.LoggingNewErrorf("failed to get key[%s] from dht; tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
+		return nil, errutil.LoggingCtxNewErrorf(ctx, "failed to get key[%s] from dht; tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
 	}
 	return &res, nil
 }
@@ -132,25 +130,11 @@ func (d *DHT) GetFull(ctx context.Context, key string) (*dhtint.FullGetResult, e
 
 	z32Decoded, err := util.Z32Decode(key)
 	if err != nil {
-		return nil, errutil.LoggingErrorMsgf(err, "failed to decode key [%s]", key)
+		return nil, errutil.LoggingCtxErrorMsgf(ctx, err, "failed to decode key [%s]", key)
 	}
 	res, t, err := dhtint.Get(ctx, infohash.HashBytes(z32Decoded), d.Server, nil, nil)
 	if err != nil {
-		return nil, errutil.LoggingNewErrorf("failed to get key[%s] from dht; tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
+		return nil, errutil.LoggingCtxNewErrorf(ctx, "failed to get key[%s] from dht; tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
 	}
 	return &res, nil
-}
-
-type logHandler struct{}
-
-var levels = map[log.Level]logrus.Level{
-	log.Debug:    logrus.DebugLevel,
-	log.Info:     logrus.InfoLevel,
-	log.Warning:  logrus.WarnLevel,
-	log.Error:    logrus.ErrorLevel,
-	log.Critical: logrus.ErrorLevel,
-}
-
-func (logHandler) Handle(record log.Record) {
-	logrus.WithField("names", record.Names).Log(levels[record.Level], record.Msg.String())
 }

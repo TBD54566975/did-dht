@@ -156,7 +156,7 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response
 	}
 	var payload string
 	if err = bencode.Unmarshal(bBytes, &payload); err != nil {
-		return nil, ssiutil.LoggingErrorMsg(err, "failed to unmarshal bencoded payload")
+		return nil, ssiutil.LoggingCtxErrorMsg(ctx, err, "failed to unmarshal bencoded payload")
 	}
 	resp := pkarr.Response{
 		V:   []byte(payload),
@@ -190,9 +190,9 @@ func (s *PkarrService) republish() {
 
 	recordCnt, err := s.db.RecordCount(ctx)
 	if err != nil {
-		logrus.WithError(err).Error("failed to get record count")
+		logrus.WithContext(ctx).WithError(err).Error("failed to get record count")
 	} else {
-		logrus.WithField("record_count", recordCnt).Info("republishing records")
+		logrus.WithContext(ctx).WithField("record_count", recordCnt).Info("republishing records")
 	}
 
 	var nextPageToken []byte
@@ -201,23 +201,23 @@ func (s *PkarrService) republish() {
 	for {
 		allRecords, nextPageToken, err = s.db.ListRecords(ctx, nextPageToken, 1000)
 		if err != nil {
-			logrus.WithError(err).Error("failed to list record(s) for republishing")
+			logrus.WithContext(ctx).WithError(err).Error("failed to list record(s) for republishing")
 			return
 		}
 
 		if len(allRecords) == 0 {
-			logrus.Info("no records to republish")
+			logrus.WithContext(ctx).Info("no records to republish")
 			return
 		}
 
-		logrus.WithField("record_count", len(allRecords)).Infof("republishing records in batch: %d", batchCnt)
+		logrus.WithContext(ctx).WithField("record_count", len(allRecords)).Infof("republishing records in batch: %d", batchCnt)
 		batchCnt++
 
 		for _, record := range allRecords {
 			recordID := zbase32.EncodeToString(record.Key[:])
-			logrus.Debugf("republishing record: %s", recordID)
+			logrus.WithContext(ctx).Debugf("republishing record: %s", recordID)
 			if _, err = s.dht.Put(ctx, record.BEP44()); err != nil {
-				logrus.WithError(err).Errorf("failed to republish record: %s", recordID)
+				logrus.WithContext(ctx).WithError(err).Errorf("failed to republish record: %s", recordID)
 				errCnt++
 				continue
 			}
@@ -228,7 +228,7 @@ func (s *PkarrService) republish() {
 			break
 		}
 	}
-	logrus.WithFields(logrus.Fields{
+	logrus.WithContext(ctx).WithFields(logrus.Fields{
 		"success": len(allRecords) - errCnt,
 		"errors":  errCnt,
 		"total":   len(allRecords),
