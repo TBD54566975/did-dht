@@ -10,6 +10,7 @@ import (
 	"github.com/anacrolix/dht/v2"
 	"github.com/anacrolix/dht/v2/bep44"
 	"github.com/anacrolix/dht/v2/exts/getput"
+	"github.com/anacrolix/log"
 	"github.com/anacrolix/torrent/types/infohash"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
@@ -38,7 +39,8 @@ func NewDHT(bootstrapPeers []string) (*DHT, error) {
 		return nil, errutil.LoggingErrorMsg(err, "failed to listen on udp port 6881")
 	}
 	c.Conn = conn
-	c.Logger.SetHandlers(logHandler{})
+	c.Logger = log.NewLogger().WithFilterLevel(log.Debug)
+	c.Logger.SetHandlers(logrusHandler{})
 	c.StartingNodes = func() ([]dht.Addr, error) { return dht.ResolveHostPorts(bootstrapPeers) }
 	// set up rate limiter - 100 requests per second, 500 requests burst
 	c.SendLimiter = rate.NewLimiter(100, 500)

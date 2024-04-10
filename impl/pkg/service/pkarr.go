@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -190,21 +192,21 @@ func (s *PkarrService) republish() {
 
 	recordCnt, err := s.db.RecordCount(ctx)
 	if err != nil {
-		logrus.WithContext(ctx).WithError(err).Error("failed to get record count")
+		logrus.WithContext(ctx).WithError(err).Error("failed to get record count before republishing")
 	} else {
 		logrus.WithContext(ctx).WithField("record_count", recordCnt).Info("republishing records")
 	}
 
 	var nextPageToken []byte
 	var recordsBatch []pkarr.Record
-	seenRecords, errCnt, successCnt, batchCnt := 0, 0, 0, 0
+	var seenRecords, batchCnt, successCnt, errCnt int32 = 0, 0, 0, 0
 	for {
 		recordsBatch, nextPageToken, err = s.db.ListRecords(ctx, nextPageToken, 1000)
 		if err != nil {
 			logrus.WithContext(ctx).WithError(err).Error("failed to list record(s) for republishing")
 			return
 		}
-		seenRecords += len(recordsBatch)
+		seenRecords += int32(len(recordsBatch))
 
 		if len(recordsBatch) == 0 {
 			logrus.WithContext(ctx).Info("no records to republish")
@@ -214,16 +216,25 @@ func (s *PkarrService) republish() {
 		logrus.WithContext(ctx).WithField("record_count", len(recordsBatch)).Infof("republishing records in batch: %d", batchCnt)
 		batchCnt++
 
+		var wg sync.WaitGroup
+		wg.Add(len(recordsBatch))
+
 		for _, record := range recordsBatch {
-			recordID := zbase32.EncodeToString(record.Key[:])
-			logrus.WithContext(ctx).Debugf("republishing record: %s", recordID)
-			if _, err = s.dht.Put(ctx, record.BEP44()); err != nil {
-				logrus.WithContext(ctx).WithError(err).Errorf("failed to republish record: %s", recordID)
-				errCnt++
-				continue
-			}
-			successCnt++
+			go func(record pkarr.Record) {
+				defer wg.Done()
+
+				recordID := zbase32.EncodeToString(record.Key[:])
+				logrus.WithContext(ctx).Debugf("republishing record: %s", recordID)
+				if _, err = s.dht.Put(ctx, record.BEP44()); err != nil {
+					logrus.WithContext(ctx).WithError(err).Errorf("failed to republish record: %s", recordID)
+					atomic.AddInt32(&errCnt, 1)
+				} else {
+					atomic.AddInt32(&successCnt, 1)
+				}
+			}(record)
 		}
+
+		wg.Wait()
 
 		if nextPageToken == nil {
 			break

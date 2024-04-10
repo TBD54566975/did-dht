@@ -2,12 +2,8 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"io"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"strconv"
 	"syscall"
 	"time"
 
@@ -44,10 +40,6 @@ func main() {
 
 func run() error {
 	ctx := context.Background()
-	if err := telemetry.SetupTelemetry(ctx); err != nil {
-		logrus.WithContext(ctx).WithError(err).Fatal("error initializing telemetry")
-	}
-	defer telemetry.Shutdown(ctx)
 
 	// Load config
 	configPath := config.DefaultConfigPath
@@ -62,14 +54,16 @@ func run() error {
 		logrus.WithContext(ctx).Fatalf("could not instantiate config: %s", err.Error())
 	}
 
-	// set up logger
-	if logFile := configureLogger(cfg.Log.Level, cfg.Log.Path); logFile != nil {
-		defer func(logFile *os.File) {
-			if err = logFile.Close(); err != nil {
-				logrus.WithContext(ctx).WithError(err).Error("failed to close log file")
-			}
-		}(logFile)
+	// set up telemetry
+	if cfg.ServerConfig.Telemetry {
+		if err = telemetry.SetupTelemetry(ctx); err != nil {
+			logrus.WithContext(ctx).WithError(err).Fatal("error initializing telemetry")
+		}
+		defer telemetry.Shutdown(ctx)
 	}
+
+	// set up logger
+	configureLogger(cfg.Log.Level)
 
 	// create a channel of buffer size 1 to handle shutdown.
 	// buffer's size is 1 in order to ignore any additional ctrl+c spamming.
@@ -112,9 +106,8 @@ func run() error {
 	return nil
 }
 
-// configureLogger configures the logger to logs to the given location and returns a file pointer to a logs
-// file that should be closed upon server shutdown
-func configureLogger(level, location string) *os.File {
+// configureLogger configures the logger
+func configureLogger(level string) {
 	if level != "" {
 		logLevel, err := logrus.ParseLevel(level)
 		if err != nil {
@@ -124,23 +117,4 @@ func configureLogger(level, location string) *os.File {
 			logrus.SetLevel(logLevel)
 		}
 	}
-
-	// set logs config from config file
-	var file *os.File
-	var output io.Writer
-	output = os.Stdout
-	if location != "" {
-		now := time.Now()
-		filename := filepath.Join(location, fmt.Sprintf("%s-%s-%s.log", config.ServiceName, now.Format(time.DateOnly), strconv.FormatInt(now.Unix(), 10)))
-		var err error
-		file, err = os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-		if err != nil {
-			logrus.WithError(err).Warn("failed to create logs file, using default stdout")
-		} else {
-			output = io.MultiWriter(os.Stdout, file)
-		}
-	}
-
-	logrus.SetOutput(output)
-	return file
 }

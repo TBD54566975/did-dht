@@ -25,6 +25,8 @@ const (
 	ConfigPath EnvironmentVariable = "CONFIG_PATH"
 	// BootstrapPeers A comma-separated list of bootstrap peers to connect to on startup.
 	BootstrapPeers EnvironmentVariable = "BOOTSTRAP_PEERS"
+	StorageURI     EnvironmentVariable = "STORAGE_URI"
+	LogLevel       EnvironmentVariable = "LOG_LEVEL"
 )
 
 var Version = "devel"
@@ -51,6 +53,7 @@ type ServerConfig struct {
 	APIPort     int         `toml:"api_port"`
 	BaseURL     string      `toml:"base_url"`
 	StorageURI  string      `toml:"storage_uri"`
+	Telemetry   bool        `toml:"telemetry"`
 }
 
 type DHTServiceConfig struct {
@@ -66,7 +69,6 @@ type PKARRServiceConfig struct {
 
 type LogConfig struct {
 	Level string `toml:"level"`
-	Path  string `toml:"path"`
 }
 
 func GetDefaultConfig() Config {
@@ -77,6 +79,7 @@ func GetDefaultConfig() Config {
 			APIPort:     8305,
 			BaseURL:     "http://localhost:8305",
 			StorageURI:  "bolt://diddht.db",
+			Telemetry:   false,
 		},
 		DHTConfig: DHTServiceConfig{
 			BootstrapPeers: GetDefaultBootstrapPeers(),
@@ -157,12 +160,12 @@ func applyEnvVariables(cfg *Config) error {
 		cfg.DHTConfig.BootstrapPeers = strings.Split(bootstrapPeers, ",")
 	}
 
-	storage, present := os.LookupEnv("STORAGE_URI")
+	storage, present := os.LookupEnv(StorageURI.String())
 	if present {
 		cfg.ServerConfig.StorageURI = storage
 	}
 
-	levelString, present := os.LookupEnv("LOG_LEVEL")
+	levelString, present := os.LookupEnv(LogLevel.String())
 	if present {
 		_, err := logrus.ParseLevel(levelString)
 		if err != nil {
