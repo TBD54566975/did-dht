@@ -5,20 +5,24 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type logHandler struct{}
+func init() {
+	log.Default.Handlers = []log.Handler{logrusHandler{}}
+}
 
-func (logHandler) Handle(record log.Record) {
+type logrusHandler struct{}
+
+func (logrusHandler) Handle(record log.Record) {
 	entry := logrus.WithFields(logrus.Fields{"names": record.Names})
 	msg := record.Msg.String()
 
 	switch record.Level {
 	case log.Debug:
-		entry.Debugf("%s\n", msg)
+		entry.Debug(msg)
 	case log.Info:
-		entry.Infof("%s\n", msg)
+		entry.Info(msg)
 	case log.Warning:
-		entry.Warnf("%s\n", msg)
+		entry.Warn(msg)
 	default:
-		entry.Errorf("%s\n", msg)
+		entry.Error(msg)
 	}
 }

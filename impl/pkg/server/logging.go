@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"math"
 	"net/http"
 	"os"
@@ -10,8 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
-
-var timeFormat = "02/Jan/2006:15:04:05 -0700"
 
 // logger is the logrus logger handler amended for telemetry
 // inspired by https://github.com/toorop/gin-logrus
@@ -58,18 +55,18 @@ func logger(logger logrus.FieldLogger, notLogged ...string) gin.HandlerFunc {
 			"referer":    referer,
 			"dataLength": dataLength,
 			"userAgent":  clientUserAgent,
+			"time":       time.Now().Format(time.RFC3339),
 		})
 
 		if len(c.Errors) > 0 {
 			entry.Error(c.Errors.ByType(gin.ErrorTypePrivate).String())
 		} else {
-			msg := fmt.Sprintf("%s - %s [%s] \"%s %s\" %d %d \"%s\" \"%s\" (%dms)\n", clientIP, hostname, time.Now().Format(timeFormat), c.Request.Method, path, statusCode, dataLength, referer, clientUserAgent, latency)
 			if statusCode >= http.StatusInternalServerError {
-				entry.Error(msg)
+				entry.Error()
 			} else if statusCode >= http.StatusBadRequest {
-				entry.Warn(msg)
+				entry.Warn()
 			} else {
-				entry.Info(msg)
+				entry.Info()
 			}
 		}
 	}
