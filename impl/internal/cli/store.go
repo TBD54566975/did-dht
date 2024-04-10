@@ -17,11 +17,11 @@ const (
 // Read reads the diddht file and returns the identities.
 func Read() (internal.Identities, error) {
 	homeDir, _ := os.UserHomeDir()
-	diddhtFile := homeDir + didDHTPath
-	if _, err := os.Stat(diddhtFile); os.IsNotExist(err) {
+	didDHTFile := homeDir + didDHTPath
+	if _, err := os.Stat(didDHTFile); os.IsNotExist(err) {
 		return nil, util.LoggingErrorMsg(err, "failed to find diddht file")
 	}
-	f, _ := os.Open(diddhtFile)
+	f, _ := os.Open(didDHTFile)
 	defer f.Close()
 	var identities internal.Identities
 	if err := json.NewDecoder(f).Decode(&identities); err != nil {

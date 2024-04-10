@@ -31,9 +31,7 @@ import (
 //	@license.name	Apache 2.0
 //	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
 func main() {
-	logrus.SetFormatter(&logrus.JSONFormatter{
-		PrettyPrint: true,
-	})
+	logrus.SetFormatter(&logrus.JSONFormatter{})
 	logrus.SetReportCaller(true)
 
 	log := logrus.NewEntry(logrus.StandardLogger()).WithField("version", config.Version)
@@ -47,7 +45,7 @@ func main() {
 func run() error {
 	ctx := context.Background()
 	if err := telemetry.SetupTelemetry(ctx); err != nil {
-		logrus.WithError(err).Fatal("error initializing telemetry")
+		logrus.WithContext(ctx).WithError(err).Fatal("error initializing telemetry")
 	}
 	defer telemetry.Shutdown(ctx)
 
@@ -68,7 +66,7 @@ func run() error {
 	if logFile := configureLogger(cfg.Log.Level, cfg.Log.Path); logFile != nil {
 		defer func(logFile *os.File) {
 			if err = logFile.Close(); err != nil {
-				logrus.WithError(err).Error("failed to close log file")
+				logrus.WithContext(ctx).WithError(err).Error("failed to close log file")
 			}
 		}(logFile)
 	}
@@ -80,12 +78,12 @@ func run() error {
 
 	d, err := dht.NewDHT(cfg.DHTConfig.BootstrapPeers)
 	if err != nil {
-		return util.LoggingErrorMsg(err, "failed to instantiate dht")
+		return util.LoggingCtxErrorMsg(ctx, err, "failed to instantiate dht")
 	}
 
 	s, err := server.NewServer(cfg, shutdown, d)
 	if err != nil {
-		return util.LoggingErrorMsg(err, "could not start http services")
+		return util.LoggingCtxErrorMsg(ctx, err, "could not start http services")
 	}
 
 	serverErrors := make(chan error, 1)
