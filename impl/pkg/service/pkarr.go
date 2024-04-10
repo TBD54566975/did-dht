@@ -196,24 +196,25 @@ func (s *PkarrService) republish() {
 	}
 
 	var nextPageToken []byte
-	var allRecords []pkarr.Record
-	errCnt, successCnt, batchCnt := 0, 0, 0
+	var recordsBatch []pkarr.Record
+	seenRecords, errCnt, successCnt, batchCnt := 0, 0, 0, 0
 	for {
-		allRecords, nextPageToken, err = s.db.ListRecords(ctx, nextPageToken, 1000)
+		recordsBatch, nextPageToken, err = s.db.ListRecords(ctx, nextPageToken, 1000)
 		if err != nil {
 			logrus.WithContext(ctx).WithError(err).Error("failed to list record(s) for republishing")
 			return
 		}
+		seenRecords += len(recordsBatch)
 
-		if len(allRecords) == 0 {
+		if len(recordsBatch) == 0 {
 			logrus.WithContext(ctx).Info("no records to republish")
 			return
 		}
 
-		logrus.WithContext(ctx).WithField("record_count", len(allRecords)).Infof("republishing records in batch: %d", batchCnt)
+		logrus.WithContext(ctx).WithField("record_count", len(recordsBatch)).Infof("republishing records in batch: %d", batchCnt)
 		batchCnt++
 
-		for _, record := range allRecords {
+		for _, record := range recordsBatch {
 			recordID := zbase32.EncodeToString(record.Key[:])
 			logrus.WithContext(ctx).Debugf("republishing record: %s", recordID)
 			if _, err = s.dht.Put(ctx, record.BEP44()); err != nil {
@@ -228,9 +229,10 @@ func (s *PkarrService) republish() {
 			break
 		}
 	}
+
 	logrus.WithContext(ctx).WithFields(logrus.Fields{
-		"success": len(allRecords) - errCnt,
+		"success": seenRecords - errCnt,
 		"errors":  errCnt,
-		"total":   len(allRecords),
+		"total":   seenRecords,
 	}).Infof("republishing complete with [%d] batches", batchCnt)
 }
