@@ -3,8 +3,10 @@ package server
 import (
 	"crypto/ed25519"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -56,6 +58,11 @@ func (r *PkarrRouter) GetRecord(c *gin.Context) {
 
 	resp, err := r.service.GetPkarr(c, *id)
 	if err != nil {
+		// TODO(gabe): provide a more maintainable way to handle custom errors
+		if strings.Contains("spam", err.Error()) {
+			LoggingRespondErrMsg(c, fmt.Sprintf("too many requests for bad key %s", *id), http.StatusTooManyRequests)
+			return
+		}
 		LoggingRespondErrWithMsg(c, err, "failed to get pkarr record", http.StatusInternalServerError)
 		return
 	}

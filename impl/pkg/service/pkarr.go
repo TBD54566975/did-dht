@@ -6,13 +6,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/goccy/go-json"
-	"github.com/tv42/zbase32"
-
 	ssiutil "github.com/TBD54566975/ssi-sdk/util"
 	"github.com/allegro/bigcache/v3"
 	"github.com/anacrolix/torrent/bencode"
+	"github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
+	"github.com/tv42/zbase32"
 
 	"github.com/TBD54566975/did-dht-method/internal/util"
 
@@ -139,7 +138,7 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response
 
 	// if the key is in the badGetCache, return an error
 	if _, err := s.badGetCache.Get(id); err == nil {
-		return nil, ssiutil.LoggingCtxErrorMsgf(ctx, err, "key [%s] looked up too frequently, please wait a bit before trying again", id)
+		return nil, ssiutil.LoggingCtxErrorMsgf(ctx, err, "bad key [%s] rate limited to prevent spam", id)
 	}
 
 	// first do a cache lookup
