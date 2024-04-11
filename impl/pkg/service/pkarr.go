@@ -59,7 +59,7 @@ func NewPkarrService(cfg *config.Config, db storage.Storage, d *dht.DHT) (*Pkarr
 		cache:     cache,
 		scheduler: &scheduler,
 	}
-	if err = scheduler.Schedule(cfg.PkarrConfig.RepublishCRON, svc.republish); err != nil {
+	if err = scheduler.Schedule("* * * * *", svc.republish); err != nil {
 		return nil, ssiutil.LoggingErrorMsg(err, "failed to start republisher")
 	}
 	return &svc, nil
@@ -210,7 +210,7 @@ func (s *PkarrService) republish() {
 
 	var nextPageToken []byte
 	var recordsBatch []pkarr.Record
-	var seenRecords, batchCnt, successCnt, errCnt int32 = 0, 0, 0, 0
+	var seenRecords, batchCnt, successCnt, errCnt int32 = 0, 1, 0, 0
 
 	for {
 		recordsBatch, nextPageToken, err = s.db.ListRecords(ctx, nextPageToken, 1000)
@@ -229,26 +229,23 @@ func (s *PkarrService) republish() {
 			"record_count": batchSize,
 			"batch_number": batchCnt,
 			"total_seen":   seenRecords,
-		}).Infof("republishing batch [%d] of [%d] records", batchSize, batchCnt)
+		}).Infof("republishing batch [%d] of [%d] records", batchCnt, batchSize)
 		batchCnt++
 
 		var wg sync.WaitGroup
 		wg.Add(batchSize)
 
-		var batchSuccessCnt, batchErrCnt int32 = 0, 0
+		var batchErrCnt, batchSuccessCnt int32 = 0, 0
 		for _, record := range recordsBatch {
-			// Pass the parent context to the goroutine
 			go func(ctx context.Context, record pkarr.Record) {
 				defer wg.Done()
 
 				recordID := zbase32.EncodeToString(record.Key[:])
 				logrus.WithContext(ctx).Debugf("republishing record: %s", recordID)
 
-				// Create a new context with a timeout of 10 seconds based on the parent context
 				putCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 				defer cancel()
 
-				// Use a local variable for the error to avoid shadowing
 				if _, putErr := s.dht.Put(putCtx, record.BEP44()); putErr != nil {
 					logrus.WithContext(putCtx).WithError(putErr).Errorf("failed to republish record: %s", recordID)
 					atomic.AddInt32(&batchErrCnt, 1)
@@ -258,27 +255,41 @@ func (s *PkarrService) republish() {
 			}(ctx, record)
 		}
 
+		// Wait for all goroutines in this batch to finish before moving on to the next batch
 		wg.Wait()
 
-		atomic.AddInt32(&errCnt, batchErrCnt)
+		// Update the success and error counts
 		atomic.AddInt32(&successCnt, batchSuccessCnt)
+		atomic.AddInt32(&errCnt, batchErrCnt)
+
+		successRate := float64(batchSuccessCnt) / float64(batchSize)
 
 		logrus.WithContext(ctx).WithFields(logrus.Fields{
 			"batch_number": batchCnt,
-			"success":      batchSuccessCnt,
-			"errors":       batchErrCnt,
-		}).Infof("batch completed with [%d] successes and [%d] errors", batchSuccessCnt, batchErrCnt)
+			"success":      successCnt,
+			"errors":       errCnt,
+		}).Infof("batch [%d] completed with a [%02f] percent success rate", batchCnt, successRate)
+
+		if successRate < 0.8 {
+			logrus.WithContext(ctx).WithFields(logrus.Fields{
+				"batch_number": batchCnt,
+				"success":      successCnt,
+				"errors":       errCnt,
+			}).Errorf("batch [%d] failed to meet success rate threshold; exiting republishing early", batchCnt)
+			break
+		}
 
 		if nextPageToken == nil {
 			break
 		}
 	}
 
+	successRate := float64(successCnt) / float64(seenRecords)
 	logrus.WithContext(ctx).WithFields(logrus.Fields{
 		"success": seenRecords - errCnt,
 		"errors":  errCnt,
 		"total":   seenRecords,
-	}).Infof("republishing complete with [%d] batches", batchCnt)
+	}).Infof("republishing complete with [%d] batches of [%d] total records with an [%02f] percent success rate", batchCnt, seenRecords, successRate*100)
 }
 
 // Close closes the Pkarr service gracefully
