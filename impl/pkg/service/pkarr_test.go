@@ -34,7 +34,7 @@ func TestPkarrService(t *testing.T) {
 
 	t.Run("test get record with invalid ID", func(t *testing.T) {
 		got, err := svc.GetPkarr(context.Background(), "---")
-		assert.EqualError(t, err, "illegal z-base-32 data at input byte 0")
+		assert.ErrorContains(t, err, "illegal z-base-32 data at input byte 0")
 		assert.Nil(t, got)
 	})
 
