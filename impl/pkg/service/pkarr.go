@@ -59,7 +59,7 @@ func NewPkarrService(cfg *config.Config, db storage.Storage, d *dht.DHT) (*Pkarr
 		cache:     cache,
 		scheduler: &scheduler,
 	}
-	if err = scheduler.Schedule("* * * * *", svc.republish); err != nil {
+	if err = scheduler.Schedule(cfg.PkarrConfig.RepublishCRON, svc.republish); err != nil {
 		return nil, ssiutil.LoggingErrorMsg(err, "failed to start republisher")
 	}
 	return &svc, nil

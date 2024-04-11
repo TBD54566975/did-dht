@@ -38,7 +38,7 @@ func startGetTraversal(
 		Alpha:  15,
 		Target: target,
 		DoQuery: func(ctx context.Context, addr krpc.NodeAddr) traversal.QueryResult {
-			queryCtx, cancel := context.WithTimeout(ctx, 5*time.Second) // Adjust the timeout as needed
+			queryCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
 			defer cancel()
 
 			res := s.Get(queryCtx, dht.NewAddr(addr.UDP()), target, seq, dht.QueryRateLimiting{})
