@@ -132,7 +132,7 @@ func TestPkarrService(t *testing.T) {
 
 		// try it again to make sure the cache is working
 		got, err = svc.GetPkarr(context.Background(), "uqaj3fcr9db6jg6o9pjs53iuftyj45r46aubogfaceqjbo6pp9sy")
-		assert.ErrorContains(t, err, "looked up too frequently, please wait a bit before trying again")
+		assert.ErrorContains(t, err, "rate limited to prevent spam")
 		assert.Empty(t, got)
 	})
 

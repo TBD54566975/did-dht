@@ -34,7 +34,7 @@ func getTestData(fileName string) ([]byte, error) {
 }
 
 // retrieveTestVectorAs retrieves a test vector from the testdata folder and unmarshals it into the given interface
-func retrieveTestVectorAs(t *testing.T, fileName string, output interface{}) {
+func retrieveTestVectorAs(t *testing.T, fileName string, output any) {
 	t.Helper()
 	testDataBytes, err := getTestData(fileName)
 	require.NoError(t, err)
