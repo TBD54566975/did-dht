@@ -38,7 +38,7 @@ func startGetTraversal(
 		Target: target,
 		DoQuery: func(ctx context.Context, addr krpc.NodeAddr) traversal.QueryResult {
 			res := s.Get(ctx, dht.NewAddr(addr.UDP()), target, seq, dht.QueryRateLimiting{})
-			err = res.ToError()
+			err := res.ToError()
 			if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, dht.TransactionTimeout) {
 				logrus.WithContext(ctx).WithError(err).Debugf("error querying %v", addr)
 			}
