@@ -228,7 +228,12 @@ func (s *PkarrService) republish() {
 
 				recordID := zbase32.EncodeToString(record.Key[:])
 				logrus.WithContext(ctx).Debugf("republishing record: %s", recordID)
-				if _, err = s.dht.Put(ctx, record.BEP44()); err != nil {
+
+				// Create a new context with a timeout of 10 seconds
+				putCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+
+				if _, err = s.dht.Put(putCtx, record.BEP44()); err != nil {
 					logrus.WithContext(ctx).WithError(err).Errorf("failed to republish record: %s", recordID)
 					atomic.AddInt32(&errCnt, 1)
 				} else {

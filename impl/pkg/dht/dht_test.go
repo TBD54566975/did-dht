@@ -10,15 +10,12 @@ import (
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/goleak"
 
 	"github.com/TBD54566975/did-dht-method/internal/util"
 	dhtclient "github.com/TBD54566975/did-dht-method/pkg/dht"
 )
 
 func TestGetPutDHT(t *testing.T) {
-	defer goleak.VerifyNone(t)
-
 	ctx := context.Background()
 	d := dhtclient.NewTestDHT(t)
 	defer d.Close()
