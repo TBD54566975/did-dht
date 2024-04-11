@@ -109,8 +109,8 @@ func configureLogger(level string) {
 	if level != "" {
 		logLevel, err := logrus.ParseLevel(level)
 		if err != nil {
-			logrus.WithError(err).WithField("level", level).Error("could not parse log level, setting to info")
-			logrus.SetLevel(logrus.InfoLevel)
+			logrus.WithError(err).WithField("level", level).Error("could not parse log level, setting to debug")
+			logrus.SetLevel(logrus.DebugLevel)
 		} else {
 			logrus.SetLevel(logLevel)
 		}

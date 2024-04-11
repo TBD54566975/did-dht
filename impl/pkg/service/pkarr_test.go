@@ -34,7 +34,7 @@ func TestPkarrService(t *testing.T) {
 
 	t.Run("test get record with invalid ID", func(t *testing.T) {
 		got, err := svc.GetPkarr(context.Background(), "---")
-		assert.EqualError(t, err, "illegal z-base-32 data at input byte 0")
+		assert.ErrorContains(t, err, "illegal z-base-32 data at input byte 0")
 		assert.Nil(t, got)
 	})
 
@@ -123,6 +123,17 @@ func TestPkarrService(t *testing.T) {
 		assert.Equal(t, putMsg.V, got.V)
 		assert.Equal(t, putMsg.Sig, got.Sig)
 		assert.Equal(t, putMsg.Seq, got.Seq)
+	})
+
+	t.Run("test get record with invalid ID", func(t *testing.T) {
+		got, err := svc.GetPkarr(context.Background(), "uqaj3fcr9db6jg6o9pjs53iuftyj45r46aubogfaceqjbo6pp9sy")
+		assert.NoError(t, err)
+		assert.Empty(t, got)
+
+		// try it again to make sure the cache is working
+		got, err = svc.GetPkarr(context.Background(), "uqaj3fcr9db6jg6o9pjs53iuftyj45r46aubogfaceqjbo6pp9sy")
+		assert.ErrorContains(t, err, "looked up too frequently, please wait a bit before trying again")
+		assert.Empty(t, got)
 	})
 
 	t.Cleanup(func() { svc.Close() })

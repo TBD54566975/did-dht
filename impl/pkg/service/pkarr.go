@@ -28,11 +28,12 @@ const recordSizeLimit = 1000
 
 // PkarrService is the Pkarr service responsible for managing the Pkarr DHT and reading/writing records
 type PkarrService struct {
-	cfg       *config.Config
-	db        storage.Storage
-	dht       *dht.DHT
-	cache     *bigcache.BigCache
-	scheduler *dhtint.Scheduler
+	cfg         *config.Config
+	db          storage.Storage
+	dht         *dht.DHT
+	cache       *bigcache.BigCache
+	badGetCache *bigcache.BigCache
+	scheduler   *dhtint.Scheduler
 }
 
 // NewPkarrService returns a new instance of the Pkarr service
@@ -41,7 +42,7 @@ func NewPkarrService(cfg *config.Config, db storage.Storage, d *dht.DHT) (*Pkarr
 		return nil, ssiutil.LoggingNewError("config is required")
 	}
 
-	// create and start cache and scheduler
+	// create and start get cache
 	cacheTTL := time.Duration(cfg.PkarrConfig.CacheTTLSeconds) * time.Second
 	cacheConfig := bigcache.DefaultConfig(cacheTTL)
 	cacheConfig.MaxEntrySize = recordSizeLimit
@@ -51,13 +52,24 @@ func NewPkarrService(cfg *config.Config, db storage.Storage, d *dht.DHT) (*Pkarr
 	if err != nil {
 		return nil, ssiutil.LoggingErrorMsg(err, "failed to instantiate cache")
 	}
+
+	// create a new cache for bad gets to prevent spamming the DHT
+	cacheConfig.LifeWindow = 120 * time.Second
+	cacheConfig.CleanWindow = 60 * time.Second
+	badGetCache, err := bigcache.New(context.Background(), cacheConfig)
+	if err != nil {
+		return nil, ssiutil.LoggingErrorMsg(err, "failed to instantiate badGetCache")
+	}
+
+	// start scheduler for republishing
 	scheduler := dhtint.NewScheduler()
 	svc := PkarrService{
-		cfg:       cfg,
-		db:        db,
-		dht:       d,
-		cache:     cache,
-		scheduler: &scheduler,
+		cfg:         cfg,
+		db:          db,
+		dht:         d,
+		cache:       cache,
+		badGetCache: badGetCache,
+		scheduler:   &scheduler,
 	}
 	if err = scheduler.Schedule(cfg.PkarrConfig.RepublishCRON, svc.republish); err != nil {
 		return nil, ssiutil.LoggingErrorMsg(err, "failed to start republisher")
@@ -69,6 +81,11 @@ func NewPkarrService(cfg *config.Config, db storage.Storage, d *dht.DHT) (*Pkarr
 func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr.Record) error {
 	ctx, span := telemetry.GetTracer().Start(ctx, "PkarrService.PublishPkarr")
 	defer span.End()
+
+	// make sure the key is valid
+	if _, err := util.Z32Decode(id); err != nil {
+		return ssiutil.LoggingCtxErrorMsgf(ctx, err, "failed to decode z-base-32 encoded ID: %s", id)
+	}
 
 	if err := record.IsValid(); err != nil {
 		return err
@@ -115,6 +132,16 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response
 	ctx, span := telemetry.GetTracer().Start(ctx, "PkarrService.GetPkarr")
 	defer span.End()
 
+	// make sure the key is valid
+	if _, err := util.Z32Decode(id); err != nil {
+		return nil, ssiutil.LoggingCtxErrorMsgf(ctx, err, "failed to decode z-base-32 encoded ID: %s", id)
+	}
+
+	// if the key is in the badGetCache, return an error
+	if _, err := s.badGetCache.Get(id); err == nil {
+		return nil, ssiutil.LoggingCtxErrorMsgf(ctx, err, "key [%s] looked up too frequently, please wait a bit before trying again", id)
+	}
+
 	// first do a cache lookup
 	if got, err := s.cache.Get(id); err == nil {
 		var resp pkarr.Response
@@ -138,7 +165,13 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response
 
 		record, err := s.db.ReadRecord(ctx, rawID)
 		if err != nil || record == nil {
-			logrus.WithContext(ctx).WithError(err).WithField("record", id).Error("failed to resolve pkarr record from storage")
+			logrus.WithContext(ctx).WithError(err).WithField("record", id).Error("failed to resolve pkarr record from storage; adding to badGetCache")
+
+			// add the key to the badGetCache to prevent spamming the DHT
+			if err = s.badGetCache.Set(id, []byte{0}); err != nil {
+				logrus.WithContext(ctx).WithError(err).WithField("record", id).Error("failed to set key in badGetCache")
+			}
+
 			return nil, err
 		}
 
@@ -193,67 +226,93 @@ func (s *PkarrService) republish() {
 	recordCnt, err := s.db.RecordCount(ctx)
 	if err != nil {
 		logrus.WithContext(ctx).WithError(err).Error("failed to get record count before republishing")
+		return
 	} else {
 		logrus.WithContext(ctx).WithField("record_count", recordCnt).Info("republishing records")
 	}
 
 	var nextPageToken []byte
 	var recordsBatch []pkarr.Record
-	var seenRecords, batchCnt, successCnt, errCnt int32 = 0, 0, 0, 0
+	var seenRecords, batchCnt, successCnt, errCnt int32 = 0, 1, 0, 0
+
 	for {
 		recordsBatch, nextPageToken, err = s.db.ListRecords(ctx, nextPageToken, 1000)
 		if err != nil {
 			logrus.WithContext(ctx).WithError(err).Error("failed to list record(s) for republishing")
 			return
 		}
-		seenRecords += int32(len(recordsBatch))
-		if len(recordsBatch) == 0 {
+		batchSize := len(recordsBatch)
+		seenRecords += int32(batchSize)
+		if batchSize == 0 {
 			logrus.WithContext(ctx).Info("no records to republish")
 			return
 		}
 
 		logrus.WithContext(ctx).WithFields(logrus.Fields{
-			"record_count": len(recordsBatch),
+			"record_count": batchSize,
 			"batch_number": batchCnt,
 			"total_seen":   seenRecords,
-		}).Infof("republishing next batch of records")
+		}).Infof("republishing batch [%d] of [%d] records", batchCnt, batchSize)
 		batchCnt++
 
 		var wg sync.WaitGroup
-		wg.Add(len(recordsBatch))
+		wg.Add(batchSize)
 
+		var batchErrCnt, batchSuccessCnt int32 = 0, 0
 		for _, record := range recordsBatch {
-			go func(record pkarr.Record) {
+			go func(ctx context.Context, record pkarr.Record) {
 				defer wg.Done()
 
 				recordID := zbase32.EncodeToString(record.Key[:])
 				logrus.WithContext(ctx).Debugf("republishing record: %s", recordID)
 
-				// Create a new context with a timeout of 10 seconds
-				putCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				putCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 				defer cancel()
 
-				if _, err = s.dht.Put(putCtx, record.BEP44()); err != nil {
-					logrus.WithContext(ctx).WithError(err).Errorf("failed to republish record: %s", recordID)
-					atomic.AddInt32(&errCnt, 1)
+				if _, putErr := s.dht.Put(putCtx, record.BEP44()); putErr != nil {
+					logrus.WithContext(putCtx).WithError(putErr).Errorf("failed to republish record: %s", recordID)
+					atomic.AddInt32(&batchErrCnt, 1)
 				} else {
-					atomic.AddInt32(&successCnt, 1)
+					atomic.AddInt32(&batchSuccessCnt, 1)
 				}
-			}(record)
+			}(ctx, record)
 		}
 
+		// Wait for all goroutines in this batch to finish before moving on to the next batch
 		wg.Wait()
+
+		// Update the success and error counts
+		atomic.AddInt32(&successCnt, batchSuccessCnt)
+		atomic.AddInt32(&errCnt, batchErrCnt)
+
+		successRate := float64(batchSuccessCnt) / float64(batchSize)
+
+		logrus.WithContext(ctx).WithFields(logrus.Fields{
+			"batch_number": batchCnt,
+			"success":      successCnt,
+			"errors":       errCnt,
+		}).Infof("batch [%d] completed with a [%02f] percent success rate", batchCnt, successRate)
+
+		if successRate < 0.8 {
+			logrus.WithContext(ctx).WithFields(logrus.Fields{
+				"batch_number": batchCnt,
+				"success":      successCnt,
+				"errors":       errCnt,
+			}).Errorf("batch [%d] failed to meet success rate threshold; exiting republishing early", batchCnt)
+			break
+		}
 
 		if nextPageToken == nil {
 			break
 		}
 	}
 
+	successRate := float64(successCnt) / float64(seenRecords)
 	logrus.WithContext(ctx).WithFields(logrus.Fields{
 		"success": seenRecords - errCnt,
 		"errors":  errCnt,
 		"total":   seenRecords,
-	}).Infof("republishing complete with [%d] batches", batchCnt)
+	}).Infof("republishing complete with [%d] batches of [%d] total records with an [%02f] percent success rate", batchCnt, seenRecords, successRate*100)
 }
 
 // Close closes the Pkarr service gracefully
@@ -267,6 +326,11 @@ func (s *PkarrService) Close() {
 	if s.cache != nil {
 		if err := s.cache.Close(); err != nil {
 			logrus.WithError(err).Error("failed to close cache")
+		}
+	}
+	if s.badGetCache != nil {
+		if err := s.badGetCache.Close(); err != nil {
+			logrus.WithError(err).Error("failed to close badGetCache")
 		}
 	}
 	if err := s.db.Close(); err != nil {

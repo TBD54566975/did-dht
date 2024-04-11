@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"sync"
+	"time"
 
 	k_nearest_nodes "github.com/anacrolix/dht/v2/k-nearest-nodes"
 	"github.com/anacrolix/torrent/bencode"
@@ -37,7 +38,10 @@ func startGetTraversal(
 		Alpha:  15,
 		Target: target,
 		DoQuery: func(ctx context.Context, addr krpc.NodeAddr) traversal.QueryResult {
-			res := s.Get(ctx, dht.NewAddr(addr.UDP()), target, seq, dht.QueryRateLimiting{})
+			queryCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
+			defer cancel()
+
+			res := s.Get(queryCtx, dht.NewAddr(addr.UDP()), target, seq, dht.QueryRateLimiting{})
 			err := res.ToError()
 			if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, dht.TransactionTimeout) {
 				logrus.WithContext(ctx).WithError(err).Debugf("error querying %v", addr)
@@ -52,7 +56,7 @@ func startGetTraversal(
 						Sig:     r.Sig,
 						Mutable: false,
 					}:
-					case <-ctx.Done():
+					case <-queryCtx.Done():
 					}
 				} else if sha1.Sum(append(r.K[:], salt...)) == target && bep44.Verify(r.K[:], salt, *r.Seq, bv, r.Sig[:]) {
 					select {
@@ -62,15 +66,13 @@ func startGetTraversal(
 						Sig:     r.Sig,
 						Mutable: true,
 					}:
-					case <-ctx.Done():
+					case <-queryCtx.Done():
 					}
 				} else if rv != nil {
 					logrus.WithContext(ctx).Debugf("get response item hash didn't match target: %q", rv)
 				}
 			}
 			tqr := res.TraversalQueryResult(addr)
-			// Filter replies from nodes that don't have a string token. This doesn't look prettier
-			// with generics. "The token value should be a short binary string." ¯\_(ツ)_/¯ (BEP 5).
 			tqr.ClosestData, _ = tqr.ClosestData.(string)
 			if tqr.ClosestData == nil {
 				tqr.ResponseFrom = nil
@@ -80,7 +82,7 @@ func startGetTraversal(
 		NodeFilter: s.TraversalNodeFilter,
 	})
 
-	// list for context cancellation or stalled traversal
+	// Listen for context cancellation or stalled traversal
 	go func() {
 		select {
 		case <-ctx.Done():
