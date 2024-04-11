@@ -165,7 +165,7 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response
 
 		record, err := s.db.ReadRecord(ctx, rawID)
 		if err != nil || record == nil {
-			logrus.WithContext(ctx).WithError(err).WithField("record", id).Error("failed to resolve pkarr record from storage")
+			logrus.WithContext(ctx).WithError(err).WithField("record", id).Error("failed to resolve pkarr record from storage; adding to badGetCache")
 
 			// add the key to the badGetCache to prevent spamming the DHT
 			if err = s.badGetCache.Set(id, []byte{0}); err != nil {
@@ -326,6 +326,11 @@ func (s *PkarrService) Close() {
 	if s.cache != nil {
 		if err := s.cache.Close(); err != nil {
 			logrus.WithError(err).Error("failed to close cache")
+		}
+	}
+	if s.badGetCache != nil {
+		if err := s.badGetCache.Close(); err != nil {
+			logrus.WithError(err).Error("failed to close badGetCache")
 		}
 	}
 	if err := s.db.Close(); err != nil {
