@@ -70,6 +70,11 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr
 	ctx, span := telemetry.GetTracer().Start(ctx, "PkarrService.PublishPkarr")
 	defer span.End()
 
+	// make sure the key is valid
+	if _, err := util.Z32Decode(id); err != nil {
+		return ssiutil.LoggingCtxErrorMsgf(ctx, err, "failed to decode z-base-32 encoded ID: %s", id)
+	}
+
 	if err := record.IsValid(); err != nil {
 		return err
 	}
@@ -114,6 +119,11 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr
 func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response, error) {
 	ctx, span := telemetry.GetTracer().Start(ctx, "PkarrService.GetPkarr")
 	defer span.End()
+
+	// make sure the key is valid
+	if _, err := util.Z32Decode(id); err != nil {
+		return nil, ssiutil.LoggingCtxErrorMsgf(ctx, err, "failed to decode z-base-32 encoded ID: %s", id)
+	}
 
 	// first do a cache lookup
 	if got, err := s.cache.Get(id); err == nil {
@@ -193,6 +203,7 @@ func (s *PkarrService) republish() {
 	recordCnt, err := s.db.RecordCount(ctx)
 	if err != nil {
 		logrus.WithContext(ctx).WithError(err).Error("failed to get record count before republishing")
+		return
 	} else {
 		logrus.WithContext(ctx).WithField("record_count", recordCnt).Info("republishing records")
 	}
@@ -200,49 +211,63 @@ func (s *PkarrService) republish() {
 	var nextPageToken []byte
 	var recordsBatch []pkarr.Record
 	var seenRecords, batchCnt, successCnt, errCnt int32 = 0, 0, 0, 0
+
 	for {
 		recordsBatch, nextPageToken, err = s.db.ListRecords(ctx, nextPageToken, 1000)
 		if err != nil {
 			logrus.WithContext(ctx).WithError(err).Error("failed to list record(s) for republishing")
 			return
 		}
-		seenRecords += int32(len(recordsBatch))
-		if len(recordsBatch) == 0 {
+		batchSize := len(recordsBatch)
+		seenRecords += int32(batchSize)
+		if batchSize == 0 {
 			logrus.WithContext(ctx).Info("no records to republish")
 			return
 		}
 
 		logrus.WithContext(ctx).WithFields(logrus.Fields{
-			"record_count": len(recordsBatch),
+			"record_count": batchSize,
 			"batch_number": batchCnt,
 			"total_seen":   seenRecords,
-		}).Infof("republishing next batch of records")
+		}).Infof("republishing batch [%d] of [%d] records", batchSize, batchCnt)
 		batchCnt++
 
 		var wg sync.WaitGroup
-		wg.Add(len(recordsBatch))
+		wg.Add(batchSize)
 
+		var batchSuccessCnt, batchErrCnt int32 = 0, 0
 		for _, record := range recordsBatch {
-			go func(record pkarr.Record) {
+			// Pass the parent context to the goroutine
+			go func(ctx context.Context, record pkarr.Record) {
 				defer wg.Done()
 
 				recordID := zbase32.EncodeToString(record.Key[:])
 				logrus.WithContext(ctx).Debugf("republishing record: %s", recordID)
 
-				// Create a new context with a timeout of 10 seconds
-				putCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				// Create a new context with a timeout of 10 seconds based on the parent context
+				putCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 				defer cancel()
 
-				if _, err = s.dht.Put(putCtx, record.BEP44()); err != nil {
-					logrus.WithContext(ctx).WithError(err).Errorf("failed to republish record: %s", recordID)
-					atomic.AddInt32(&errCnt, 1)
+				// Use a local variable for the error to avoid shadowing
+				if _, putErr := s.dht.Put(putCtx, record.BEP44()); putErr != nil {
+					logrus.WithContext(putCtx).WithError(putErr).Errorf("failed to republish record: %s", recordID)
+					atomic.AddInt32(&batchErrCnt, 1)
 				} else {
-					atomic.AddInt32(&successCnt, 1)
+					atomic.AddInt32(&batchSuccessCnt, 1)
 				}
-			}(record)
+			}(ctx, record)
 		}
 
 		wg.Wait()
+
+		atomic.AddInt32(&errCnt, batchErrCnt)
+		atomic.AddInt32(&successCnt, batchSuccessCnt)
+
+		logrus.WithContext(ctx).WithFields(logrus.Fields{
+			"batch_number": batchCnt,
+			"success":      batchSuccessCnt,
+			"errors":       batchErrCnt,
+		}).Infof("batch completed with [%d] successes and [%d] errors", batchSuccessCnt, batchErrCnt)
 
 		if nextPageToken == nil {
 			break

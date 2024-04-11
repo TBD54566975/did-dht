@@ -1,12 +1,13 @@
 package dht
 
 import (
+	"strings"
+
 	"github.com/anacrolix/log"
 	"github.com/sirupsen/logrus"
 )
 
 func init() {
-	logrus.SetFormatter(&logrus.JSONFormatter{})
 	log.Default.Handlers = []log.Handler{logrusHandler{}}
 }
 
@@ -16,7 +17,7 @@ type logrusHandler struct{}
 // It intentionally downgrades the log level to reduce verbosity.
 func (logrusHandler) Handle(record log.Record) {
 	entry := logrus.WithFields(logrus.Fields{"names": record.Names})
-	msg := record.Msg.String()
+	msg := strings.Replace(record.Msg.String(), "\n", "", -1)
 
 	switch record.Level {
 	case log.Debug:

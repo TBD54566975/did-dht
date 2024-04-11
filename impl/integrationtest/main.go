@@ -22,7 +22,7 @@ var (
 )
 
 func main() {
-	logrus.SetLevel(logrus.InfoLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 	if len(os.Args) < 2 {
 		logrus.Fatal("must specify 1 argument (server URL)")
 	}

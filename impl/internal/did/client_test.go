@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/anacrolix/dht/v2/bep44"
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -12,7 +13,7 @@ import (
 )
 
 func TestClient(t *testing.T) {
-	client, err := NewGatewayClient("https://diddht.tbddev.org")
+	client, err := NewGatewayClient("http://localhost:8305")
 
 	require.NoError(t, err)
 	require.NotNil(t, client)
@@ -40,6 +41,20 @@ func TestClient(t *testing.T) {
 
 	since := time.Since(start)
 	t.Logf("time to put and get: %s", since)
+}
+
+func TestGet(t *testing.T) {
+	client, err := NewGatewayClient("https://diddht.tbddev.org")
+
+	require.NoError(t, err)
+	require.NotNil(t, client)
+
+	doc, _, _, err := client.GetDIDDocument("did:dht:9m71tgxibxtkr9f8tfueqasuyqncpyxect18zosntkrqygckqcwo")
+	require.NoError(t, err)
+	require.NotNil(t, doc)
+
+	b, _ := json.Marshal(doc)
+	println(string(b))
 }
 
 func TestClientInvalidGateway(t *testing.T) {

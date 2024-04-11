@@ -89,7 +89,7 @@ func GetDefaultConfig() Config {
 			CacheSizeLimitMB: 500,
 		},
 		Log: LogConfig{
-			Level: logrus.InfoLevel.String(),
+			Level: logrus.DebugLevel.String(),
 		},
 	}
 }

@@ -43,7 +43,18 @@ func (r *PkarrRouter) GetRecord(c *gin.Context) {
 		return
 	}
 
-	resp, err := r.service.GetPkarr(c.Request.Context(), *id)
+	// make sure the key is valid
+	key, err := util.Z32Decode(*id)
+	if err != nil {
+		LoggingRespondErrWithMsg(c, err, "invalid record id", http.StatusInternalServerError)
+		return
+	}
+	if len(key) != ed25519.PublicKeySize {
+		LoggingRespondErrMsg(c, "invalid z32 encoded ed25519 public key", http.StatusBadRequest)
+		return
+	}
+
+	resp, err := r.service.GetPkarr(c, *id)
 	if err != nil {
 		LoggingRespondErrWithMsg(c, err, "failed to get pkarr record", http.StatusInternalServerError)
 		return
@@ -82,7 +93,7 @@ func (r *PkarrRouter) PutRecord(c *gin.Context) {
 	}
 	key, err := util.Z32Decode(*id)
 	if err != nil {
-		LoggingRespondErrWithMsg(c, err, "failed to read id", http.StatusInternalServerError)
+		LoggingRespondErrWithMsg(c, err, "invalid record id", http.StatusInternalServerError)
 		return
 	}
 	if len(key) != ed25519.PublicKeySize {
@@ -114,7 +125,7 @@ func (r *PkarrRouter) PutRecord(c *gin.Context) {
 		return
 	}
 
-	if err = r.service.PublishPkarr(c.Request.Context(), *id, *request); err != nil {
+	if err = r.service.PublishPkarr(c, *id, *request); err != nil {
 		LoggingRespondErrWithMsg(c, err, "failed to publish pkarr record", http.StatusInternalServerError)
 		return
 	}
