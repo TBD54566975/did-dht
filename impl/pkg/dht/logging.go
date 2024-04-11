@@ -6,6 +6,7 @@ import (
 )
 
 func init() {
+	logrus.SetFormatter(&logrus.JSONFormatter{})
 	log.Default.Handlers = []log.Handler{logrusHandler{}}
 }
 
@@ -19,12 +20,12 @@ func (logrusHandler) Handle(record log.Record) {
 
 	switch record.Level {
 	case log.Debug:
-		entry.Debug(msg)
+		entry.Debugf("%s\n", msg)
 	case log.Info:
-		entry.Info(msg)
+		entry.Infof("%s\n", msg)
 	case log.Warning, log.Error:
-		entry.Warn(msg)
+		entry.Warnf("%s\n", msg)
 	default:
-		entry.Debug(msg)
+		entry.Debugf("%s\n", msg)
 	}
 }

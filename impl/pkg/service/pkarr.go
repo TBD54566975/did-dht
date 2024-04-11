@@ -207,13 +207,16 @@ func (s *PkarrService) republish() {
 			return
 		}
 		seenRecords += int32(len(recordsBatch))
-
 		if len(recordsBatch) == 0 {
 			logrus.WithContext(ctx).Info("no records to republish")
 			return
 		}
 
-		logrus.WithContext(ctx).WithField("record_count", len(recordsBatch)).Infof("republishing records in batch: %d", batchCnt)
+		logrus.WithContext(ctx).WithFields(logrus.Fields{
+			"record_count": len(recordsBatch),
+			"batch_number": batchCnt,
+			"total_seen":   seenRecords,
+		}).Infof("republishing next batch of records")
 		batchCnt++
 
 		var wg sync.WaitGroup
@@ -225,7 +228,12 @@ func (s *PkarrService) republish() {
 
 				recordID := zbase32.EncodeToString(record.Key[:])
 				logrus.WithContext(ctx).Debugf("republishing record: %s", recordID)
-				if _, err = s.dht.Put(ctx, record.BEP44()); err != nil {
+
+				// Create a new context with a timeout of 10 seconds
+				putCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+
+				if _, err = s.dht.Put(putCtx, record.BEP44()); err != nil {
 					logrus.WithContext(ctx).WithError(err).Errorf("failed to republish record: %s", recordID)
 					atomic.AddInt32(&errCnt, 1)
 				} else {
@@ -246,4 +254,25 @@ func (s *PkarrService) republish() {
 		"errors":  errCnt,
 		"total":   seenRecords,
 	}).Infof("republishing complete with [%d] batches", batchCnt)
+}
+
+// Close closes the Pkarr service gracefully
+func (s *PkarrService) Close() {
+	if s == nil {
+		return
+	}
+	if s.scheduler != nil {
+		s.scheduler.Stop()
+	}
+	if s.cache != nil {
+		if err := s.cache.Close(); err != nil {
+			logrus.WithError(err).Error("failed to close cache")
+		}
+	}
+	if err := s.db.Close(); err != nil {
+		logrus.WithError(err).Error("failed to close db")
+	}
+	if s.dht != nil {
+		s.dht.Close()
+	}
 }

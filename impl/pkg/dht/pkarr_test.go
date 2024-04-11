@@ -16,8 +16,9 @@ import (
 	"github.com/TBD54566975/did-dht-method/internal/util"
 )
 
-func TestGetPutPKARRDHT(t *testing.T) {
-	d := NewTestDHT(t)
+func TestGetPutPkarrDHT(t *testing.T) {
+	dht := NewTestDHT(t)
+	defer dht.Close()
 
 	_, privKey, err := util.GenerateKeypair()
 	require.NoError(t, err)
@@ -44,11 +45,11 @@ func TestGetPutPKARRDHT(t *testing.T) {
 	put, err := CreatePkarrPublishRequest(privKey, msg)
 	require.NoError(t, err)
 
-	id, err := d.Put(context.Background(), *put)
+	id, err := dht.Put(context.Background(), *put)
 	require.NoError(t, err)
 	require.NotEmpty(t, id)
 
-	got, err := d.Get(context.Background(), id)
+	got, err := dht.GetFull(context.Background(), id)
 	require.NoError(t, err)
 	require.NotEmpty(t, got)
 
@@ -61,6 +62,7 @@ func TestGetPutPKARRDHT(t *testing.T) {
 
 func TestGetPutDIDDHT(t *testing.T) {
 	dht := NewTestDHT(t)
+	defer dht.Close()
 
 	pubKey, _, err := crypto.GenerateSECP256k1Key()
 	require.NoError(t, err)
@@ -108,7 +110,7 @@ func TestGetPutDIDDHT(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, gotID)
 
-	got, err := dht.Get(context.Background(), gotID)
+	got, err := dht.GetFull(context.Background(), gotID)
 	require.NoError(t, err)
 	require.NotEmpty(t, got)
 

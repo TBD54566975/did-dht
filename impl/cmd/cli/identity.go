@@ -164,7 +164,7 @@ var identityGetCmd = &cobra.Command{
 		}
 
 		// get the identity from the dht
-		gotResp, err := d.Get(context.Background(), id)
+		gotResp, err := d.GetFull(context.Background(), id)
 		if err != nil {
 			logrus.WithError(err).Error("failed to get identity from dht")
 			return err

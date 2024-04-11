@@ -30,6 +30,8 @@ func TestHealthCheckAPI(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, server)
 
+	defer server.Close()
+
 	req := httptest.NewRequest(http.MethodGet, testServerURL+"/health", nil)
 	w := httptest.NewRecorder()
 
@@ -41,6 +43,8 @@ func TestHealthCheckAPI(t *testing.T) {
 	err = json.NewDecoder(w.Body).Decode(&resp)
 	assert.NoError(t, err)
 	assert.Equal(t, HealthOK, resp.Status)
+
+	shutdown <- os.Interrupt
 }
 
 // Is2xxResponse returns true if the given status code is a 2xx response

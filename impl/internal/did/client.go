@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/TBD54566975/ssi-sdk/did"
 	"github.com/anacrolix/dht/v2/bep44"
@@ -24,9 +25,11 @@ func NewGatewayClient(gatewayURL string) (*GatewayClient, error) {
 	if _, err := url.Parse(gatewayURL); err != nil {
 		return nil, err
 	}
+	client := http.DefaultClient
+	client.Timeout = time.Second * 10
 	return &GatewayClient{
 		gatewayURL: gatewayURL,
-		client:     http.DefaultClient,
+		client:     client,
 	}, nil
 }
 
