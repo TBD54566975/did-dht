@@ -19,11 +19,13 @@ import (
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
 )
 
-func TestPKARRRouter(t *testing.T) {
-	pkarrSvc := testPKARRService(t)
+func TestPkarrRouter(t *testing.T) {
+	pkarrSvc := testPkarrService(t)
 	pkarrRouter, err := NewPkarrRouter(&pkarrSvc)
 	require.NoError(t, err)
 	require.NotEmpty(t, pkarrRouter)
+
+	defer pkarrSvc.Close()
 
 	t.Run("test put record", func(t *testing.T) {
 		didID, reqData := generateDIDPutRequest(t)
@@ -146,16 +148,15 @@ func TestPKARRRouter(t *testing.T) {
 	})
 }
 
-func testPKARRService(t *testing.T) service.PkarrService {
+func testPkarrService(t *testing.T) service.PkarrService {
 	defaultConfig := config.GetDefaultConfig()
 
 	db, err := storage.NewStorage(defaultConfig.ServerConfig.StorageURI)
 	require.NoError(t, err)
 	require.NotEmpty(t, db)
 
-	d := dht.NewTestDHT(t)
-
-	pkarrService, err := service.NewPkarrService(&defaultConfig, db, d)
+	dht := dht.NewTestDHT(t)
+	pkarrService, err := service.NewPkarrService(&defaultConfig, db, dht)
 	require.NoError(t, err)
 	require.NotEmpty(t, pkarrService)
 

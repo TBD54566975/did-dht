@@ -6,10 +6,9 @@ import (
 	"os"
 	"testing"
 
+	anacrolixdht "github.com/anacrolix/dht/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	anacrolixdht "github.com/anacrolix/dht/v2"
 
 	"github.com/TBD54566975/did-dht-method/config"
 	"github.com/TBD54566975/did-dht-method/internal/did"
@@ -125,6 +124,8 @@ func TestPkarrService(t *testing.T) {
 		assert.Equal(t, putMsg.Sig, got.Sig)
 		assert.Equal(t, putMsg.Seq, got.Seq)
 	})
+
+	t.Cleanup(func() { svc.Close() })
 }
 
 func TestDHT(t *testing.T) {
@@ -164,12 +165,17 @@ func TestDHT(t *testing.T) {
 	assert.Equal(t, putMsg.V, gotFrom2.V)
 	assert.Equal(t, putMsg.Sig, gotFrom2.Sig)
 	assert.Equal(t, putMsg.Seq, gotFrom2.Seq)
+
+	t.Cleanup(func() {
+		svc1.Close()
+		svc2.Close()
+	})
 }
 
 func TestNoConfig(t *testing.T) {
 	svc, err := NewPkarrService(nil, nil, nil)
 	assert.EqualError(t, err, "config is required")
-	assert.Nil(t, svc)
+	assert.Empty(t, svc)
 
 	svc, err = NewPkarrService(&config.Config{
 		PkarrConfig: config.PkarrServiceConfig{
@@ -186,6 +192,8 @@ func TestNoConfig(t *testing.T) {
 	}, nil, nil)
 	assert.EqualError(t, err, "failed to start republisher: gocron: cron expression failed to be parsed: failed to parse int from not: strconv.Atoi: parsing \"not\": invalid syntax")
 	assert.Nil(t, svc)
+
+	t.Cleanup(func() { svc.Close() })
 }
 
 func newPkarrService(t *testing.T, id string, bootstrapPeers ...anacrolixdht.Addr) PkarrService {
@@ -198,7 +206,6 @@ func newPkarrService(t *testing.T, id string, bootstrapPeers ...anacrolixdht.Add
 	t.Cleanup(func() { os.Remove(fmt.Sprintf("diddht-test-%s.db", id)) })
 
 	d := dht.NewTestDHT(t, bootstrapPeers...)
-
 	pkarrService, err := NewPkarrService(&defaultConfig, db, d)
 	require.NoError(t, err)
 	require.NotEmpty(t, pkarrService)

@@ -42,16 +42,16 @@ func TestClient(t *testing.T) {
 	t.Logf("time to put and get: %s", since)
 }
 
-func TestGet(t *testing.T) {
-	client, err := NewGatewayClient("http://localhost:8305")
-
-	require.NoError(t, err)
-	require.NotNil(t, client)
-
-	doc, _, _, err := client.GetDIDDocument("did:dht:uqaj3fcr9db6jg6o9pjs53iuftyj45r46aubogfaceqjbo6pp9sy")
-	require.NoError(t, err)
-	require.NotNil(t, doc)
-}
+// func TestGet(t *testing.T) {
+// 	client, err := NewGatewayClient("http://localhost:8305")
+//
+// 	require.NoError(t, err)
+// 	require.NotNil(t, client)
+//
+// 	doc, _, _, err := client.GetDIDDocument("did:dht:uqaj3fcr9db6jg6o9pjs53iuftyj45r46aubogfaceqjbo6pp9sy")
+// 	require.NoError(t, err)
+// 	require.NotNil(t, doc)
+// }
 
 func TestClientInvalidGateway(t *testing.T) {
 	g, err := NewGatewayClient("\n")

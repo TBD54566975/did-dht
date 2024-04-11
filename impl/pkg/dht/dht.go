@@ -10,7 +10,6 @@ import (
 	errutil "github.com/TBD54566975/ssi-sdk/util"
 	"github.com/anacrolix/dht/v2"
 	"github.com/anacrolix/dht/v2/bep44"
-	"github.com/anacrolix/dht/v2/exts/getput"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/torrent/types/infohash"
 	"github.com/pkg/errors"
@@ -93,7 +92,7 @@ func (d *DHT) Put(ctx context.Context, request bep44.Put) (string, error) {
 	}
 
 	key := util.Z32Encode(request.K[:])
-	t, err := getput.Put(ctx, request.Target(), d.Server, nil, func(int64) bep44.Put {
+	t, err := dhtint.Put(ctx, request.Target(), d.Server, nil, func(int64) bep44.Put {
 		return request
 	})
 	if err != nil {
@@ -105,23 +104,6 @@ func (d *DHT) Put(ctx context.Context, request bep44.Put) (string, error) {
 		logrus.WithContext(ctx).WithField("key", key).Debug("successfully put key into dht")
 	}
 	return util.Z32Encode(request.K[:]), nil
-}
-
-// Get returns the BEP-44 result for the given key from the DHT.
-// The key is a z32-encoded string, such as "yj47pezutnpw9pyudeeai8cx8z8d6wg35genrkoqf9k3rmfzy58o".
-func (d *DHT) Get(ctx context.Context, key string) (*getput.GetResult, error) {
-	ctx, span := telemetry.GetTracer().Start(ctx, "DHT.Get")
-	defer span.End()
-
-	z32Decoded, err := util.Z32Decode(key)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to decode key [%s]", key)
-	}
-	res, t, err := getput.Get(ctx, infohash.HashBytes(z32Decoded), d.Server, nil, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get key[%s] from dht; tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
-	}
-	return &res, nil
 }
 
 // GetFull returns the full BEP-44 result for the given key from the DHT, using our modified
