@@ -33,7 +33,6 @@ func NewDHT(bootstrapPeers []string) (*DHT, error) {
 	logrus.WithField("bootstrap_peers", len(bootstrapPeers)).Info("initializing DHT")
 
 	c := dht.NewDefaultServerConfig()
-	// change default expire to 24 hours
 	c.Exp = time.Hour * 24
 	c.NoSecurity = false
 	conn, err := net.ListenPacket("udp", "0.0.0.0:6881")
@@ -134,7 +133,7 @@ func (d *DHT) GetFull(ctx context.Context, key string) (*dhtint.FullGetResult, e
 
 	z32Decoded, err := util.Z32Decode(key)
 	if err != nil {
-		return nil, errutil.LoggingCtxErrorMsgf(ctx, err, "failed to decode key [%s]", key)
+		return nil, errors.Wrapf(err, "failed to decode key [%s]", key)
 	}
 	res, t, err := dhtint.Get(ctx, infohash.HashBytes(z32Decoded), d.Server, nil, nil)
 	if err != nil {

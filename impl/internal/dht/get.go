@@ -47,17 +47,19 @@ func startGetTraversal(
 				if sha1.Sum(bv) == target {
 					select {
 					case vChan <- FullGetResult{
-						V:   rv,
-						Sig: r.Sig,
+						V:       rv,
+						Sig:     r.Sig,
+						Mutable: false,
 					}:
 					case <-ctx.Done():
 					}
 				} else if sha1.Sum(append(r.K[:], salt...)) == target && bep44.Verify(r.K[:], salt, *r.Seq, bv, r.Sig[:]) {
 					select {
 					case vChan <- FullGetResult{
-						Seq: *r.Seq,
-						V:   rv,
-						Sig: r.Sig,
+						Seq:     *r.Seq,
+						V:       rv,
+						Sig:     r.Sig,
+						Mutable: true,
 					}:
 					case <-ctx.Done():
 					}

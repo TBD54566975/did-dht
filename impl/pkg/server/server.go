@@ -70,9 +70,9 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal, d *dht.DHT) (*Server
 		Server: &http.Server{
 			Addr:              fmt.Sprintf("%s:%d", cfg.ServerConfig.APIHost, cfg.ServerConfig.APIPort),
 			Handler:           handler,
-			ReadTimeout:       time.Second * 15,
-			ReadHeaderTimeout: time.Second * 15,
-			WriteTimeout:      time.Second * 15,
+			ReadTimeout:       time.Second * 10,
+			ReadHeaderTimeout: time.Second * 10,
+			WriteTimeout:      time.Second * 10,
 		},
 		cfg:      cfg,
 		svc:      pkarrService,
