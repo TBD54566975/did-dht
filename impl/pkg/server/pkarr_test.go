@@ -140,7 +140,7 @@ func TestPkarrRouter(t *testing.T) {
 
 	t.Run("test get not found", func(t *testing.T) {
 		w := httptest.NewRecorder()
-		suffix := "aaa"
+		suffix := "uqaj3fcr9db6jg6o9pjs53iuftyj45r46aubogfaceqjbo6pp9sy"
 		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", testServerURL, suffix), nil)
 		c := newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
 		pkarrRouter.GetRecord(c)
