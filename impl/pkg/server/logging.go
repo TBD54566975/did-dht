@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // logger is the logrus logger handler amended for telemetry
@@ -45,17 +46,26 @@ func logger(logger logrus.FieldLogger, notLogged ...string) gin.HandlerFunc {
 			return
 		}
 
+		traceID, spanID := "", ""
+		span := trace.SpanFromContext(c)
+		if span.SpanContext().IsValid() {
+			traceID = span.SpanContext().TraceID().String()
+			spanID = span.SpanContext().SpanID().String()
+		}
+
 		entry := logger.WithFields(logrus.Fields{
-			"hostname":   hostname,
-			"statusCode": statusCode,
-			"latency":    latency,
-			"clientIP":   clientIP,
-			"method":     c.Request.Method,
-			"path":       path,
-			"referer":    referer,
-			"dataLength": dataLength,
-			"userAgent":  clientUserAgent,
-			"time":       time.Now().Format(time.RFC3339),
+			"hostname":    hostname,
+			"status_code": statusCode,
+			"latency":     latency,
+			"client_ip":   clientIP,
+			"method":      c.Request.Method,
+			"path":        path,
+			"referer":     referer,
+			"data_length": dataLength,
+			"user_agent":  clientUserAgent,
+			"time":        time.Now().Format(time.RFC3339),
+			"trace_id":    traceID,
+			"span_id":     spanID,
 		})
 
 		if len(c.Errors) > 0 {

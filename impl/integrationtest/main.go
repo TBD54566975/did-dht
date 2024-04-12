@@ -120,7 +120,7 @@ func doRequest(ctx context.Context, req *http.Request) error {
 		"url":    req.URL,
 	})
 
-	ctx, done := context.WithTimeout(ctx, time.Second*10)
+	ctx, done := context.WithTimeout(ctx, 10*time.Second)
 	defer done()
 
 	req = req.WithContext(ctx)

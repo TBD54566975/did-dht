@@ -84,9 +84,9 @@ func GetDefaultConfig() Config {
 			BootstrapPeers: GetDefaultBootstrapPeers(),
 		},
 		PkarrConfig: PkarrServiceConfig{
-			RepublishCRON:    "0 */2 * * *",
+			RepublishCRON:    "0 */3 * * *",
 			CacheTTLSeconds:  600,
-			CacheSizeLimitMB: 500,
+			CacheSizeLimitMB: 1000,
 		},
 		Log: LogConfig{
 			Level: logrus.DebugLevel.String(),

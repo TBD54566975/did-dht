@@ -10,6 +10,7 @@ import (
 	"github.com/allegro/bigcache/v3"
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/goccy/go-json"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/tv42/zbase32"
 
@@ -147,17 +148,23 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response
 	if got, err := s.cache.Get(id); err == nil {
 		var resp pkarr.Response
 		if err = json.Unmarshal(got, &resp); err == nil {
-			logrus.WithContext(ctx).WithField("record_id", id).Debug("resolved pkarr record from cache")
+			logrus.WithContext(ctx).WithField("record_id", id).Info("resolved pkarr record from cache")
 			return &resp, nil
 		}
 		logrus.WithContext(ctx).WithError(err).WithField("record", id).Warn("failed to get pkarr record from cache, falling back to dht")
 	}
 
-	// next do a dht lookup
-	got, err := s.dht.GetFull(ctx, id)
+	// next do a dht lookup with a timeout of 10 seconds
+	getCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	got, err := s.dht.GetFull(getCtx, id)
 	if err != nil {
-		// try to resolve from storage before returning and error
-		logrus.WithContext(ctx).WithError(err).WithField("record", id).Warn("failed to get pkarr record from dht, attempting to resolve from storage")
+		if errors.Is(err, context.DeadlineExceeded) {
+			logrus.WithContext(ctx).WithField("record", id).Warn("dht lookup timed out, attempting to resolve from storage")
+		} else {
+			logrus.WithContext(ctx).WithError(err).WithField("record", id).Warn("failed to get pkarr record from dht, attempting to resolve from storage")
+		}
 
 		rawID, err := util.Z32Decode(id)
 		if err != nil {
@@ -176,8 +183,9 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response
 			return nil, err
 		}
 
-		logrus.WithContext(ctx).WithField("record", id).Debug("resolved pkarr record from storage")
+		logrus.WithContext(ctx).WithField("record", id).Info("resolved pkarr record from storage")
 		resp := record.Response()
+		// add the record back to the cache for future lookups
 		if err = s.addRecordToCache(id, record.Response()); err != nil {
 			logrus.WithError(err).WithField("record", id).Error("failed to set pkarr record in cache")
 		}
@@ -203,6 +211,8 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response
 	// add the record to cache, do it here to avoid duplicate calculations
 	if err = s.addRecordToCache(id, resp); err != nil {
 		logrus.WithContext(ctx).WithError(err).Errorf("failed to set pkarr record[%s] in cache", id)
+	} else {
+		logrus.WithContext(ctx).WithField("record", id).Info("added pkarr record back to cache")
 	}
 
 	return &resp, nil
@@ -267,7 +277,7 @@ func (s *PkarrService) republish() {
 				recordID := zbase32.EncodeToString(record.Key[:])
 				logrus.WithContext(ctx).Debugf("republishing record: %s", recordID)
 
-				putCtx, cancel := context.WithTimeout(ctx, time.Second*10)
+				putCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 				defer cancel()
 
 				if _, putErr := s.dht.Put(putCtx, record.BEP44()); putErr != nil {
