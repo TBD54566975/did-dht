@@ -53,8 +53,8 @@ func NewPkarrService(cfg *config.Config, db storage.Storage, d *dht.DHT) (*Pkarr
 	}
 
 	// create a new cache for bad gets to prevent spamming the DHT
-	cacheConfig.LifeWindow = 120 * time.Second
-	cacheConfig.CleanWindow = 60 * time.Second
+	cacheConfig.LifeWindow = 60 * time.Second
+	cacheConfig.CleanWindow = 30 * time.Second
 	badGetCache, err := bigcache.New(context.Background(), cacheConfig)
 	if err != nil {
 		return nil, ssiutil.LoggingErrorMsg(err, "failed to instantiate badGetCache")
