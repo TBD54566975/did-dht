@@ -48,27 +48,6 @@ func TestClientInvalidGateway(t *testing.T) {
 	assert.Nil(t, g)
 }
 
-func TestClientGet(t *testing.T) {
-	client, err := NewGatewayClient("https://diddht.tbddev.org")
-	require.NoError(t, err)
-	require.NotNil(t, client)
-
-	// get the same DID 20 different times and log how long it takes each time
-	// aggregate the average time to get the DID after the loop
-	var total time.Duration
-	for i := 0; i < 20; i++ {
-		start := time.Now()
-		_, _, _, err := client.GetDIDDocument("did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y")
-		require.NoError(t, err)
-		since := time.Since(start)
-		t.Logf("time to get DID: %s in round %d", since, i)
-		total += since
-
-	}
-	average := total / 20
-	t.Logf("average time to get DID: %s", average)
-}
-
 func TestInvalidDIDDocument(t *testing.T) {
 	client, err := NewGatewayClient("https://diddht.tbddev.test")
 	require.NoError(t, err)
