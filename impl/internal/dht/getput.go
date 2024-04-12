@@ -16,6 +16,8 @@ import (
 	"github.com/anacrolix/dht/v2/bep44"
 	"github.com/anacrolix/dht/v2/krpc"
 	"github.com/anacrolix/dht/v2/traversal"
+
+	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
 )
 
 // Copied from https://github.com/anacrolix/dht/blob/master/exts/getput/getput.go and modified
@@ -38,7 +40,7 @@ func startGetTraversal(
 		Alpha:  15,
 		Target: target,
 		DoQuery: func(ctx context.Context, addr krpc.NodeAddr) traversal.QueryResult {
-			queryCtx, cancel := context.WithTimeout(ctx, time.Second*8)
+			queryCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
 			defer cancel()
 
 			res := s.Get(queryCtx, dht.NewAddr(addr.UDP()), target, seq, dht.QueryRateLimiting{})
@@ -101,6 +103,9 @@ func Get(
 ) (
 	ret FullGetResult, stats *traversal.Stats, err error,
 ) {
+	ctx, span := telemetry.GetTracer().Start(ctx, "DHT.Get")
+	defer span.End()
+
 	vChan, op, err := startGetTraversal(ctx, target, s, seq, salt)
 	if err != nil {
 		return
@@ -139,6 +144,9 @@ func Put(
 ) (
 	stats *traversal.Stats, err error,
 ) {
+	ctx, span := telemetry.GetTracer().Start(ctx, "DHT.Put")
+	defer span.End()
+
 	vChan, op, err := startGetTraversal(ctx, target, s,
 		// When we do a get traversal for a put, we don't care what seq the peers have?
 		nil,

@@ -26,8 +26,8 @@ func (h *TraceHook) Fire(entry *logrus.Entry) error {
 	traceID := span.SpanContext().TraceID().String()
 	spanID := span.SpanContext().SpanID().String()
 
-	entry.Data["traceID"] = traceID
-	entry.Data["spanID"] = spanID
+	entry.Data["trace_id"] = traceID
+	entry.Data["span_id"] = spanID
 
 	return nil
 }

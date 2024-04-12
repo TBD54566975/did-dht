@@ -9,6 +9,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/propagation"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -23,12 +24,13 @@ const (
 )
 
 var (
-	traceProvider *sdktrace.TracerProvider
 	tracer        trace.Tracer
-
+	traceProvider *sdktrace.TracerProvider
 	meterProvider *sdkmetric.MeterProvider
+	propagator    propagation.TextMapPropagator
 )
 
+// SetupTelemetry initializes the OpenTelemetry SDK with the appropriate exporters and propagators.
 func SetupTelemetry(ctx context.Context) error {
 	r, err := resource.Merge(
 		resource.Default(),
@@ -55,14 +57,19 @@ func SetupTelemetry(ctx context.Context) error {
 	otel.SetMeterProvider(meterProvider)
 
 	// setup memory metrics
-	err = runtime.Start(runtime.WithMinimumReadMemStatsInterval(time.Second * 30))
+	err = runtime.Start(runtime.WithMinimumReadMemStatsInterval(time.Second * 15))
 	if err != nil {
 		return err
 	}
 
+	// setup propagator
+	propagator = propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
+	otel.SetTextMapPropagator(propagator)
+
 	return nil
 }
 
+// Shutdown stops the telemetry providers and exporters safely.
 func Shutdown(ctx context.Context) {
 	if traceProvider != nil {
 		if err := traceProvider.Shutdown(ctx); err != nil {
@@ -77,6 +84,7 @@ func Shutdown(ctx context.Context) {
 	}
 }
 
+// GetTracer returns the tracer for the application. If the tracer is not yet initialized, it will be created.
 func GetTracer() trace.Tracer {
 	if tracer == nil {
 		tracer = otel.GetTracerProvider().Tracer(scopeName, trace.WithInstrumentationVersion(config.Version))

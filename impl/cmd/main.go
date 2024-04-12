@@ -93,7 +93,7 @@ func run() error {
 	case sig := <-shutdown:
 		logrus.WithContext(ctx).WithField("signal", sig.String()).Info("shutdown signal received")
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
 		if err = s.Shutdown(ctx); err != nil {
