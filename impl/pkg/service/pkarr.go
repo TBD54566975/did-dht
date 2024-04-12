@@ -112,7 +112,6 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr
 	}
 
 	// return here and put it in the DHT asynchronously
-	// TODO(gabe): consider a background process to monitor failures
 	go func() {
 		// Create a new context with a timeout so that the parent context does not cancel the put
 		putCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -265,11 +264,11 @@ func (s *PkarrService) republish() {
 				recordID := zbase32.EncodeToString(record.Key[:])
 				logrus.WithContext(ctx).Debugf("republishing record: %s", recordID)
 
-				putCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+				putCtx, cancel := context.WithTimeout(ctx, time.Second*10)
 				defer cancel()
 
 				if _, putErr := s.dht.Put(putCtx, record.BEP44()); putErr != nil {
-					logrus.WithContext(putCtx).WithError(putErr).Errorf("failed to republish record: %s", recordID)
+					logrus.WithContext(putCtx).WithError(putErr).Debugf("failed to republish record: %s", recordID)
 					atomic.AddInt32(&batchErrCnt, 1)
 				} else {
 					atomic.AddInt32(&batchSuccessCnt, 1)
@@ -290,7 +289,7 @@ func (s *PkarrService) republish() {
 			"batch_number": batchCnt,
 			"success":      successCnt,
 			"errors":       errCnt,
-		}).Infof("batch [%d] completed with a [%02f] percent success rate", batchCnt, successRate)
+		}).Infof("batch [%d] completed with a [%.2f] percent success rate", batchCnt, successRate)
 
 		if successRate < 0.8 {
 			logrus.WithContext(ctx).WithFields(logrus.Fields{
@@ -311,7 +310,7 @@ func (s *PkarrService) republish() {
 		"success": seenRecords - errCnt,
 		"errors":  errCnt,
 		"total":   seenRecords,
-	}).Infof("republishing complete with [%d] batches of [%d] total records with an [%02f] percent success rate", batchCnt, seenRecords, successRate*100)
+	}).Infof("republishing complete with [%d] batches of [%d] total records with an [%.2f] percent success rate", batchCnt, seenRecords, successRate*100)
 }
 
 // Close closes the Pkarr service gracefully
