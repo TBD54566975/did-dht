@@ -13,6 +13,7 @@ import (
 	"github.com/TBD54566975/did-dht-method/internal/util"
 	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
 	"github.com/TBD54566975/did-dht-method/pkg/service"
+	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
 )
 
 // PkarrRouter is the router for the Pkarr API
@@ -39,6 +40,9 @@ func NewPkarrRouter(service *service.PkarrService) (*PkarrRouter, error) {
 //	@Failure		500	{string}	string	"Internal server error"
 //	@Router			/{id} [get]
 func (r *PkarrRouter) GetRecord(c *gin.Context) {
+	ctx, span := telemetry.GetTracer().Start(c, "PkarrHTTP.GetRecord")
+	defer span.End()
+
 	id := GetParam(c, IDParam)
 	if id == nil || *id == "" {
 		LoggingRespondErrMsg(c, "missing id param", http.StatusBadRequest)
@@ -56,7 +60,7 @@ func (r *PkarrRouter) GetRecord(c *gin.Context) {
 		return
 	}
 
-	resp, err := r.service.GetPkarr(c, *id)
+	resp, err := r.service.GetPkarr(ctx, *id)
 	if err != nil {
 		// TODO(gabe): provide a more maintainable way to handle custom errors
 		if strings.Contains(err.Error(), "spam") {
@@ -93,6 +97,9 @@ func (r *PkarrRouter) GetRecord(c *gin.Context) {
 //	@Failure		500	{string}	string	"Internal server error"
 //	@Router			/{id} [put]
 func (r *PkarrRouter) PutRecord(c *gin.Context) {
+	ctx, span := telemetry.GetTracer().Start(c, "PkarrHTTP.PutRecord")
+	defer span.End()
+
 	id := GetParam(c, IDParam)
 	if id == nil || *id == "" {
 		LoggingRespondErrMsg(c, "missing id param", http.StatusBadRequest)
@@ -132,7 +139,7 @@ func (r *PkarrRouter) PutRecord(c *gin.Context) {
 		return
 	}
 
-	if err = r.service.PublishPkarr(c, *id, *request); err != nil {
+	if err = r.service.PublishPkarr(ctx, *id, *request); err != nil {
 		LoggingRespondErrWithMsg(c, err, "failed to publish pkarr record", http.StatusInternalServerError)
 		return
 	}

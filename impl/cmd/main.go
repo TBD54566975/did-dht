@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/TBD54566975/did-dht-method/config"
+	int "github.com/TBD54566975/did-dht-method/internal/util"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
 	"github.com/TBD54566975/did-dht-method/pkg/server"
 	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
@@ -54,6 +55,8 @@ func run() error {
 
 	// set up telemetry
 	if cfg.ServerConfig.Telemetry {
+		// add trace hook to logrus
+		logrus.AddHook(&int.TraceHook{})
 		if err = telemetry.SetupTelemetry(ctx); err != nil {
 			logrus.WithContext(ctx).WithError(err).Fatal("error initializing telemetry")
 		}
