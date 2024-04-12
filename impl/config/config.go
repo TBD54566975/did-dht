@@ -13,6 +13,8 @@ import (
 )
 
 const (
+	Version = "1"
+
 	ServiceName       = "did-dht"
 	DefaultConfigPath = "config/config.toml"
 	DefaultEnvPath    = "config/config.env"
@@ -28,8 +30,6 @@ const (
 	StorageURI     EnvironmentVariable = "STORAGE_URI"
 	LogLevel       EnvironmentVariable = "LOG_LEVEL"
 )
-
-var Version = "devel"
 
 type (
 	Environment         string
