@@ -110,6 +110,7 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr
 	if err = s.cache.Set(id, recordBytes); err != nil {
 		return err
 	}
+	logrus.WithContext(ctx).WithField("record", id).Debug("added pkarr record to cache and db")
 
 	// return here and put it in the DHT asynchronously
 	go func() {
@@ -119,6 +120,8 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr
 
 		if _, err = s.dht.Put(putCtx, record.BEP44()); err != nil {
 			logrus.WithContext(ctx).WithError(err).Errorf("error from dht.Put for record: %s", id)
+		} else {
+			logrus.WithContext(ctx).WithField("record", id).Debug("put pkarr record to DHT")
 		}
 	}()
 
