@@ -146,6 +146,21 @@ func TestPkarrRouter(t *testing.T) {
 		pkarrRouter.GetRecord(c)
 		assert.Equal(t, http.StatusNotFound, w.Result().StatusCode, "unexpected %s", w.Result().Status)
 	})
+
+	t.Run("test get not found spam", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		suffix := "cz13drbfxy3ih6xun4mw3cyiexrtfcs9gyp46o4469e93y36zhsy"
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", testServerURL, suffix), nil)
+		c := newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
+		pkarrRouter.GetRecord(c)
+		assert.Equal(t, http.StatusNotFound, w.Result().StatusCode, "unexpected %s", w.Result().Status)
+
+		w = httptest.NewRecorder()
+		req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", testServerURL, suffix), nil)
+		c = newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
+		pkarrRouter.GetRecord(c)
+		assert.Equal(t, http.StatusTooManyRequests, w.Result().StatusCode, "unexpected %s", w.Result().Status)
+	})
 }
 
 func testPkarrService(t *testing.T) service.PkarrService {

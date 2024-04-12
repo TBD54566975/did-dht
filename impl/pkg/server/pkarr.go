@@ -59,7 +59,7 @@ func (r *PkarrRouter) GetRecord(c *gin.Context) {
 	resp, err := r.service.GetPkarr(c, *id)
 	if err != nil {
 		// TODO(gabe): provide a more maintainable way to handle custom errors
-		if strings.Contains("spam", err.Error()) {
+		if strings.Contains(err.Error(), "spam") {
 			LoggingRespondErrMsg(c, fmt.Sprintf("too many requests for bad key %s", *id), http.StatusTooManyRequests)
 			return
 		}
