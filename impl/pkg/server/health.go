@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
 )
 
 type GetHealthCheckResponse struct {
@@ -25,6 +27,9 @@ const (
 //	@Success		200	{object}	GetHealthCheckResponse
 //	@Router			/health [get]
 func Health(c *gin.Context) {
+	_, span := telemetry.GetTracer().Start(c, "HealthHTTP.Health")
+	defer span.End()
+
 	status := GetHealthCheckResponse{Status: HealthOK}
 	Respond(c, status, http.StatusOK)
 }
