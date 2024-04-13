@@ -302,7 +302,7 @@ func (s *PkarrService) republish() {
 			"batch_number": batchCnt,
 			"success":      successCnt,
 			"errors":       errCnt,
-		}).Infof("batch [%d] completed with a [%.2f] percent success rate", batchCnt, successRate)
+		}).Infof("batch [%d] completed with a [%.2f] percent success rate", batchCnt, successRate*100)
 
 		if successRate < 0.8 {
 			logrus.WithContext(ctx).WithFields(logrus.Fields{
