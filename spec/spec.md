@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Latest Update:** April 3, 2024
+**Latest Update:** April 16, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -26,7 +26,7 @@ The DID DHT Method Specification 1.0
 
 ## Abstract
 
-A DID Method [[spec:DID-CORE]] based on [[ref:Pkarr]] and [[ref:Mainline DHT]], identified by the prefix `did:dht`.
+A DID Method [[spec:DID-CORE]] based on [[ref:DNS Resource Records]] and [[ref:Mainline DHT]], identified by the prefix `did:dht`.
 
 <style id="protocol-stack-styles">
   #protocol-stack-styles + table {
@@ -55,14 +55,13 @@ A DID Method [[spec:DID-CORE]] based on [[ref:Pkarr]] and [[ref:Mainline DHT]], 
 
 :--------------------------------------------------------: |
 DID DHT                                                    |
-[Pkarr](https://github.com/nuhvi/pkarr)                    |
+[DNS RRs](https://datatracker.ietf.org/doc/html/rfc1035)   |
 [Mainline DHT](https://en.wikipedia.org/wiki/Mainline_DHT) |
 
-[[ref:Pkarr]] stands for **P**ublic **K**ey **A**ddressable **R**esource **R**ecords. [[ref:Pkarr]] makes use of 
-[[ref:Mainline DHT]], specifically [[ref:BEP44]] to store signed mutable records. This DID method uses [[ref:Pkarr]] to 
-store _[[ref:DID Documents]]_.
+DID DHT makes use of [[ref:Mainline DHT]], specifically [[ref:BEP44]] to store signed mutable records. 
+This DID method uses [[ref:DNS Resource Records]] to efficiently represent _[[ref:DID Documents]]_.
 
-As [[ref:Pkarr]] states, [[def:Mainline]] is used for the following reasons:
+[[def:Mainline]] is in use for the following reasons:
 
 1. It has a proven track record of 15 years.
 2. It is the biggest DHT in existence with an estimated 10 million servers.
@@ -74,7 +73,9 @@ specification and shall be registered with the [[spec:DID-Spec-Registries]].
 
 ## Conformance
 
-The keywords MAY, MUST, MUST NOT, RECOMMENDED, SHOULD, and SHOULD NOT in this document are to be interpreted as described in [BCP 14](https://www.rfc-editor.org/info/bcp14) [[spec:RFC2119]] [[spec:RFC8174]] when, and only when, they appear in all capitals, as shown here.
+The keywords MAY, MUST, MUST NOT, RECOMMENDED, SHOULD, and SHOULD NOT in this document are to be interpreted as 
+described in [BCP 14](https://www.rfc-editor.org/info/bcp14) [[spec:RFC2119]] [[spec:RFC8174]] when, and only when,
+they appear in all capitals, as shown here.
 
 ## Terminology
 
@@ -92,12 +93,11 @@ services, and other properties outlined in the specification.
 in each `did:dht` document.
 
 [[def:DID DHT Service]]
-~ A service that provides a [[ref:DHT]] interface to the [[ref:Pkarr]] network, extended to support this [[ref:DID]] method.
+~ A service that provides a [[ref:Mainline]] interface, extended to support this [[ref:DID]] method.
 
-[[def:Pkarr]]
-~ An [open-source project](https://github.com/nuhvi/pkarr), based on [[ref:Mainline]] which aims to provide the 
-_simplest possible streamlined integration between the Domain Name System and peer-to-peer overlay networks, 
-enabling self-issued public keys to function as sovereign, publicly addressable domains_.
+[[def:DNS Resource Records]]
+~ An efficient format for representing [[ref:DID Documents]] and providing semantics pertinent to DID DHT,
+such as TTLs, cachcing, and different record types (e.g. `NS`, `TXT`). Follows [[spec:RFC1035]].
 
 [[def:Mainline DHT, DHT, Mainline, Mainline Server]]
 ~ [Mainline DHT](https://en.wikipedia.org/wiki/Mainline_DHT) is the name given to the 
@@ -139,7 +139,7 @@ numbers are [[ref:Unix Timestamps]] represented in seconds.
 ### Format
 
 The format for `did:dht` conforms to the [[spec:DID Core]] specification. It consists of the `did:dht` prefix followed by 
-the [[ref:Pkarr]] identifier. The [[ref:Pkarr]] identifier is a [[ref:z-base-32]]-encoded [[ref:Ed25519]] public key, which
+the [[ref:Mainline]] identifier. The [[ref:Mainline]] identifier is a [[ref:z-base-32]]-encoded [[ref:Ed25519]] public key, which
 we refer to as an [[ref:Identity Key]].
 
 ```text
@@ -222,8 +222,8 @@ The root record is a special record which serves as instructions on how to recon
 by providing a [property mapping](#property-mapping) for a [[ref:DID Document]], along with containing pertinent
 metadata such as a version identifier.
 
-- The root record's **name** ****MUST**** be of the form, `_did.<ID>.`, where `ID` is the [[ref:Pkarr]] identifier
-associated with the DID (i.e. `did:dht:<ID>` becomes `_did.<ID>.`).
+- The root record's **name** ****MUST**** be of the form, `_did.<ID>.`, where `ID` is the [[ref:Mainline]] 
+identifier associated with the DID (i.e. `did:dht:<ID>` becomes `_did.<ID>.`).
 
 - The root record's **type** is `TXT`, indicating a Text record.
 
@@ -463,7 +463,7 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
 
 ### Operations
 
-Entries to the [[ref:DHT]] require a signed record as per [[ref:BEP44]]. As such, the keypair used for the [[ref:Pkarr]]
+Entries to the [[ref:DHT]] require a signed record as per [[ref:BEP44]]. As such, the keypair used for the [[ref:Mainline]]
 identifier is also used to sign the [[ref:DHT]] record.
 
 #### Create
@@ -491,7 +491,7 @@ To create a `did:dht`, the process is as follows:
 
    b. `seq` ****MUST**** be set to the current [[ref:Unix Timestamp]] in seconds.
 
-5. Submit the result of to the [[ref:DHT]] via a [[ref:Pkarr]] relay, or a [[ref:Gateway]], with the identifier created in step 1.
+5. Submit the result of to the [[ref:DHT]] via a [[ref:Mainline]] node, or a [[ref:Gateway]], with the identifier created in step 1.
 
 This specification **does not** make use of [JSON-LD](https://json-ld.org/). As such DID DHT Documents ****MUST NOT**** include the `@context` property.
 
@@ -499,8 +499,8 @@ This specification **does not** make use of [JSON-LD](https://json-ld.org/). As 
 
 To read a `did:dht`, the process is as follows:
 
-1. Take the [[ref:suffix]] of the DID, that is, the _[[ref:z-base-32]] encoded identifier key_, and submit it to a [[ref:Pkarr]]
-relay or a [[ref:Gateway]].
+1. Take the [[ref:suffix]] of the DID, that is, the _[[ref:z-base-32]] encoded identifier key_, and submit it to a [[ref:Mainline]]
+node or a [[ref:Gateway]].
 
 2. Decode the resulting [[ref:BEP44]] response's `v` value using [[ref:bencode]].
 
