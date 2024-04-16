@@ -182,7 +182,7 @@ notDone:
 			res := s.Put(ctx, dht.NewAddr(elem.Addr.UDP()), put, token, dht.QueryRateLimiting{})
 			err = res.ToError()
 			if err != nil {
-				logrus.WithContext(ctx).WithError(err).Warnf("error putting to %v [token=%q]", elem.Addr, token)
+				logrus.WithContext(ctx).WithError(err).Debugf("error putting to %v [token=%q]", elem.Addr, token)
 			} else {
 				logrus.WithContext(ctx).WithError(err).Debugf("put to %v [token=%q]", elem.Addr, token)
 			}
