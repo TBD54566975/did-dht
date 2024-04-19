@@ -39,17 +39,17 @@ func TestBoltDB_ReadWrite(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, players1, players1Result)
 
-	// get a value from a dhtNamespace that doesn't exist
+	// get a value from a oldDHTNamespace that doesn't exist
 	res, err := db.read(ctx, "bad", "worse")
 	assert.NoError(t, err)
 	assert.Empty(t, res)
 
-	// get a value that doesn't exist in the dhtNamespace
+	// get a value that doesn't exist in the oldDHTNamespace
 	noValue, err := db.read(ctx, namespace, "Porsche")
 	assert.NoError(t, err)
 	assert.Empty(t, noValue)
 
-	// create a second value in the dhtNamespace
+	// create a second value in the oldDHTNamespace
 	team2 := "McLaren"
 	players2 := []string{"Lando Norris", "Daniel Ricciardo"}
 	p2Bytes, err := json.Marshal(players2)
@@ -58,7 +58,7 @@ func TestBoltDB_ReadWrite(t *testing.T) {
 	err = db.write(ctx, namespace, team2, p2Bytes)
 	assert.NoError(t, err)
 
-	// get all values from the dhtNamespace
+	// get all values from the oldDHTNamespace
 	gotAll, err := db.readAll(namespace)
 	assert.NoError(t, err)
 	assert.True(t, len(gotAll) == 2)
