@@ -85,11 +85,11 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal, d *dht.DHT) (*Server
 func setupHandler(env config.Environment) *gin.Engine {
 	gin.ForceConsoleColor()
 	middlewares := gin.HandlersChain{
-		gin.Recovery(),
-		logger(logrus.StandardLogger()),
-		gin.ErrorLogger(),
 		otelgin.Middleware(config.ServiceName),
+		gin.Recovery(),
+		gin.ErrorLogger(),
 		CORS(),
+		logger(logrus.StandardLogger()),
 	}
 	logrus.WithField("environment", env).Info("configuring server for environment")
 	switch env {
