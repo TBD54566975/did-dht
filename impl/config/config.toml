@@ -9,8 +9,6 @@ telemetry = false
 [dht]
 bootstrap_peers = ["router.magnets.im:6881", "router.bittorrent.com:6881", "dht.transmissionbt.com:6881",
     "router.utorrent.com:6881", "router.nuh.dev:6881"]
-
-[pkarr]
 republish_cron = "0 */3 * * *" # every 3 hours
 cache_ttl_seconds = 600 # 10 minutes
 cache_size_limit_mb = 1000 # 1000 MB

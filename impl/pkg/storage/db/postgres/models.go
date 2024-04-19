@@ -4,10 +4,15 @@
 
 package postgres
 
-type PkarrRecord struct {
+type DhtRecord struct {
 	ID    int32
 	Key   []byte
 	Value []byte
 	Sig   []byte
 	Seq   int64
+}
+
+type FailedRecord struct {
+	ID           []byte
+	FailureCount int32
 }
