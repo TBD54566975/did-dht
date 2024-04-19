@@ -281,7 +281,7 @@ func (s *PkarrService) republish() {
 				defer cancel()
 
 				if _, putErr := s.dht.Put(putCtx, record.BEP44()); putErr != nil {
-					logrus.WithContext(putCtx).WithError(putErr).Debugf("failed to republish record: %s", recordID)
+					logrus.WithContext(putCtx).WithError(putErr).Warnf("failed to republish record: %s", recordID)
 					atomic.AddInt32(&batchErrCnt, 1)
 				} else {
 					atomic.AddInt32(&batchSuccessCnt, 1)
