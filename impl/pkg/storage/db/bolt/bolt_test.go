@@ -131,7 +131,7 @@ func TestReadWrite(t *testing.T) {
 	err = db.WriteRecord(ctx, r)
 	require.NoError(t, err)
 
-	r2, err := db.ReadRecord(ctx, r.Key[:])
+	r2, err := db.ReadRecord(ctx, r.ID())
 	require.NoError(t, err)
 
 	assert.Equal(t, r.Key, r2.Key)

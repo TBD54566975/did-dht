@@ -15,9 +15,14 @@ import (
 
 type Storage interface {
 	WriteRecord(ctx context.Context, record dht.BEP44Record) error
-	ReadRecord(ctx context.Context, id []byte) (*dht.BEP44Record, error)
+	ReadRecord(ctx context.Context, id string) (*dht.BEP44Record, error)
 	ListRecords(ctx context.Context, nextPageToken []byte, pageSize int) (records []dht.BEP44Record, nextPage []byte, err error)
 	RecordCount(ctx context.Context) (int, error)
+
+	WriteFailedRecord(ctx context.Context, id string) error
+	ListFailedRecords(ctx context.Context) ([]dht.FailedRecord, error)
+	FailedRecordCount(ctx context.Context) (int, error)
+
 	Close() error
 }
 

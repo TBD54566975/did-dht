@@ -33,6 +33,12 @@ type BEP44Record struct {
 	SequenceNumber int64    `json:"seq" validate:"required"`
 }
 
+// FailedRecord represents a record that failed to be written to the DHT
+type FailedRecord struct {
+	ID    string `json:"id"`
+	Count int    `json:"count"`
+}
+
 // NewBEP44Record returns a new BEP44Record with the given key, value, signature, and sequence number
 func NewBEP44Record(k []byte, v []byte, sig []byte, seq int64) (*BEP44Record, error) {
 	record := BEP44Record{SequenceNumber: seq}

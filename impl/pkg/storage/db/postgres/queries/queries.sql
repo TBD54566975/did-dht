@@ -12,3 +12,14 @@ SELECT * FROM dht_records ORDER BY id ASC LIMIT $1;
 
 -- name: RecordCount :one
 SELECT count(*) AS exact_count FROM dht_records;
+
+-- name: WriteFailedRecord :exec
+INSERT INTO failed_records(id, failure_count)
+VALUES($1, $2)
+ON CONFLICT (id) DO UPDATE SET failure_count = failed_records.failure_count + 1;
+
+-- name: ListFailedRecords :many
+SELECT * FROM failed_records;
+
+-- name: FailedRecordCount :one
+SELECT count(*) AS exact_count FROM failed_records;

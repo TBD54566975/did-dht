@@ -84,7 +84,7 @@ func (p Postgres) WriteRecord(ctx context.Context, record dht.BEP44Record) error
 	return nil
 }
 
-func (p Postgres) ReadRecord(ctx context.Context, id []byte) (*dht.BEP44Record, error) {
+func (p Postgres) ReadRecord(ctx context.Context, id string) (*dht.BEP44Record, error) {
 	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.ReadRecord")
 	defer span.End()
 
@@ -94,7 +94,7 @@ func (p Postgres) ReadRecord(ctx context.Context, id []byte) (*dht.BEP44Record, 
 	}
 	defer db.Close(ctx)
 
-	row, err := queries.ReadRecord(ctx, id)
+	row, err := queries.ReadRecord(ctx, []byte(id))
 	if err != nil {
 		return nil, err
 	}
@@ -151,11 +151,6 @@ func (p Postgres) ListRecords(ctx context.Context, nextPageToken []byte, limit i
 	return records, nextPageToken, nil
 }
 
-func (p Postgres) Close() error {
-	// no-op, postgres connection is closed after each request
-	return nil
-}
-
 func (row DhtRecord) Record() (*dht.BEP44Record, error) {
 	return dht.NewBEP44Record(row.Key, row.Value, row.Sig, row.Seq)
 }
@@ -176,4 +171,74 @@ func (p Postgres) RecordCount(ctx context.Context) (int, error) {
 	}
 
 	return int(count), nil
+}
+
+func (p Postgres) WriteFailedRecord(ctx context.Context, id string) error {
+	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.WriteFailedRecord")
+	defer span.End()
+
+	queries, db, err := p.connect(ctx)
+	if err != nil {
+		return err
+	}
+	defer db.Close(ctx)
+
+	err = queries.WriteFailedRecord(ctx, WriteFailedRecordParams{
+		ID:           []byte(id),
+		FailureCount: 1,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p Postgres) ListFailedRecords(ctx context.Context) ([]dht.FailedRecord, error) {
+	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.ListFailedRecords")
+	defer span.End()
+
+	queries, db, err := p.connect(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close(ctx)
+
+	rows, err := queries.ListFailedRecords(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var failedRecords []dht.FailedRecord
+	for _, row := range rows {
+		failedRecords = append(failedRecords, dht.FailedRecord{
+			ID:    string(row.ID),
+			Count: int(row.FailureCount),
+		})
+	}
+
+	return failedRecords, nil
+}
+
+func (p Postgres) FailedRecordCount(ctx context.Context) (int, error) {
+	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.FailedRecordCount")
+	defer span.End()
+
+	queries, db, err := p.connect(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer db.Close(ctx)
+
+	count, err := queries.FailedRecordCount(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(count), nil
+}
+
+func (p Postgres) Close() error {
+	// no-op, postgres connection is closed after each request
+	return nil
 }

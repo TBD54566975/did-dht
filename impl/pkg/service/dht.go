@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	ssiutil "github.com/TBD54566975/ssi-sdk/util"
@@ -12,7 +11,6 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/tv42/zbase32"
 
 	"github.com/TBD54566975/did-dht-method/internal/util"
 
@@ -165,12 +163,7 @@ func (s *DHTService) GetDHT(ctx context.Context, id string) (*dht.BEP44Response,
 			logrus.WithContext(ctx).WithError(err).WithField("record", id).Warn("failed to get record from dht, attempting to resolve from storage")
 		}
 
-		rawID, err := util.Z32Decode(id)
-		if err != nil {
-			return nil, err
-		}
-
-		record, err := s.db.ReadRecord(ctx, rawID)
+		record, err := s.db.ReadRecord(ctx, id)
 		if err != nil || record == nil {
 			logrus.WithContext(ctx).WithError(err).WithField("record", id).Error("failed to resolve record from storage; adding to badGetCache")
 
@@ -228,6 +221,12 @@ func (s *DHTService) addRecordToCache(id string, resp dht.BEP44Response) error {
 	return nil
 }
 
+// failedRecord is a struct to keep track of records that failed to be republished
+type failedRecord struct {
+	record     dht.BEP44Record
+	failureCnt int
+}
+
 // TODO(gabe) make this more efficient. create a publish schedule based on each individual record, not all records
 func (s *DHTService) republish() {
 	ctx, span := telemetry.GetTracer().Start(context.Background(), "DHTService.republish")
@@ -237,25 +236,32 @@ func (s *DHTService) republish() {
 	if err != nil {
 		logrus.WithContext(ctx).WithError(err).Error("failed to get record count before republishing")
 		return
-	} else {
-		logrus.WithContext(ctx).WithField("record_count", recordCnt).Info("republishing records")
 	}
+	logrus.WithContext(ctx).WithField("record_count", recordCnt).Info("republishing records")
 
+	// republish all records in the db and handle failed records up to 3 times
+	failedRecords := s.republishRecords(ctx)
+	s.handleFailedRecords(ctx, failedRecords)
+}
+
+// republishRecords republishes all records in the db to the DHT and returns a list of failed records
+func (s *DHTService) republishRecords(ctx context.Context) []failedRecord {
 	var nextPageToken []byte
-	var recordsBatch []dht.BEP44Record
-	var seenRecords, batchCnt, successCnt, errCnt int32 = 0, 1, 0, 0
+	var seenRecords, batchCnt int32
+	var failedRecords []failedRecord
 
 	for {
-		recordsBatch, nextPageToken, err = s.db.ListRecords(ctx, nextPageToken, 1000)
+		recordsBatch, nextPageToken, err := s.db.ListRecords(ctx, nextPageToken, 1000)
 		if err != nil {
 			logrus.WithContext(ctx).WithError(err).Error("failed to list record(s) for republishing")
-			return
+			return failedRecords
 		}
+
 		batchSize := len(recordsBatch)
 		seenRecords += int32(batchSize)
 		if batchSize == 0 {
 			logrus.WithContext(ctx).Info("no records to republish")
-			return
+			return failedRecords
 		}
 
 		logrus.WithContext(ctx).WithFields(logrus.Fields{
@@ -265,64 +271,94 @@ func (s *DHTService) republish() {
 		}).Infof("republishing batch [%d] of [%d] records", batchCnt, batchSize)
 		batchCnt++
 
-		var wg sync.WaitGroup
-		wg.Add(batchSize)
-
-		var batchErrCnt, batchSuccessCnt int32 = 0, 0
-		for _, record := range recordsBatch {
-			go func(ctx context.Context, record dht.BEP44Record) {
-				defer wg.Done()
-
-				recordID := zbase32.EncodeToString(record.Key[:])
-				logrus.WithContext(ctx).Debugf("republishing record: %s", recordID)
-
-				putCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-				defer cancel()
-
-				if _, putErr := s.dht.Put(putCtx, record.Put()); putErr != nil {
-					logrus.WithContext(putCtx).WithError(putErr).Debugf("failed to republish record: %s", recordID)
-					atomic.AddInt32(&batchErrCnt, 1)
-				} else {
-					atomic.AddInt32(&batchSuccessCnt, 1)
-				}
-			}(ctx, record)
-		}
-
-		// Wait for all goroutines in this batch to finish before moving on to the next batch
-		wg.Wait()
-
-		// Update the success and error counts
-		atomic.AddInt32(&successCnt, batchSuccessCnt)
-		atomic.AddInt32(&errCnt, batchErrCnt)
-
-		successRate := float64(batchSuccessCnt) / float64(batchSize)
-
-		logrus.WithContext(ctx).WithFields(logrus.Fields{
-			"batch_number": batchCnt,
-			"success":      successCnt,
-			"errors":       errCnt,
-		}).Infof("batch [%d] completed with a [%.2f] percent success rate", batchCnt, successRate*100)
-
-		if successRate < 0.8 {
-			logrus.WithContext(ctx).WithFields(logrus.Fields{
-				"batch_number": batchCnt,
-				"success":      successCnt,
-				"errors":       errCnt,
-			}).Errorf("batch [%d] failed to meet success rate threshold; exiting republishing early", batchCnt)
-			break
-		}
+		failedRecords = append(failedRecords, s.republishBatch(ctx, recordsBatch)...)
 
 		if nextPageToken == nil {
 			break
 		}
 	}
 
-	successRate := float64(successCnt) / float64(seenRecords)
+	successRate := float64(seenRecords-int32(len(failedRecords))) / float64(seenRecords) * 100
 	logrus.WithContext(ctx).WithFields(logrus.Fields{
-		"success": seenRecords - errCnt,
-		"errors":  errCnt,
+		"success": seenRecords - int32(len(failedRecords)),
+		"errors":  len(failedRecords),
 		"total":   seenRecords,
-	}).Infof("republishing complete with [%d] batches of [%d] total records with an [%.2f] percent success rate", batchCnt, seenRecords, successRate*100)
+	}).Infof("republishing complete with [%d] batches of [%d] total records with a [%.2f] percent success rate", batchCnt, seenRecords, successRate)
+
+	return failedRecords
+}
+
+// republishBatch republishes a batch of records to the DHT and returns a list of failed records
+func (s *DHTService) republishBatch(ctx context.Context, recordsBatch []dht.BEP44Record) []failedRecord {
+	var wg sync.WaitGroup
+	var failedRecords []failedRecord
+
+	for _, record := range recordsBatch {
+		wg.Add(1)
+		go func(ctx context.Context, record dht.BEP44Record) {
+			defer wg.Done()
+
+			id := record.ID()
+			logrus.WithContext(ctx).WithField("record_id", id).Debug("republishing record")
+
+			putCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			defer cancel()
+
+			if _, putErr := s.dht.Put(putCtx, record.Put()); putErr != nil {
+				logrus.WithContext(putCtx).WithField("record_id", id).WithError(putErr).Debug("failed to republish record")
+				failedRecords = append(failedRecords, failedRecord{
+					record:     record,
+					failureCnt: 1,
+				})
+			}
+		}(ctx, record)
+	}
+
+	wg.Wait()
+	return failedRecords
+}
+
+// handleFailedRecords attempts to republish failed records up to 3 times
+func (s *DHTService) handleFailedRecords(ctx context.Context, failedRecords []failedRecord) {
+	for i := 0; i < 3; i++ {
+		var remainingFailedRecords []failedRecord
+		for _, fr := range failedRecords {
+			id := fr.record.ID()
+			putCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			defer cancel()
+
+			if _, putErr := s.dht.Put(putCtx, fr.record.Put()); putErr != nil {
+				logrus.WithContext(putCtx).WithField("record_id", id).WithError(putErr).Debugf("failed to re-republish [%s], attempt: %d", id, i+1)
+				fr.failureCnt++
+				if fr.failureCnt <= 3 {
+					remainingFailedRecords = append(remainingFailedRecords, fr)
+				} else {
+					logrus.WithContext(ctx).WithField("record_id", id).Errorf("record failed to republish after 3 attempts")
+				}
+			}
+		}
+		failedRecords = remainingFailedRecords
+		if len(failedRecords) == 0 {
+			logrus.WithContext(ctx).Info("all failed records successfully republished")
+			break
+		}
+		if i == 2 {
+			logrus.WithContext(ctx).WithField("failed_records", failedRecords).Error("failed to republish all records after 3 attempts")
+			for _, fr := range failedRecords {
+				id := fr.record.ID()
+				if err := s.db.WriteFailedRecord(ctx, id); err != nil {
+					logrus.WithContext(ctx).WithField("record_id", id).WithError(err).Warn("failed to write failed record to db")
+				}
+			}
+		}
+	}
+
+	failedRecordCnt, err := s.db.FailedRecordCount(ctx)
+	if err != nil {
+		logrus.WithContext(ctx).WithError(err).Error("failed to get failed record count")
+		return
+	}
+	logrus.WithContext(ctx).WithField("failed_record_count", failedRecordCnt).Warn("total failed records")
 }
 
 // Close closes the Mainline service gracefully

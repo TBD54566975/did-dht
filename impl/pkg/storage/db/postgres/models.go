@@ -11,3 +11,8 @@ type DhtRecord struct {
 	Sig   []byte
 	Seq   int64
 }
+
+type FailedRecord struct {
+	ID           []byte
+	FailureCount int32
+}

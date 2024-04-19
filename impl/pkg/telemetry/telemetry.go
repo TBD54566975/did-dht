@@ -57,7 +57,7 @@ func SetupTelemetry(ctx context.Context) error {
 	otel.SetMeterProvider(meterProvider)
 
 	// setup memory metrics
-	err = runtime.Start(runtime.WithMeterProvider(meterProvider), runtime.WithMinimumReadMemStatsInterval(time.Second*15))
+	err = runtime.Start(runtime.WithMeterProvider(meterProvider), runtime.WithMinimumReadMemStatsInterval(15*time.Second))
 	if err != nil {
 		return err
 	}
