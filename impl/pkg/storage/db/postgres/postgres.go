@@ -11,7 +11,7 @@ import (
 	"github.com/pressly/goose/v3"
 	"github.com/sirupsen/logrus"
 
-	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
+	"github.com/TBD54566975/did-dht-method/pkg/dht"
 	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
 )
 
@@ -61,7 +61,7 @@ func (p Postgres) connect(ctx context.Context) (*Queries, *pgx.Conn, error) {
 	return New(conn), conn, nil
 }
 
-func (p Postgres) WriteRecord(ctx context.Context, record pkarr.Record) error {
+func (p Postgres) WriteRecord(ctx context.Context, record dht.BEP44Record) error {
 	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.WriteRecord")
 	defer span.End()
 
@@ -84,7 +84,7 @@ func (p Postgres) WriteRecord(ctx context.Context, record pkarr.Record) error {
 	return nil
 }
 
-func (p Postgres) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, error) {
+func (p Postgres) ReadRecord(ctx context.Context, id []byte) (*dht.BEP44Record, error) {
 	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.ReadRecord")
 	defer span.End()
 
@@ -107,7 +107,7 @@ func (p Postgres) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, err
 	return record, nil
 }
 
-func (p Postgres) ListRecords(ctx context.Context, nextPageToken []byte, limit int) ([]pkarr.Record, []byte, error) {
+func (p Postgres) ListRecords(ctx context.Context, nextPageToken []byte, limit int) ([]dht.BEP44Record, []byte, error) {
 	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.ListRecords")
 	defer span.End()
 
@@ -117,7 +117,7 @@ func (p Postgres) ListRecords(ctx context.Context, nextPageToken []byte, limit i
 	}
 	defer db.Close(ctx)
 
-	var rows []PkarrRecord
+	var rows []DhtRecord
 	if nextPageToken == nil {
 		rows, err = queries.ListRecordsFirstPage(ctx, int32(limit))
 	} else {
@@ -130,9 +130,9 @@ func (p Postgres) ListRecords(ctx context.Context, nextPageToken []byte, limit i
 		return nil, nil, err
 	}
 
-	var records []pkarr.Record
+	var records []dht.BEP44Record
 	for _, row := range rows {
-		record, err := pkarr.NewRecord(row.Key, row.Value, row.Sig, row.Seq)
+		record, err := dht.NewBEP44Record(row.Key, row.Value, row.Sig, row.Seq)
 		if err != nil {
 			// TODO: do something useful if this happens
 			logrus.WithContext(ctx).WithError(err).WithField("record_id", row.ID).Warn("error loading record from database, skipping")
@@ -156,8 +156,8 @@ func (p Postgres) Close() error {
 	return nil
 }
 
-func (row PkarrRecord) Record() (*pkarr.Record, error) {
-	return pkarr.NewRecord(row.Key, row.Value, row.Sig, row.Seq)
+func (row DhtRecord) Record() (*dht.BEP44Record, error) {
+	return dht.NewBEP44Record(row.Key, row.Value, row.Sig, row.Seq)
 }
 
 func (p Postgres) RecordCount(ctx context.Context) (int, error) {

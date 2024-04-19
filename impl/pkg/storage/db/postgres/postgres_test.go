@@ -11,7 +11,6 @@ import (
 
 	"github.com/TBD54566975/did-dht-method/internal/did"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
-	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
 	"github.com/TBD54566975/did-dht-method/pkg/storage/db/postgres"
 )
@@ -50,11 +49,11 @@ func TestReadWrite(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, packet)
 
-	putMsg, err := dht.CreatePkarrPublishRequest(sk, *packet)
+	putMsg, err := dht.CreateDNSPublishRequest(sk, *packet)
 	require.NoError(t, err)
 	require.NotEmpty(t, putMsg)
 
-	r := pkarr.RecordFromBEP44(putMsg)
+	r := dht.RecordFromBEP44(putMsg)
 
 	err = db.WriteRecord(ctx, r)
 	require.NoError(t, err)
@@ -95,12 +94,12 @@ func TestDBPagination(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, packet)
 
-		putMsg, err := dht.CreatePkarrPublishRequest(sk, *packet)
+		putMsg, err := dht.CreateDNSPublishRequest(sk, *packet)
 		require.NoError(t, err)
 		require.NotEmpty(t, putMsg)
 
 		// create record
-		record := pkarr.RecordFromBEP44(putMsg)
+		record := dht.RecordFromBEP44(putMsg)
 
 		err = db.WriteRecord(ctx, record)
 		assert.NoError(t, err)
@@ -116,12 +115,12 @@ func TestDBPagination(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, packet)
 
-	putMsg, err := dht.CreatePkarrPublishRequest(sk, *packet)
+	putMsg, err := dht.CreateDNSPublishRequest(sk, *packet)
 	require.NoError(t, err)
 	require.NotEmpty(t, putMsg)
 
 	// create eleventhRecord
-	eleventhRecord := pkarr.RecordFromBEP44(putMsg)
+	eleventhRecord := dht.RecordFromBEP44(putMsg)
 
 	err = db.WriteRecord(ctx, eleventhRecord)
 	assert.NoError(t, err)

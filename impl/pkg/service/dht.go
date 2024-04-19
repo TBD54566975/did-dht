@@ -19,15 +19,14 @@ import (
 	"github.com/TBD54566975/did-dht-method/config"
 	dhtint "github.com/TBD54566975/did-dht-method/internal/dht"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
-	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
 	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
 )
 
-const recordSizeLimit = 1000
+const recordSizeLimitBytes = 1000
 
-// PkarrService is the Pkarr service responsible for managing the Pkarr DHT and reading/writing records
-type PkarrService struct {
+// DHTService is the service responsible for managing BEP44 DNS records in the DHT and reading/writing records
+type DHTService struct {
 	cfg         *config.Config
 	db          storage.Storage
 	dht         *dht.DHT
@@ -36,17 +35,17 @@ type PkarrService struct {
 	scheduler   *dhtint.Scheduler
 }
 
-// NewPkarrService returns a new instance of the Pkarr service
-func NewPkarrService(cfg *config.Config, db storage.Storage, d *dht.DHT) (*PkarrService, error) {
+// NewDHTService returns a new instance of the DHT service
+func NewDHTService(cfg *config.Config, db storage.Storage, d *dht.DHT) (*DHTService, error) {
 	if cfg == nil {
 		return nil, ssiutil.LoggingNewError("config is required")
 	}
 
 	// create and start get cache
-	cacheTTL := time.Duration(cfg.PkarrConfig.CacheTTLSeconds) * time.Second
+	cacheTTL := time.Duration(cfg.DHTConfig.CacheTTLSeconds) * time.Second
 	cacheConfig := bigcache.DefaultConfig(cacheTTL)
-	cacheConfig.MaxEntrySize = recordSizeLimit
-	cacheConfig.HardMaxCacheSize = cfg.PkarrConfig.CacheSizeLimitMB
+	cacheConfig.MaxEntrySize = recordSizeLimitBytes
+	cacheConfig.HardMaxCacheSize = cfg.DHTConfig.CacheSizeLimitMB
 	cacheConfig.CleanWindow = cacheTTL / 2
 	cache, err := bigcache.New(context.Background(), cacheConfig)
 	if err != nil {
@@ -63,7 +62,7 @@ func NewPkarrService(cfg *config.Config, db storage.Storage, d *dht.DHT) (*Pkarr
 
 	// start scheduler for republishing
 	scheduler := dhtint.NewScheduler()
-	svc := PkarrService{
+	svc := DHTService{
 		cfg:         cfg,
 		db:          db,
 		dht:         d,
@@ -71,15 +70,15 @@ func NewPkarrService(cfg *config.Config, db storage.Storage, d *dht.DHT) (*Pkarr
 		badGetCache: badGetCache,
 		scheduler:   &scheduler,
 	}
-	if err = scheduler.Schedule(cfg.PkarrConfig.RepublishCRON, svc.republish); err != nil {
+	if err = scheduler.Schedule(cfg.DHTConfig.RepublishCRON, svc.republish); err != nil {
 		return nil, ssiutil.LoggingErrorMsg(err, "failed to start republisher")
 	}
 	return &svc, nil
 }
 
-// PublishPkarr stores the record in the db, publishes the given Pkarr record to the DHT, and returns the z-base-32 encoded ID
-func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr.Record) error {
-	ctx, span := telemetry.GetTracer().Start(ctx, "PkarrService.PublishPkarr")
+// PublishDHT stores the record in the db, publishes the given DNS record to the DHT, and returns the z-base-32 encoded ID
+func (s *DHTService) PublishDHT(ctx context.Context, id string, record dht.BEP44Record) error {
+	ctx, span := telemetry.GetTracer().Start(ctx, "DHTService.PublishDHT")
 	defer span.End()
 
 	// make sure the key is valid
@@ -93,9 +92,9 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr
 
 	// check if the message is already in the cache
 	if got, err := s.cache.Get(id); err == nil {
-		var resp pkarr.Response
+		var resp dht.BEP44Response
 		if err = json.Unmarshal(got, &resp); err == nil && record.Response().Equals(resp) {
-			logrus.WithContext(ctx).WithField("record_id", id).Debug("resolved pkarr record from cache with matching response")
+			logrus.WithContext(ctx).WithField("record_id", id).Debug("resolved dht record from cache with matching response")
 			return nil
 		}
 	}
@@ -111,7 +110,7 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr
 	if err = s.cache.Set(id, recordBytes); err != nil {
 		return err
 	}
-	logrus.WithContext(ctx).WithField("record", id).Debug("added pkarr record to cache and db")
+	logrus.WithContext(ctx).WithField("record", id).Debug("added dht record to cache and db")
 
 	// return here and put it in the DHT asynchronously
 	go func() {
@@ -119,19 +118,19 @@ func (s *PkarrService) PublishPkarr(ctx context.Context, id string, record pkarr
 		putCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		if _, err = s.dht.Put(putCtx, record.BEP44()); err != nil {
+		if _, err = s.dht.Put(putCtx, record.Put()); err != nil {
 			logrus.WithContext(ctx).WithError(err).Errorf("error from dht.Put for record: %s", id)
 		} else {
-			logrus.WithContext(ctx).WithField("record", id).Debug("put pkarr record to DHT")
+			logrus.WithContext(ctx).WithField("record", id).Debug("put record to DHT")
 		}
 	}()
 
 	return nil
 }
 
-// GetPkarr returns the full Pkarr record (including sig data) for the given z-base-32 encoded ID
-func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response, error) {
-	ctx, span := telemetry.GetTracer().Start(ctx, "PkarrService.GetPkarr")
+// GetDHT returns the full DNS record (including sig data) for the given z-base-32 encoded ID
+func (s *DHTService) GetDHT(ctx context.Context, id string) (*dht.BEP44Response, error) {
+	ctx, span := telemetry.GetTracer().Start(ctx, "DHTService.GetDHT")
 	defer span.End()
 
 	// make sure the key is valid
@@ -146,12 +145,12 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response
 
 	// first do a cache lookup
 	if got, err := s.cache.Get(id); err == nil {
-		var resp pkarr.Response
+		var resp dht.BEP44Response
 		if err = json.Unmarshal(got, &resp); err == nil {
-			logrus.WithContext(ctx).WithField("record_id", id).Info("resolved pkarr record from cache")
+			logrus.WithContext(ctx).WithField("record_id", id).Info("resolved record from cache")
 			return &resp, nil
 		}
-		logrus.WithContext(ctx).WithError(err).WithField("record", id).Warn("failed to get pkarr record from cache, falling back to dht")
+		logrus.WithContext(ctx).WithError(err).WithField("record", id).Warn("failed to get record from cache, falling back to dht")
 	}
 
 	// next do a dht lookup with a timeout of 10 seconds
@@ -163,7 +162,7 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response
 		if errors.Is(err, context.DeadlineExceeded) {
 			logrus.WithContext(ctx).WithField("record", id).Warn("dht lookup timed out, attempting to resolve from storage")
 		} else {
-			logrus.WithContext(ctx).WithError(err).WithField("record", id).Warn("failed to get pkarr record from dht, attempting to resolve from storage")
+			logrus.WithContext(ctx).WithError(err).WithField("record", id).Warn("failed to get record from dht, attempting to resolve from storage")
 		}
 
 		rawID, err := util.Z32Decode(id)
@@ -173,7 +172,7 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response
 
 		record, err := s.db.ReadRecord(ctx, rawID)
 		if err != nil || record == nil {
-			logrus.WithContext(ctx).WithError(err).WithField("record", id).Error("failed to resolve pkarr record from storage; adding to badGetCache")
+			logrus.WithContext(ctx).WithError(err).WithField("record", id).Error("failed to resolve record from storage; adding to badGetCache")
 
 			// add the key to the badGetCache to prevent spamming the DHT
 			if err = s.badGetCache.Set(id, []byte{0}); err != nil {
@@ -183,11 +182,11 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response
 			return nil, err
 		}
 
-		logrus.WithContext(ctx).WithField("record", id).Info("resolved pkarr record from storage")
+		logrus.WithContext(ctx).WithField("record", id).Info("resolved record from storage")
 		resp := record.Response()
 		// add the record back to the cache for future lookups
 		if err = s.addRecordToCache(id, record.Response()); err != nil {
-			logrus.WithError(err).WithField("record", id).Error("failed to set pkarr record in cache")
+			logrus.WithError(err).WithField("record", id).Error("failed to set record in cache")
 		}
 
 		return &resp, err
@@ -202,7 +201,7 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response
 	if err = bencode.Unmarshal(bBytes, &payload); err != nil {
 		return nil, ssiutil.LoggingCtxErrorMsg(ctx, err, "failed to unmarshal bencoded payload")
 	}
-	resp := pkarr.Response{
+	resp := dht.BEP44Response{
 		V:   []byte(payload),
 		Seq: got.Seq,
 		Sig: got.Sig,
@@ -210,15 +209,15 @@ func (s *PkarrService) GetPkarr(ctx context.Context, id string) (*pkarr.Response
 
 	// add the record to cache, do it here to avoid duplicate calculations
 	if err = s.addRecordToCache(id, resp); err != nil {
-		logrus.WithContext(ctx).WithError(err).Errorf("failed to set pkarr record[%s] in cache", id)
+		logrus.WithContext(ctx).WithField("record", id).WithError(err).Error("failed to set record in cache")
 	} else {
-		logrus.WithContext(ctx).WithField("record", id).Info("added pkarr record back to cache")
+		logrus.WithContext(ctx).WithField("record", id).Info("added record back to cache")
 	}
 
 	return &resp, nil
 }
 
-func (s *PkarrService) addRecordToCache(id string, resp pkarr.Response) error {
+func (s *DHTService) addRecordToCache(id string, resp dht.BEP44Response) error {
 	recordBytes, err := json.Marshal(resp)
 	if err != nil {
 		return err
@@ -230,8 +229,8 @@ func (s *PkarrService) addRecordToCache(id string, resp pkarr.Response) error {
 }
 
 // TODO(gabe) make this more efficient. create a publish schedule based on each individual record, not all records
-func (s *PkarrService) republish() {
-	ctx, span := telemetry.GetTracer().Start(context.Background(), "PkarrService.republish")
+func (s *DHTService) republish() {
+	ctx, span := telemetry.GetTracer().Start(context.Background(), "DHTService.republish")
 	defer span.End()
 
 	recordCnt, err := s.db.RecordCount(ctx)
@@ -243,7 +242,7 @@ func (s *PkarrService) republish() {
 	}
 
 	var nextPageToken []byte
-	var recordsBatch []pkarr.Record
+	var recordsBatch []dht.BEP44Record
 	var seenRecords, batchCnt, successCnt, errCnt int32 = 0, 1, 0, 0
 
 	for {
@@ -271,7 +270,7 @@ func (s *PkarrService) republish() {
 
 		var batchErrCnt, batchSuccessCnt int32 = 0, 0
 		for _, record := range recordsBatch {
-			go func(ctx context.Context, record pkarr.Record) {
+			go func(ctx context.Context, record dht.BEP44Record) {
 				defer wg.Done()
 
 				recordID := zbase32.EncodeToString(record.Key[:])
@@ -280,7 +279,7 @@ func (s *PkarrService) republish() {
 				putCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 				defer cancel()
 
-				if _, putErr := s.dht.Put(putCtx, record.BEP44()); putErr != nil {
+				if _, putErr := s.dht.Put(putCtx, record.Put()); putErr != nil {
 					logrus.WithContext(putCtx).WithError(putErr).Debugf("failed to republish record: %s", recordID)
 					atomic.AddInt32(&batchErrCnt, 1)
 				} else {
@@ -326,8 +325,8 @@ func (s *PkarrService) republish() {
 	}).Infof("republishing complete with [%d] batches of [%d] total records with an [%.2f] percent success rate", batchCnt, seenRecords, successRate*100)
 }
 
-// Close closes the Pkarr service gracefully
-func (s *PkarrService) Close() {
+// Close closes the Mainline service gracefully
+func (s *DHTService) Close() {
 	if s == nil {
 		return
 	}

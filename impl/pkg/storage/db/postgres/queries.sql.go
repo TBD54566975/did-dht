@@ -10,7 +10,7 @@ import (
 )
 
 const listRecords = `-- name: ListRecords :many
-SELECT id, key, value, sig, seq FROM pkarr_records WHERE id > (SELECT id FROM pkarr_records WHERE pkarr_records.key = $1) ORDER BY id ASC LIMIT $2
+SELECT id, key, value, sig, seq FROM dht_records WHERE id > (SELECT id FROM dht_records WHERE dht_records.key = $1) ORDER BY id ASC LIMIT $2
 `
 
 type ListRecordsParams struct {
@@ -18,15 +18,15 @@ type ListRecordsParams struct {
 	Limit int32
 }
 
-func (q *Queries) ListRecords(ctx context.Context, arg ListRecordsParams) ([]PkarrRecord, error) {
+func (q *Queries) ListRecords(ctx context.Context, arg ListRecordsParams) ([]DhtRecord, error) {
 	rows, err := q.db.Query(ctx, listRecords, arg.Key, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []PkarrRecord
+	var items []DhtRecord
 	for rows.Next() {
-		var i PkarrRecord
+		var i DhtRecord
 		if err := rows.Scan(
 			&i.ID,
 			&i.Key,
@@ -45,18 +45,18 @@ func (q *Queries) ListRecords(ctx context.Context, arg ListRecordsParams) ([]Pka
 }
 
 const listRecordsFirstPage = `-- name: ListRecordsFirstPage :many
-SELECT id, key, value, sig, seq FROM pkarr_records ORDER BY id ASC LIMIT $1
+SELECT id, key, value, sig, seq FROM dht_records ORDER BY id ASC LIMIT $1
 `
 
-func (q *Queries) ListRecordsFirstPage(ctx context.Context, limit int32) ([]PkarrRecord, error) {
+func (q *Queries) ListRecordsFirstPage(ctx context.Context, limit int32) ([]DhtRecord, error) {
 	rows, err := q.db.Query(ctx, listRecordsFirstPage, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []PkarrRecord
+	var items []DhtRecord
 	for rows.Next() {
-		var i PkarrRecord
+		var i DhtRecord
 		if err := rows.Scan(
 			&i.ID,
 			&i.Key,
@@ -75,12 +75,12 @@ func (q *Queries) ListRecordsFirstPage(ctx context.Context, limit int32) ([]Pkar
 }
 
 const readRecord = `-- name: ReadRecord :one
-SELECT id, key, value, sig, seq FROM pkarr_records WHERE key = $1 LIMIT 1
+SELECT id, key, value, sig, seq FROM dht_records WHERE key = $1 LIMIT 1
 `
 
-func (q *Queries) ReadRecord(ctx context.Context, key []byte) (PkarrRecord, error) {
+func (q *Queries) ReadRecord(ctx context.Context, key []byte) (DhtRecord, error) {
 	row := q.db.QueryRow(ctx, readRecord, key)
-	var i PkarrRecord
+	var i DhtRecord
 	err := row.Scan(
 		&i.ID,
 		&i.Key,
@@ -92,7 +92,7 @@ func (q *Queries) ReadRecord(ctx context.Context, key []byte) (PkarrRecord, erro
 }
 
 const recordCount = `-- name: RecordCount :one
-SELECT count(*) AS exact_count FROM pkarr_records
+SELECT count(*) AS exact_count FROM dht_records
 `
 
 func (q *Queries) RecordCount(ctx context.Context) (int64, error) {
@@ -103,7 +103,7 @@ func (q *Queries) RecordCount(ctx context.Context) (int64, error) {
 }
 
 const writeRecord = `-- name: WriteRecord :exec
-INSERT INTO pkarr_records(key, value, sig, seq) VALUES($1, $2, $3, $4)
+INSERT INTO dht_records(key, value, sig, seq) VALUES($1, $2, $3, $4)
 `
 
 type WriteRecordParams struct {

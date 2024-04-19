@@ -1,5 +1,5 @@
 -- +goose Up
-CREATE TABLE pkarr_records (
+CREATE TABLE dht_records (
     id SERIAL PRIMARY KEY,
     key BYTEA UNIQUE NOT NULL,
     value BYTEA NOT NULL,
@@ -8,4 +8,4 @@ CREATE TABLE pkarr_records (
 );
 
 -- +goose Down
-DROP TABLE pkarr_records;
+DROP TABLE dht_records;
