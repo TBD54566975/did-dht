@@ -10,6 +10,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 	"github.com/sirupsen/logrus"
+	"github.com/tv42/zbase32"
 
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
 	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
@@ -94,7 +95,11 @@ func (p Postgres) ReadRecord(ctx context.Context, id string) (*dht.BEP44Record, 
 	}
 	defer db.Close(ctx)
 
-	row, err := queries.ReadRecord(ctx, []byte(id))
+	decodedID, err := zbase32.DecodeString(id)
+	if err != nil {
+		return nil, err
+	}
+	row, err := queries.ReadRecord(ctx, decodedID)
 	if err != nil {
 		return nil, err
 	}
