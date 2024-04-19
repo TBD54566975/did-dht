@@ -33,7 +33,7 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.50.0
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.50.0
 	go.opentelemetry.io/otel v1.25.0
-	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.24.0
+	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.25.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.25.0
 	go.opentelemetry.io/otel/sdk v1.25.0
 	go.opentelemetry.io/otel/sdk/metric v1.25.0
