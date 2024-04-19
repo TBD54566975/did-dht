@@ -314,7 +314,7 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex, gateways []Authori
 
 		keyType := keyTypeForJWK(*vm.PublicKeyJWK)
 		if keyType < 0 {
-			return nil, fmt.Errorf("+unsupported key type given alg: %s", vm.PublicKeyJWK.ALG)
+			return nil, fmt.Errorf("unsupported key type given alg: %s", vm.PublicKeyJWK.ALG)
 		}
 
 		// convert the public key to a base64url encoded string
