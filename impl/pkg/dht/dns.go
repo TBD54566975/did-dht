@@ -12,13 +12,13 @@ import (
 	"github.com/TBD54566975/did-dht-method/internal/dht"
 )
 
-// CreatePkarrPublishRequest creates a put request for the given records. Requires a public/private keypair and the records to put.
-// The records are expected to be a DNS message packet, such as:
+// CreateDNSPublishRequest creates a put request for the given records. Requires a public/private keypair and
+// the records to put. The records are expected to be a DNS message packet, such as:
 //
 //	dns.Msg{
 //			MsgHdr: dns.MsgHdr{
 //				Id:            0,
-//				Response:      true,
+//				BEP44Response:      true,
 //				Authoritative: true,
 //			},
 //		   Answer: dns.RR{
@@ -30,11 +30,11 @@ import (
 //					Ttl:    7200,
 //				},
 //				Txt: []string{
-//					"hello pkarr",
+//					"hello mainline",
 //				},
 //		    }
 //		}
-func CreatePkarrPublishRequest(privateKey ed25519.PrivateKey, msg dns.Msg) (*bep44.Put, error) {
+func CreateDNSPublishRequest(privateKey ed25519.PrivateKey, msg dns.Msg) (*bep44.Put, error) {
 	packed, err := msg.Pack()
 	if err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to pack records")
@@ -49,9 +49,9 @@ func CreatePkarrPublishRequest(privateKey ed25519.PrivateKey, msg dns.Msg) (*bep
 	return put, nil
 }
 
-// ParsePkarrGetResponse parses the response from a get request.
+// ParseDNSGetResponse parses the response from a get request.
 // The response is expected to be a slice of DNS resource records.
-func ParsePkarrGetResponse(response dht.FullGetResult) (*dns.Msg, error) {
+func ParseDNSGetResponse(response dht.FullGetResult) (*dns.Msg, error) {
 	var payload string
 	if err := bencode.Unmarshal(response.V, &payload); err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to unmarshal payload value")

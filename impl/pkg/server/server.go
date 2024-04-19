@@ -31,7 +31,7 @@ type Server struct {
 	shutdown chan os.Signal
 
 	cfg *config.Config
-	svc *service.PkarrService
+	svc *service.DHTService
 }
 
 // NewServer returns a new instance of Server with the given db and host.
@@ -51,9 +51,9 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal, d *dht.DHT) (*Server
 		logrus.WithField("record_count", recordCnt).Info("storage instantiated with record count")
 	}
 
-	pkarrService, err := service.NewPkarrService(cfg, db, d)
+	dhtService, err := service.NewDHTService(cfg, db, d)
 	if err != nil {
-		return nil, util.LoggingErrorMsg(err, "could not instantiate pkarr service")
+		return nil, util.LoggingErrorMsg(err, "could not instantiate the dht service")
 	}
 
 	handler.GET("/health", Health)
@@ -63,8 +63,8 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal, d *dht.DHT) (*Server
 	handler.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler, ginswagger.URL("/swagger.yaml")))
 
 	// root relay API
-	if err = PkarrAPI(&handler.RouterGroup, pkarrService); err != nil {
-		return nil, util.LoggingErrorMsg(err, "could not setup pkarr API")
+	if err = DHTAPI(&handler.RouterGroup, dhtService); err != nil {
+		return nil, util.LoggingErrorMsg(err, "could not setup the dht API")
 	}
 	return &Server{
 		Server: &http.Server{
@@ -76,7 +76,7 @@ func NewServer(cfg *config.Config, shutdown chan os.Signal, d *dht.DHT) (*Server
 			MaxHeaderBytes:    1 << 20,
 		},
 		cfg:      cfg,
-		svc:      pkarrService,
+		svc:      dhtService,
 		handler:  handler,
 		shutdown: shutdown,
 	}, nil
@@ -105,14 +105,14 @@ func setupHandler(env config.Environment) *gin.Engine {
 	return handler
 }
 
-// PkarrAPI sets up the relay API routes according to https://github.com/Nuhvi/pkarr/blob/main/design/relays.md
-func PkarrAPI(rg *gin.RouterGroup, service *service.PkarrService) error {
-	relayRouter, err := NewPkarrRouter(service)
+// DHTAPI sets up the relay API routes according to the spec https://did-dht.com/#gateway-api
+func DHTAPI(rg *gin.RouterGroup, service *service.DHTService) error {
+	dhtRouter, err := NewDHTRouter(service)
 	if err != nil {
-		return util.LoggingErrorMsg(err, "could not instantiate relay router")
+		return util.LoggingErrorMsg(err, "could not instantiate dht router")
 	}
 
-	rg.PUT("/:id", relayRouter.PutRecord)
-	rg.GET("/:id", relayRouter.GetRecord)
+	rg.PUT("/:id", dhtRouter.PutRecord)
+	rg.GET("/:id", dhtRouter.GetRecord)
 	return nil
 }

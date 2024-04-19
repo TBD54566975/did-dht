@@ -41,10 +41,9 @@ func (e EnvironmentVariable) String() string {
 }
 
 type Config struct {
-	Log          LogConfig          `toml:"log"`
-	ServerConfig ServerConfig       `toml:"server"`
-	DHTConfig    DHTServiceConfig   `toml:"dht"`
-	PkarrConfig  PkarrServiceConfig `toml:"pkarr"`
+	Log          LogConfig        `toml:"log"`
+	ServerConfig ServerConfig     `toml:"server"`
+	DHTConfig    DHTServiceConfig `toml:"dht"`
 }
 
 type ServerConfig struct {
@@ -57,13 +56,10 @@ type ServerConfig struct {
 }
 
 type DHTServiceConfig struct {
-	BootstrapPeers []string `toml:"bootstrap_peers"`
-}
-
-type PkarrServiceConfig struct {
-	RepublishCRON    string `toml:"republish_cron"`
-	CacheTTLSeconds  int    `toml:"cache_ttl_seconds"`
-	CacheSizeLimitMB int    `toml:"cache_size_limit_mb"`
+	BootstrapPeers   []string `toml:"bootstrap_peers"`
+	RepublishCRON    string   `toml:"republish_cron"`
+	CacheTTLSeconds  int      `toml:"cache_ttl_seconds"`
+	CacheSizeLimitMB int      `toml:"cache_size_limit_mb"`
 }
 
 type LogConfig struct {
@@ -81,9 +77,7 @@ func GetDefaultConfig() Config {
 			Telemetry:   false,
 		},
 		DHTConfig: DHTServiceConfig{
-			BootstrapPeers: GetDefaultBootstrapPeers(),
-		},
-		PkarrConfig: PkarrServiceConfig{
+			BootstrapPeers:   GetDefaultBootstrapPeers(),
 			RepublishCRON:    "0 */3 * * *",
 			CacheTTLSeconds:  600,
 			CacheSizeLimitMB: 1000,

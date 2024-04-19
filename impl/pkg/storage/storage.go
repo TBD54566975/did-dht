@@ -8,16 +8,21 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
+	"github.com/TBD54566975/did-dht-method/pkg/dht"
 	"github.com/TBD54566975/did-dht-method/pkg/storage/db/bolt"
 	"github.com/TBD54566975/did-dht-method/pkg/storage/db/postgres"
 )
 
 type Storage interface {
-	WriteRecord(ctx context.Context, record pkarr.Record) error
-	ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, error)
-	ListRecords(ctx context.Context, nextPageToken []byte, pageSize int) (records []pkarr.Record, nextPage []byte, err error)
+	WriteRecord(ctx context.Context, record dht.BEP44Record) error
+	ReadRecord(ctx context.Context, id string) (*dht.BEP44Record, error)
+	ListRecords(ctx context.Context, nextPageToken []byte, pageSize int) (records []dht.BEP44Record, nextPage []byte, err error)
 	RecordCount(ctx context.Context) (int, error)
+
+	WriteFailedRecord(ctx context.Context, id string) error
+	ListFailedRecords(ctx context.Context) ([]dht.FailedRecord, error)
+	FailedRecordCount(ctx context.Context) (int, error)
+
 	Close() error
 }
 

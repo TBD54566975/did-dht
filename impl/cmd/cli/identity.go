@@ -103,7 +103,7 @@ var identityAddCmd = &cobra.Command{
 			Answer: rrds,
 		}
 		// generate put request
-		putReq, err := dht.CreatePkarrPublishRequest(privKey, msg)
+		putReq, err := dht.CreateDNSPublishRequest(privKey, msg)
 		if err != nil {
 			logrus.WithError(err).Error("failed to create put request")
 			return err
@@ -170,7 +170,7 @@ var identityGetCmd = &cobra.Command{
 			return err
 		}
 
-		msg, err := dht.ParsePkarrGetResponse(*gotResp)
+		msg, err := dht.ParseDNSGetResponse(*gotResp)
 		if err != nil {
 			logrus.WithError(err).Error("failed to parse get response")
 			return err
