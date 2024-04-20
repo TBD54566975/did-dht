@@ -108,7 +108,7 @@ func (s *DHTService) PublishDHT(ctx context.Context, id string, record dht.BEP44
 	if err = s.cache.Set(id, recordBytes); err != nil {
 		return err
 	}
-	logrus.WithContext(ctx).WithField("record", id).Debug("added dht record to cache and db")
+	logrus.WithContext(ctx).WithField("record_id", id).Debug("added dht record to cache and db")
 
 	// return here and put it in the DHT asynchronously
 	go func() {
@@ -148,7 +148,7 @@ func (s *DHTService) GetDHT(ctx context.Context, id string) (*dht.BEP44Response,
 			logrus.WithContext(ctx).WithField("record_id", id).Info("resolved record from cache")
 			return &resp, nil
 		}
-		logrus.WithContext(ctx).WithError(err).WithField("record", id).Warn("failed to get record from cache, falling back to dht")
+		logrus.WithContext(ctx).WithError(err).WithField("record_id", id).Warn("failed to get record from cache, falling back to dht")
 	}
 
 	// next do a dht lookup with a timeout of 10 seconds
@@ -158,28 +158,28 @@ func (s *DHTService) GetDHT(ctx context.Context, id string) (*dht.BEP44Response,
 	got, err := s.dht.GetFull(getCtx, id)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			logrus.WithContext(ctx).WithField("record", id).Warn("dht lookup timed out, attempting to resolve from storage")
+			logrus.WithContext(ctx).WithField("record_id", id).Warn("dht lookup timed out, attempting to resolve from storage")
 		} else {
-			logrus.WithContext(ctx).WithError(err).WithField("record", id).Warn("failed to get record from dht, attempting to resolve from storage")
+			logrus.WithContext(ctx).WithError(err).WithField("record_id", id).Warn("failed to get record from dht, attempting to resolve from storage")
 		}
 
 		record, err := s.db.ReadRecord(ctx, id)
 		if err != nil || record == nil {
-			logrus.WithContext(ctx).WithError(err).WithField("record", id).Error("failed to resolve record from storage; adding to badGetCache")
+			logrus.WithContext(ctx).WithError(err).WithField("record_id", id).Error("failed to resolve record from storage; adding to badGetCache")
 
 			// add the key to the badGetCache to prevent spamming the DHT
 			if err = s.badGetCache.Set(id, []byte{0}); err != nil {
-				logrus.WithContext(ctx).WithError(err).WithField("record", id).Error("failed to set key in badGetCache")
+				logrus.WithContext(ctx).WithError(err).WithField("record_id", id).Error("failed to set key in badGetCache")
 			}
 
 			return nil, err
 		}
 
-		logrus.WithContext(ctx).WithField("record", id).Info("resolved record from storage")
+		logrus.WithContext(ctx).WithField("record_id", id).Info("resolved record from storage")
 		resp := record.Response()
 		// add the record back to the cache for future lookups
 		if err = s.addRecordToCache(id, record.Response()); err != nil {
-			logrus.WithError(err).WithField("record", id).Error("failed to set record in cache")
+			logrus.WithError(err).WithField("record_id", id).Error("failed to set record in cache")
 		}
 
 		return &resp, err
@@ -202,9 +202,9 @@ func (s *DHTService) GetDHT(ctx context.Context, id string) (*dht.BEP44Response,
 
 	// add the record to cache, do it here to avoid duplicate calculations
 	if err = s.addRecordToCache(id, resp); err != nil {
-		logrus.WithContext(ctx).WithField("record", id).WithError(err).Error("failed to set record in cache")
+		logrus.WithContext(ctx).WithField("record_id", id).WithError(err).Error("failed to set record in cache")
 	} else {
-		logrus.WithContext(ctx).WithField("record", id).Info("added record back to cache")
+		logrus.WithContext(ctx).WithField("record_id", id).Info("added record back to cache")
 	}
 
 	return &resp, nil
