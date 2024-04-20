@@ -117,9 +117,9 @@ func (s *DHTService) PublishDHT(ctx context.Context, id string, record dht.BEP44
 		defer cancel()
 
 		if _, err = s.dht.Put(putCtx, record.Put()); err != nil {
-			logrus.WithContext(ctx).WithError(err).Errorf("error from dht.Put for record: %s", id)
+			logrus.WithContext(ctx).WithField("record_id", id).WithError(err).Warnf("error from dht.Put for record: %s", id)
 		} else {
-			logrus.WithContext(ctx).WithField("record", id).Debug("put record to DHT")
+			logrus.WithContext(ctx).WithField("record_id", id).Debug("put record to DHT")
 		}
 	}()
 
