@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	dhtNamespace    = "dht"
+	dhtNamespace    = "pkarr"
 	failedNamespace = "failed"
 )
 
