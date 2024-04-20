@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"fmt"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -19,7 +18,6 @@ import (
 
 const (
 	dhtNamespace    = "dht"
-	oldDHTNamespace = "pkarr"
 	failedNamespace = "failed"
 )
 
@@ -40,50 +38,7 @@ func NewBolt(path string) (*Bolt, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// Perform the migration
-	go migrate(db)
-
 	return &Bolt{db: db}, nil
-}
-
-func migrate(db *bolt.DB) {
-	// Perform the migration within a write transaction
-	err := db.Update(func(tx *bolt.Tx) error {
-		// Create the new namespace bucket
-		newBucket, err := tx.CreateBucketIfNotExists([]byte(dhtNamespace))
-		if err != nil {
-			return fmt.Errorf("failed to create new namespace bucket: %v", err)
-		}
-
-		// Get the old namespace bucket
-		oldBucket := tx.Bucket([]byte(oldDHTNamespace))
-		if oldBucket == nil {
-			// If the old namespace bucket doesn't exist, there's nothing to migrate
-			return nil
-		}
-
-		// Iterate over the key-value pairs in the old namespace bucket
-		err = oldBucket.ForEach(func(k, v []byte) error {
-			// Copy each key-value pair to the new namespace bucket
-			err = newBucket.Put(k, v)
-			if err != nil {
-				return fmt.Errorf("failed to copy key-value pair to new namespace: %v", err)
-			}
-			return nil
-		})
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		logrus.WithError(err).Error("failed to migrate records")
-	} else {
-		logrus.Info("migration completed successfully")
-	}
 }
 
 // WriteRecord writes the given record to the storage
@@ -98,19 +53,7 @@ func (b *Bolt) WriteRecord(ctx context.Context, record dht.BEP44Record) error {
 		return err
 	}
 
-	// write to both the old and new namespaces for now
-	errOld := b.write(ctx, oldDHTNamespace, record.ID(), recordBytes)
-	errNew := b.write(ctx, dhtNamespace, record.ID(), recordBytes)
-	if errOld == nil && errNew == nil {
-		return nil
-	}
-	if errOld != nil && errNew != nil {
-		return errors.New(fmt.Sprintf("old: %v, new: %v", errOld, errNew))
-	}
-	if errOld != nil {
-		return errOld
-	}
-	return errNew
+	return b.write(ctx, dhtNamespace, record.ID(), recordBytes)
 }
 
 // ReadRecord reads the record with the given id from the storage
@@ -118,7 +61,7 @@ func (b *Bolt) ReadRecord(ctx context.Context, id string) (*dht.BEP44Record, err
 	ctx, span := telemetry.GetTracer().Start(ctx, "bolt.ReadRecord")
 	defer span.End()
 
-	recordBytes, err := b.read(ctx, oldDHTNamespace, id)
+	recordBytes, err := b.read(ctx, dhtNamespace, id)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +87,7 @@ func (b *Bolt) ListRecords(ctx context.Context, nextPageToken []byte, pageSize i
 	ctx, span := telemetry.GetTracer().Start(ctx, "bolt.ListRecords")
 	defer span.End()
 
-	boltRecords, err := b.readSeveral(ctx, oldDHTNamespace, nextPageToken, pageSize)
+	boltRecords, err := b.readSeveral(ctx, dhtNamespace, nextPageToken, pageSize)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -268,9 +211,9 @@ func (b *Bolt) RecordCount(ctx context.Context) (int, error) {
 
 	var count int
 	err := b.db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(oldDHTNamespace))
+		bucket := tx.Bucket([]byte(dhtNamespace))
 		if bucket == nil {
-			logrus.WithContext(ctx).WithField("namespace", oldDHTNamespace).Warn("namespace does not exist")
+			logrus.WithContext(ctx).WithField("namespace", dhtNamespace).Warn("namespace does not exist")
 			return nil
 		}
 		count = bucket.Stats().KeyN
