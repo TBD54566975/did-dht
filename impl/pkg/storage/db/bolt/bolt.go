@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	dhtNamespace    = "pkarr"
+	dhtNamespace    = "dht"
+	oldDHTNamespace = "pkarr"
 	failedNamespace = "failed"
 )
 
@@ -38,7 +39,72 @@ func NewBolt(path string) (*Bolt, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Bolt{db: db}, nil
+
+	b := Bolt{db: db}
+	b.migrate(context.Background())
+	return &b, nil
+}
+
+func (b *Bolt) migrate(ctx context.Context) {
+	_, span := telemetry.GetTracer().Start(ctx, "bolt.migrate")
+	defer span.End()
+
+	// Delete new namespace
+	err := b.db.Update(func(tx *bolt.Tx) error {
+		return tx.DeleteBucket([]byte(dhtNamespace))
+	})
+	if err != nil {
+		logrus.WithContext(ctx).WithError(err).Error("error deleting new namespace")
+	}
+
+	// Migrate old namespace to new namespace
+	var nextPageToken []byte
+	var migratedCount int
+	var failedCount int
+	for {
+		pageSize := 1000
+		oldRecords, err := b.readSeveral(ctx, oldDHTNamespace, nextPageToken, pageSize)
+		if err != nil {
+			logrus.WithContext(ctx).WithError(err).Error("error reading old namespace")
+			return
+		}
+
+		for _, oldRecord := range oldRecords {
+			key := string(oldRecord.key)
+			var encodedRecord base64BEP44Record
+			if err = json.Unmarshal(oldRecord.value, &encodedRecord); err != nil {
+				logrus.WithContext(ctx).WithError(err).Errorf("error decoding[%s]", key)
+				continue
+			}
+			record, err := encodedRecord.Decode()
+			if err != nil {
+				logrus.WithContext(ctx).WithError(err).Errorf("error decoding[%s]", key)
+				continue
+			}
+			if err = b.write(ctx, dhtNamespace, record.ID(), oldRecord.value); err != nil {
+				logrus.WithContext(ctx).WithError(err).Errorf("error writing[%s] to new namespace", key)
+				failedCount++
+			} else {
+				migratedCount++
+			}
+		}
+
+		if len(oldRecords) == pageSize {
+			nextPageToken = oldRecords[len(oldRecords)-1].key
+		} else {
+			break
+		}
+	}
+
+	logrus.WithContext(ctx).Infof("migrated %d records, failed %d records", migratedCount, failedCount)
+	if failedCount == 0 {
+		err = b.db.Update(func(tx *bolt.Tx) error {
+			return tx.DeleteBucket([]byte(oldDHTNamespace))
+		})
+		if err != nil {
+			logrus.WithContext(ctx).WithError(err).Error("error deleting old namespace")
+		}
+	}
 }
 
 // WriteRecord writes the given record to the storage
