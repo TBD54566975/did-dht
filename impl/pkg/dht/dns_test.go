@@ -16,7 +16,7 @@ import (
 	"github.com/TBD54566975/did-dht-method/internal/util"
 )
 
-func TestGetPutPkarrDHT(t *testing.T) {
+func TestGetPutDNSDHT(t *testing.T) {
 	dht := NewTestDHT(t)
 	defer dht.Close()
 
@@ -31,7 +31,7 @@ func TestGetPutPkarrDHT(t *testing.T) {
 			Ttl:    7200,
 		},
 		Txt: []string{
-			"hello pkarr",
+			"hello mainline",
 		},
 	}
 	msg := dns.Msg{
@@ -42,7 +42,7 @@ func TestGetPutPkarrDHT(t *testing.T) {
 		},
 		Answer: []dns.RR{&txtRecord},
 	}
-	put, err := CreatePkarrPublishRequest(privKey, msg)
+	put, err := CreateDNSPublishRequest(privKey, msg)
 	require.NoError(t, err)
 
 	id, err := dht.Put(context.Background(), *put)
@@ -53,7 +53,7 @@ func TestGetPutPkarrDHT(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, got)
 
-	gotMsg, err := ParsePkarrGetResponse(*got)
+	gotMsg, err := ParseDNSGetResponse(*got)
 	require.NoError(t, err)
 	require.NotEmpty(t, gotMsg.Answer)
 
@@ -103,7 +103,7 @@ func TestGetPutDIDDHT(t *testing.T) {
 	didDocPacket, err := didID.ToDNSPacket(*doc, nil, nil)
 	require.NoError(t, err)
 
-	putReq, err := CreatePkarrPublishRequest(privKey, *didDocPacket)
+	putReq, err := CreateDNSPublishRequest(privKey, *didDocPacket)
 	require.NoError(t, err)
 
 	gotID, err := dht.Put(context.Background(), *putReq)
@@ -114,7 +114,7 @@ func TestGetPutDIDDHT(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, got)
 
-	gotMsg, err := ParsePkarrGetResponse(*got)
+	gotMsg, err := ParseDNSGetResponse(*got)
 	require.NoError(t, err)
 	require.NotEmpty(t, gotMsg.Answer)
 

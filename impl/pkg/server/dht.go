@@ -11,26 +11,26 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/TBD54566975/did-dht-method/internal/util"
-	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
+	"github.com/TBD54566975/did-dht-method/pkg/dht"
 	"github.com/TBD54566975/did-dht-method/pkg/service"
 	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
 )
 
-// PkarrRouter is the router for the Pkarr API
-type PkarrRouter struct {
-	service *service.PkarrService
+// DHTRouter is the router for the DHT API
+type DHTRouter struct {
+	service *service.DHTService
 }
 
-// NewPkarrRouter returns a new instance of the Relay router
-func NewPkarrRouter(service *service.PkarrService) (*PkarrRouter, error) {
-	return &PkarrRouter{service: service}, nil
+// NewDHTRouter returns a new instance of the DHT router
+func NewDHTRouter(service *service.DHTService) (*DHTRouter, error) {
+	return &DHTRouter{service: service}, nil
 }
 
 // GetRecord godoc
 //
-//	@Summary		GetRecord a Pkarr record from the DHT
-//	@Description	GetRecord a Pkarr record from the DHT
-//	@Tags			Pkarr
+//	@Summary		GetRecord a BEP44 DNS record from the DHT
+//	@Description	GetRecord a BEP44 DNS record from the DHT
+//	@Tags			DHT
 //	@Accept			octet-stream
 //	@Produce		octet-stream
 //	@Param			id	path		string	true	"ID to get"
@@ -39,8 +39,8 @@ func NewPkarrRouter(service *service.PkarrService) (*PkarrRouter, error) {
 //	@Failure		404	{string}	string	"Not found"
 //	@Failure		500	{string}	string	"Internal server error"
 //	@Router			/{id} [get]
-func (r *PkarrRouter) GetRecord(c *gin.Context) {
-	ctx, span := telemetry.GetTracer().Start(c, "PkarrHTTP.GetRecord")
+func (r *DHTRouter) GetRecord(c *gin.Context) {
+	ctx, span := telemetry.GetTracer().Start(c, "DHTHTTP.GetRecord")
 	defer span.End()
 
 	id := GetParam(c, IDParam)
@@ -60,23 +60,22 @@ func (r *PkarrRouter) GetRecord(c *gin.Context) {
 		return
 	}
 
-	resp, err := r.service.GetPkarr(ctx, *id)
+	resp, err := r.service.GetDHT(ctx, *id)
 	if err != nil {
 		// TODO(gabe): provide a more maintainable way to handle custom errors
 		if strings.Contains(err.Error(), "spam") {
 			LoggingRespondErrMsg(c, fmt.Sprintf("too many requests for bad key %s", *id), http.StatusTooManyRequests)
 			return
 		}
-		LoggingRespondErrWithMsg(c, err, "failed to get pkarr record", http.StatusInternalServerError)
+		LoggingRespondErrWithMsg(c, err, "failed to get dht record", http.StatusInternalServerError)
 		return
 	}
 	if resp == nil {
-		LoggingRespondErrMsg(c, "pkarr record not found", http.StatusNotFound)
+		LoggingRespondErrMsg(c, "dht record not found", http.StatusNotFound)
 		return
 	}
 
 	// Convert int64 to uint64 since binary.PutUint64 expects a uint64 value
-	// according to https://github.com/Nuhvi/pkarr/blob/main/design/relays.md#get
 	var seqBuf [8]byte
 	binary.BigEndian.PutUint64(seqBuf[:], uint64(resp.Seq))
 	// sig:seq:v
@@ -86,9 +85,9 @@ func (r *PkarrRouter) GetRecord(c *gin.Context) {
 
 // PutRecord godoc
 //
-//	@Summary		PutRecord a Pkarr record into the DHT
-//	@Description	PutRecord a Pkarr record into the DHT
-//	@Tags			Pkarr
+//	@Summary		PutRecord a BEP44 DNS record into the DHT
+//	@Description	PutRecord a BEP44 DNS record into the DHT
+//	@Tags			DHT
 //	@Accept			octet-stream
 //	@Param			id		path	string	true	"ID of the record to put"
 //	@Param			request	body	[]byte	true	"64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v."
@@ -96,8 +95,8 @@ func (r *PkarrRouter) GetRecord(c *gin.Context) {
 //	@Failure		400	{string}	string	"Bad request"
 //	@Failure		500	{string}	string	"Internal server error"
 //	@Router			/{id} [put]
-func (r *PkarrRouter) PutRecord(c *gin.Context) {
-	ctx, span := telemetry.GetTracer().Start(c, "PkarrHTTP.PutRecord")
+func (r *DHTRouter) PutRecord(c *gin.Context) {
+	ctx, span := telemetry.GetTracer().Start(c, "DHTHTTP.PutRecord")
 	defer span.End()
 
 	id := GetParam(c, IDParam)
@@ -129,18 +128,17 @@ func (r *PkarrRouter) PutRecord(c *gin.Context) {
 	}
 
 	// transform the request into a service request by extracting the fields
-	// according to https://github.com/Nuhvi/pkarr/blob/main/design/relays.md#put
 	value := body[72:]
 	sig := body[:64]
 	seq := int64(binary.BigEndian.Uint64(body[64:72]))
-	request, err := pkarr.NewRecord(key, value, sig, seq)
+	request, err := dht.NewBEP44Record(key, value, sig, seq)
 	if err != nil {
 		LoggingRespondErrWithMsg(c, err, "error parsing request", http.StatusBadRequest)
 		return
 	}
 
-	if err = r.service.PublishPkarr(ctx, *id, *request); err != nil {
-		LoggingRespondErrWithMsg(c, err, "failed to publish pkarr record", http.StatusInternalServerError)
+	if err = r.service.PublishDHT(ctx, *id, *request); err != nil {
+		LoggingRespondErrWithMsg(c, err, "failed to publish dht record", http.StatusInternalServerError)
 		return
 	}
 

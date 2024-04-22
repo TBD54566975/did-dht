@@ -1,7 +1,9 @@
 package bolt
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -10,12 +12,13 @@ import (
 	"github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
 
-	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
+	"github.com/TBD54566975/did-dht-method/pkg/dht"
 	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
 )
 
 const (
-	pkarrNamespace = "pkarr"
+	dhtNamespace    = "dht"
+	failedNamespace = "failed"
 )
 
 type Bolt struct {
@@ -35,13 +38,12 @@ func NewBolt(path string) (*Bolt, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return &Bolt{db: db}, nil
 }
 
 // WriteRecord writes the given record to the storage
 // TODO: don't overwrite existing records, store unique seq numbers
-func (b *Bolt) WriteRecord(ctx context.Context, record pkarr.Record) error {
+func (b *Bolt) WriteRecord(ctx context.Context, record dht.BEP44Record) error {
 	ctx, span := telemetry.GetTracer().Start(ctx, "bolt.WriteRecord")
 	defer span.End()
 
@@ -51,15 +53,15 @@ func (b *Bolt) WriteRecord(ctx context.Context, record pkarr.Record) error {
 		return err
 	}
 
-	return b.write(ctx, pkarrNamespace, encoded.K, recordBytes)
+	return b.write(ctx, dhtNamespace, record.ID(), recordBytes)
 }
 
 // ReadRecord reads the record with the given id from the storage
-func (b *Bolt) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, error) {
+func (b *Bolt) ReadRecord(ctx context.Context, id string) (*dht.BEP44Record, error) {
 	ctx, span := telemetry.GetTracer().Start(ctx, "bolt.ReadRecord")
 	defer span.End()
 
-	recordBytes, err := b.read(ctx, pkarrNamespace, encoding.EncodeToString(id))
+	recordBytes, err := b.read(ctx, dhtNamespace, id)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +69,7 @@ func (b *Bolt) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, error)
 		return nil, nil
 	}
 
-	var b64record base64PkarrRecord
+	var b64record base64BEP44Record
 	if err = json.Unmarshal(recordBytes, &b64record); err != nil {
 		return nil, err
 	}
@@ -81,18 +83,18 @@ func (b *Bolt) ReadRecord(ctx context.Context, id []byte) (*pkarr.Record, error)
 }
 
 // ListRecords lists all records in the storage
-func (b *Bolt) ListRecords(ctx context.Context, nextPageToken []byte, pagesize int) ([]pkarr.Record, []byte, error) {
+func (b *Bolt) ListRecords(ctx context.Context, nextPageToken []byte, pageSize int) ([]dht.BEP44Record, []byte, error) {
 	ctx, span := telemetry.GetTracer().Start(ctx, "bolt.ListRecords")
 	defer span.End()
 
-	boltRecords, err := b.readSeveral(ctx, pkarrNamespace, nextPageToken, pagesize)
+	boltRecords, err := b.readSeveral(ctx, dhtNamespace, nextPageToken, pageSize)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	var records []pkarr.Record
+	var records []dht.BEP44Record
 	for _, recordBytes := range boltRecords {
-		var encodedRecord base64PkarrRecord
+		var encodedRecord base64BEP44Record
 		if err = json.Unmarshal(recordBytes.value, &encodedRecord); err != nil {
 			return nil, nil, err
 		}
@@ -105,7 +107,7 @@ func (b *Bolt) ListRecords(ctx context.Context, nextPageToken []byte, pagesize i
 		records = append(records, *record)
 	}
 
-	if len(boltRecords) == pagesize {
+	if len(boltRecords) == pageSize {
 		nextPageToken = boltRecords[len(boltRecords)-1].key
 	} else {
 		nextPageToken = nil
@@ -202,16 +204,85 @@ func (b *Bolt) readSeveral(ctx context.Context, namespace string, after []byte, 
 	return result, err
 }
 
-// RecordCount returns the number of records in the storage for the pkarr namespace
+// RecordCount returns the number of records in the storage for the mainline namespace
 func (b *Bolt) RecordCount(ctx context.Context) (int, error) {
 	_, span := telemetry.GetTracer().Start(ctx, "bolt.RecordCount")
 	defer span.End()
 
 	var count int
 	err := b.db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(pkarrNamespace))
+		bucket := tx.Bucket([]byte(dhtNamespace))
 		if bucket == nil {
-			logrus.WithContext(ctx).WithField("namespace", pkarrNamespace).Warn("namespace does not exist")
+			logrus.WithContext(ctx).WithField("namespace", dhtNamespace).Warn("namespace does not exist")
+			return nil
+		}
+		count = bucket.Stats().KeyN
+		return nil
+	})
+	return count, err
+}
+
+func (b *Bolt) WriteFailedRecord(ctx context.Context, id string) error {
+	_, span := telemetry.GetTracer().Start(ctx, "bolt.WriteFailedRecord")
+	defer span.End()
+
+	return b.db.Update(func(tx *bolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists([]byte(failedNamespace))
+		if err != nil {
+			return err
+		}
+
+		var count int32 = 1
+		v := bucket.Get([]byte(id))
+		if v != nil {
+			if err = json.Unmarshal(v, &count); err != nil {
+				return err
+			}
+			count++
+		}
+
+		buf := new(bytes.Buffer)
+		if err = binary.Write(buf, binary.LittleEndian, count); err != nil {
+			return err
+		}
+		return bucket.Put([]byte(id), buf.Bytes())
+	})
+}
+
+func (b *Bolt) ListFailedRecords(ctx context.Context) ([]dht.FailedRecord, error) {
+	_, span := telemetry.GetTracer().Start(ctx, "bolt.ListFailedRecords")
+	defer span.End()
+
+	var result []dht.FailedRecord
+	err := b.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(failedNamespace))
+		if bucket == nil {
+			logrus.WithField("namespace", failedNamespace).Warn("namespace does not exist")
+			return nil
+		}
+
+		cursor := bucket.Cursor()
+		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
+			var count int
+			if err := binary.Read(bytes.NewReader(v), binary.LittleEndian, &count); err != nil {
+				return err
+			}
+			result = append(result, dht.FailedRecord{ID: string(k), Count: count})
+		}
+		return nil
+	})
+	return result, err
+}
+
+func (b *Bolt) FailedRecordCount(ctx context.Context) (int, error) {
+	_, span := telemetry.GetTracer().Start(ctx, "bolt.FailedRecordCount")
+	defer span.End()
+
+	var count int
+	err := b.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(failedNamespace))
+		if bucket == nil {
+			logrus.WithField("namespace", failedNamespace).Warn("namespace does not exist")
 			return nil
 		}
 		count = bucket.Stats().KeyN

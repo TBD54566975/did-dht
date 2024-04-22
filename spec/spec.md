@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Latest Update:** April 16, 2024
+**Latest Update:** April 22, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -58,7 +58,7 @@ DID DHT                                                    |
 [DNS RRs](https://datatracker.ietf.org/doc/html/rfc1035)   |
 [Mainline DHT](https://en.wikipedia.org/wiki/Mainline_DHT) |
 
-DID DHT makes use of [[ref:Mainline DHT]], specifically [[ref:BEP44]] to store signed mutable records. 
+DID DHT makes use of [[ref:Mainline DHT]], specifically [[ref:BEP44]] to store signed mutable records.
 This DID method uses [[ref:DNS Resource Records]] to efficiently represent _[[ref:DID Documents]]_.
 
 [[def:Mainline]] is in use for the following reasons:
@@ -73,7 +73,7 @@ specification and shall be registered with the [[spec:DID-Spec-Registries]].
 
 ## Conformance
 
-The keywords MAY, MUST, MUST NOT, RECOMMENDED, SHOULD, and SHOULD NOT in this document are to be interpreted as 
+The keywords MAY, MUST, MUST NOT, RECOMMENDED, SHOULD, and SHOULD NOT in this document are to be interpreted as
 described in [BCP 14](https://www.rfc-editor.org/info/bcp14) [[spec:RFC2119]] [[spec:RFC8174]] when, and only when,
 they appear in all capitals, as shown here.
 
@@ -81,7 +81,7 @@ they appear in all capitals, as shown here.
 
 [[def:Decentralized Identifier, Decentralized Identifier, DID, DIDs, DID Document, DID Documents]]
 ~ A [W3C specification](https://www.w3.org/TR/did-core/) describing an _identifier that enables verifiable, 
-decentralized digital identity_. A DID identifier is associated with a JSON document containing cryptograhpic keys,
+decentralized digital identity_. A DID identifier is associated with a JSON document containing cryptographic keys,
 services, and other properties outlined in the specification.
 
 [[def:DID Suffix, Suffix]]
@@ -97,7 +97,7 @@ in each `did:dht` document.
 
 [[def:DNS Resource Records]]
 ~ An efficient format for representing [[ref:DID Documents]] and providing semantics pertinent to DID DHT,
-such as TTLs, cachcing, and different record types (e.g. `NS`, `TXT`). Follows [[spec:RFC1035]].
+such as TTLs, caching, and different record types (e.g. `NS`, `TXT`). Follows [[spec:RFC1035]].
 
 [[def:Mainline DHT, DHT, Mainline, Mainline Server]]
 ~ [Mainline DHT](https://en.wikipedia.org/wiki/Mainline_DHT) is the name given to the 
@@ -167,19 +167,19 @@ to the initial publisher. Consequently, DHT records, including DID DHT Documents
 implies that trust in a specific [[ref:Mainline]] or [[ref:Gateway]] server for providing unaltered messages is unnecessary. Instead,
 all clients can, and should, verify messages themselves. This approach significantly mitigates risks associated with other DID methods,
 where a compromised server or [DID resolver](https://www.w3.org/TR/did-core/#choosing-did-resolvers) might tamper with a [[ref:DID Document]]
-which would be undecetable by a client.
+which would be undetectable by a client.
 
 Currently, [[ref:Mainline]] exclusively supports the [[ref:Ed25519]] key type. In turn, [[ref:Ed25519]] is required by DID DHT and is 
 used to uniquely identify DID DHT Documents. DID DHT identifiers are formed by concatenating the `did:dht:` prefix with a [[ref:z-base-32]]
 encoded Identity Key, which acts as its [[ref:suffix]]. Identity Keys ****MUST**** have the identifier `0` as both its Verification Method 
 `id` and JWK `kid` [[spec:RFC7517]]. Identity Keys ****MUST**** have the [Verification Relationships](#verification-relationships) 
-_Authentication_, _Assertion_, _Capabilitiy Invocation_, and _Capability Delegation_.
+_Authentication_, _Assertion_, _Capability Invocation_, and _Capability Delegation_.
 
 While the system requires at least one [[ref:Ed25519]], a DID DHT Document can include any number of additional keys. Additional key 
 types ****MUST**** be registered in the [Key Type Index](registry/index.html##key-type-index).
 
 As a unique consequence of the requirement of the Identity Key, DID DHT Documents are able to be partially-resolved without contacting
-[[ref:Maineline]] or [[ref:Gateway]] servers, though it is ****RECOMMENDED**** that deterministic resolution is only used as a fallback mechanism.
+[[ref:Mainline]] or [[ref:Gateway]] servers, though it is ****RECOMMENDED**** that deterministic resolution is only used as a fallback mechanism.
 Similarly, the requirement of an Identity Key enables [interoperability with other DID methods](#interoperability-with-other-did-methods).
 
 ### DIDs as DNS Records
@@ -214,7 +214,7 @@ each `key` or `service` as attributes.
 - The DNS packet ****MUST**** set the _Authoritative Answer_ flag since this is always an _Authoritative_ packet.
 
 - `TXT` records ****MAY**** exceed 255 characters as per [[spec:RFC1035]]. Records exceeding 255 characters are
-represented as multiple strings, which upon DID Document reconstructin, can be concatenated to a single value.
+represented as multiple strings, which upon DID Document reconstruction, can be concatenated to a single value.
 
 #### Root Record
 
@@ -222,7 +222,7 @@ The root record is a special record which serves as instructions on how to recon
 by providing a [property mapping](#property-mapping) for a [[ref:DID Document]], along with containing pertinent
 metadata such as a version identifier.
 
-- The root record's **name** ****MUST**** be of the form, `_did.<ID>.`, where `ID` is the [[ref:Mainline]] 
+- The root record's **name** ****MUST**** be of the form, `_did.<ID>.`, where `ID` is the [[ref:Mainline]]
 identifier associated with the DID (i.e. `did:dht:<ID>` becomes `_did.<ID>.`).
 
 - The root record's **type** is `TXT`, indicating a Text record.
@@ -279,7 +279,7 @@ A [DID controller](https://www.w3.org/TR/did-core/#did-controller) ****MAY**** b
 
 - The [Controller](https://www.w3.org/TR/did-core/#did-controller) record's **type** is `TXT`, indicating a Text record.
 
-- The [Controller](https://www.w3.org/TR/did-core/#did-controller) record's **data** is represented as a comma-separatedlist of controller DID identifiers.
+- The [Controller](https://www.w3.org/TR/did-core/#did-controller) record's **data** is represented as a comma-separated list of controller DID identifiers.
 
 To ensure that the DID controller is authorized to make changes to the DID Document, the controller for the [[ref:Identity Key]] Verification Method ****MUST**** be contained within the controller property.
 
@@ -314,13 +314,13 @@ as a `_kN._did.` record where `N` is the zero-indexed positional index of a give
 
 - Each [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) record's **rdata** is represented by the form
 `id=M;t=N;k=O;a=P` where `M` is the Verification Method's `id`, `N` is the index of the key's type from the
-[key type index](registry/index.html#key-type-index), `N` is the unpadded base64URL [[spec:RFC4648]] representation of
+[key type index](registry/index.html#key-type-index), `O` is the unpadded base64URL [[spec:RFC4648]] representation of
 the public key, and `P` is the `JWK` `alg` identifier of the key.
 
   - Verification Method `id`s ****MAY**** be omitted. If omitted, they can be computed according to the 
   rules specified in the section on [representing keys](#representing-keys) when reconstructing the DID Document.
 
-  - `alg` identifiers ****MAY**** be ommitted. If omimtted, they are assigned to the default value specified in the 
+  - `alg` identifiers ****MAY**** be omitted. If omitted, they are assigned to the default value specified in the
   [key type index](registry/index.html#key-type-index).
 
   - The [[ref:Identity Key]] ****MUST**** always be at index `_k0` with `id` `0`.
@@ -550,7 +550,7 @@ Add guidance for rotating to a new DID after deactivation.
 
 ### Designating Authoritative Gateways
 
-[Gateways](#gateways) provide additional benfits to `did:dht`, such as the ability to [resolve historical DID Documents](#historical-resolution),
+[Gateways](#gateways) provide additional benefits to `did:dht`, such as the ability to [resolve historical DID Documents](#historical-resolution),
 or support [type indexing](#type-indexing). To enable the usage of these additional features, `did:dht` documents need to be published to 
 Gateway(s) that with the necessary capabilities. Whether it's accessing historical states, engaging with type indexes, or utilizing other
 specialized features, the [resolution process](#resolving-a-did) must be directed towards a [[ref:Gateway]] that maintains this supplementary data.
@@ -950,21 +950,21 @@ access-token-based approach.
 
 ### DID Resolution
 
-The process for resoloving a DID DHT Document via a [[ref:Gateway]] is outlined in the [read section above](#read).
+The process for resolving a DID DHT Document via a [[ref:Gateway]] is outlined in the [read section above](#read).
 However, we provide additional guidance for [DID Resolvers](https://www.w3.org/TR/did-core/#dfn-did-resolvers) supplying
 [DID Document Metadata](https://www.w3.org/TR/did-core/#did-document-metadata) and 
 [DID Resolution Metadata](https://www.w3.org/TR/did-core/#did-resolution-metadata) as follows:
 
 #### DID Document Metadata
 
-* The metadata's [`versionId` property](https://www.w3.org/TR/did-core/#dfn-versionid) ****MUST**** be set to the
+* The metadata [`versionId` property](https://www.w3.org/TR/did-core/#dfn-versionid) ****MUST**** be set to the
 [[ref:DID Document]] packet's current [[ref:sequence number]].
 
-* The metadata's [`created` property](https://www.w3.org/TR/did-core/#dfn-created) ****MUST**** be set to 
+* The metadata [`created` property](https://www.w3.org/TR/did-core/#dfn-created) ****MUST**** be set to
 [XML Datetime](https://www.w3.org/TR/xmlschema11-2/#dateTime) representation of the earliest known sequence number
 for the DID.
 
-* The metadata's [`updated` property](https://www.w3.org/TR/did-core/#dfn-updated) ****MUST**** be set to the
+* The metadata [`updated` property](https://www.w3.org/TR/did-core/#dfn-updated) ****MUST**** be set to the
 [XML Datetime](https://www.w3.org/TR/xmlschema11-2/#dateTime) representation of the last known sequence number
 for the DID.
 
@@ -973,10 +973,10 @@ for the DID.
 
 #### DID Resolution Metadata
 
-* The metadata's `types` property ****MUST**** be set to an array of strings representing type values if 
+* The metadata `types` property ****MUST**** be set to an array of strings representing type values if
 [type data](#type-indexing) is present in the [[ref:DID Document]]'s packet.
 
-* The metadata's `gateway` property ****MUST**** be set to a string representing the [[ref:Gateway]]'s URI
+* The metadata `gateway` property ****MUST**** be set to a string representing the [[ref:Gateway]]'s URI
 from which the DID was resolved. This is useful in cases where a [DID Resolvers](https://www.w3.org/TR/did-core/#dfn-did-resolvers)
 performs resolution against an [Authoritative Gateway](#designating-authoritative-gateways).
 

@@ -1,4 +1,4 @@
-package pkarr_test
+package dht_test
 
 import (
 	"strings"
@@ -9,13 +9,12 @@ import (
 
 	"github.com/TBD54566975/did-dht-method/internal/did"
 	"github.com/TBD54566975/did-dht-method/pkg/dht"
-	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
 )
 
 func TestNewRecord(t *testing.T) {
 	// validate incorrect key length is rejected
-	r, err := pkarr.NewRecord([]byte("aaaaaaaaaaa"), nil, nil, 0)
-	assert.EqualError(t, err, "incorrect key length for pkarr record")
+	r, err := dht.NewBEP44Record([]byte("aaaaaaaaaaa"), nil, nil, 0)
+	assert.EqualError(t, err, "incorrect key length for bep44 record")
 	assert.Nil(t, r)
 
 	// create a did doc as a packet to store
@@ -27,30 +26,30 @@ func TestNewRecord(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, packet)
 
-	putMsg, err := dht.CreatePkarrPublishRequest(sk, *packet)
+	putMsg, err := dht.CreateDNSPublishRequest(sk, *packet)
 	require.NoError(t, err)
 	require.NotEmpty(t, putMsg)
 
-	r, err = pkarr.NewRecord(putMsg.K[:], []byte(strings.Repeat("a", 1001)), putMsg.Sig[:], putMsg.Seq)
-	assert.EqualError(t, err, "pkarr record value too long")
+	r, err = dht.NewBEP44Record(putMsg.K[:], []byte(strings.Repeat("a", 1001)), putMsg.Sig[:], putMsg.Seq)
+	assert.EqualError(t, err, "bep44 record value too long")
 	assert.Nil(t, r)
 
-	r, err = pkarr.NewRecord(putMsg.K[:], putMsg.V.([]byte), []byte(strings.Repeat("a", 65)), putMsg.Seq)
-	assert.EqualError(t, err, "incorrect sig length for pkarr record")
+	r, err = dht.NewBEP44Record(putMsg.K[:], putMsg.V.([]byte), []byte(strings.Repeat("a", 65)), putMsg.Seq)
+	assert.EqualError(t, err, "incorrect sig length for bep44 record")
 	assert.Nil(t, r)
 
-	r, err = pkarr.NewRecord(putMsg.K[:], putMsg.V.([]byte), putMsg.Sig[:], 0)
-	assert.EqualError(t, err, "Key: 'Record.SequenceNumber' Error:Field validation for 'SequenceNumber' failed on the 'required' tag")
+	r, err = dht.NewBEP44Record(putMsg.K[:], putMsg.V.([]byte), putMsg.Sig[:], 0)
+	assert.EqualError(t, err, "Key: 'BEP44Record.SequenceNumber' Error:Field validation for 'SequenceNumber' failed on the 'required' tag")
 	assert.Nil(t, r)
 
-	r, err = pkarr.NewRecord(putMsg.K[:], putMsg.V.([]byte), putMsg.Sig[:], 1)
+	r, err = dht.NewBEP44Record(putMsg.K[:], putMsg.V.([]byte), putMsg.Sig[:], 1)
 	assert.EqualError(t, err, "signature is invalid")
 	assert.Nil(t, r)
 
-	r, err = pkarr.NewRecord(putMsg.K[:], putMsg.V.([]byte), putMsg.Sig[:], putMsg.Seq)
+	r, err = dht.NewBEP44Record(putMsg.K[:], putMsg.V.([]byte), putMsg.Sig[:], putMsg.Seq)
 	assert.NoError(t, err)
 
-	bep := r.BEP44()
+	bep := r.Put()
 	assert.Equal(t, putMsg.K, bep.K)
 	assert.Equal(t, putMsg.V, bep.V)
 	assert.Equal(t, putMsg.Sig, bep.Sig)
@@ -61,7 +60,7 @@ func TestNewRecord(t *testing.T) {
 	assert.Equal(t, r.SequenceNumber, resp.Seq)
 	assert.Equal(t, r.Signature, resp.Sig)
 
-	r2 := pkarr.RecordFromBEP44(putMsg)
+	r2 := dht.RecordFromBEP44(putMsg)
 	assert.Equal(t, r.Key, r2.Key)
 	assert.Equal(t, r.Value, r2.Value)
 	assert.Equal(t, r.Signature, r2.Signature)

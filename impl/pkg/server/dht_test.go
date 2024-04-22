@@ -19,13 +19,13 @@ import (
 	"github.com/TBD54566975/did-dht-method/pkg/storage"
 )
 
-func TestPkarrRouter(t *testing.T) {
-	pkarrSvc := testPkarrService(t)
-	pkarrRouter, err := NewPkarrRouter(&pkarrSvc)
+func TestDHTRouter(t *testing.T) {
+	dhtSvc := testDHTService(t)
+	dhtRouter, err := NewDHTRouter(&dhtSvc)
 	require.NoError(t, err)
-	require.NotEmpty(t, pkarrRouter)
+	require.NotEmpty(t, dhtRouter)
 
-	defer pkarrSvc.Close()
+	defer dhtSvc.Close()
 
 	t.Run("test put record", func(t *testing.T) {
 		didID, reqData := generateDIDPutRequest(t)
@@ -36,7 +36,7 @@ func TestPkarrRouter(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("%s/%s", testServerURL, suffix), bytes.NewReader(reqData))
 		c := newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
 
-		pkarrRouter.PutRecord(c)
+		dhtRouter.PutRecord(c)
 		assert.True(t, is2xxResponse(w.Code), "unexpected %s", w.Result().Status)
 	})
 
@@ -49,14 +49,14 @@ func TestPkarrRouter(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("%s/%s", testServerURL, suffix), bytes.NewReader(reqData))
 		c := newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
 
-		pkarrRouter.PutRecord(c)
+		dhtRouter.PutRecord(c)
 		assert.True(t, is2xxResponse(w.Code), "unexpected %s", w.Result().Status)
 
 		w = httptest.NewRecorder()
 		req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", testServerURL, suffix), nil)
 		c = newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
 
-		pkarrRouter.GetRecord(c)
+		dhtRouter.GetRecord(c)
 		assert.True(t, is2xxResponse(w.Code), "unexpected %s", w.Result().Status)
 
 		resp, err := io.ReadAll(w.Body)
@@ -74,14 +74,14 @@ func TestPkarrRouter(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("%s/%s", testServerURL, suffix), bytes.NewReader(reqData))
 		c := newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
 
-		pkarrRouter.PutRecord(c)
+		dhtRouter.PutRecord(c)
 		assert.True(t, is2xxResponse(w.Code), "unexpected %s", w.Result().Status)
 
 		w = httptest.NewRecorder()
 		req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", testServerURL, suffix), nil)
 		c = newRequestContextWithParams(w, req, map[string]string{})
 
-		pkarrRouter.GetRecord(c)
+		dhtRouter.GetRecord(c)
 		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode, "unexpected %s", w.Result().Status)
 	})
 
@@ -93,7 +93,7 @@ func TestPkarrRouter(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("%s/", testServerURL), bytes.NewReader(reqData))
 		c := newRequestContextWithParams(w, req, map[string]string{})
 
-		pkarrRouter.PutRecord(c)
+		dhtRouter.PutRecord(c)
 		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode, "unexpected %s", w.Result().Status)
 	})
 
@@ -106,7 +106,7 @@ func TestPkarrRouter(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("%s/%s", testServerURL, suffix), bytes.NewReader(reqData))
 		c := newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
 
-		pkarrRouter.PutRecord(c)
+		dhtRouter.PutRecord(c)
 		assert.Equal(t, http.StatusInternalServerError, w.Result().StatusCode, "unexpected %s", w.Result().Status)
 	})
 
@@ -121,7 +121,7 @@ func TestPkarrRouter(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("%s/%s", testServerURL, suffix), bytes.NewReader(reqData))
 		c := newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
 
-		pkarrRouter.PutRecord(c)
+		dhtRouter.PutRecord(c)
 		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode, "unexpected %s", w.Result().Status)
 	})
 
@@ -134,7 +134,7 @@ func TestPkarrRouter(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("%s/%s", testServerURL, suffix), bytes.NewReader(reqData))
 		c := newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
 
-		pkarrRouter.PutRecord(c)
+		dhtRouter.PutRecord(c)
 		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode, "unexpected %s", w.Result().Status)
 	})
 
@@ -143,7 +143,7 @@ func TestPkarrRouter(t *testing.T) {
 		suffix := "uqaj3fcr9db6jg6o9pjs53iuftyj45r46aubogfaceqjbo6pp9sy"
 		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", testServerURL, suffix), nil)
 		c := newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
-		pkarrRouter.GetRecord(c)
+		dhtRouter.GetRecord(c)
 		assert.Equal(t, http.StatusNotFound, w.Result().StatusCode, "unexpected %s", w.Result().Status)
 	})
 
@@ -152,18 +152,18 @@ func TestPkarrRouter(t *testing.T) {
 		suffix := "cz13drbfxy3ih6xun4mw3cyiexrtfcs9gyp46o4469e93y36zhsy"
 		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", testServerURL, suffix), nil)
 		c := newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
-		pkarrRouter.GetRecord(c)
+		dhtRouter.GetRecord(c)
 		assert.Equal(t, http.StatusNotFound, w.Result().StatusCode, "unexpected %s", w.Result().Status)
 
 		w = httptest.NewRecorder()
 		req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", testServerURL, suffix), nil)
 		c = newRequestContextWithParams(w, req, map[string]string{IDParam: suffix})
-		pkarrRouter.GetRecord(c)
+		dhtRouter.GetRecord(c)
 		assert.Equal(t, http.StatusTooManyRequests, w.Result().StatusCode, "unexpected %s", w.Result().Status)
 	})
 }
 
-func testPkarrService(t *testing.T) service.PkarrService {
+func testDHTService(t *testing.T) service.DHTService {
 	defaultConfig := config.GetDefaultConfig()
 
 	db, err := storage.NewStorage(defaultConfig.ServerConfig.StorageURI)
@@ -171,11 +171,11 @@ func testPkarrService(t *testing.T) service.PkarrService {
 	require.NotEmpty(t, db)
 
 	dht := dht.NewTestDHT(t)
-	pkarrService, err := service.NewPkarrService(&defaultConfig, db, dht)
+	dhtService, err := service.NewDHTService(&defaultConfig, db, dht)
 	require.NoError(t, err)
-	require.NotEmpty(t, pkarrService)
+	require.NotEmpty(t, dhtService)
 
-	return *pkarrService
+	return *dhtService
 }
 
 func generateDIDPutRequest(t *testing.T) (string, []byte) {
@@ -188,7 +188,7 @@ func generateDIDPutRequest(t *testing.T) (string, []byte) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, packet)
 
-	bep44Put, err := dht.CreatePkarrPublishRequest(sk, *packet)
+	bep44Put, err := dht.CreateDNSPublishRequest(sk, *packet)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, bep44Put)
 

@@ -6,14 +6,14 @@ import (
 
 	"github.com/TBD54566975/ssi-sdk/util"
 
-	"github.com/TBD54566975/did-dht-method/pkg/pkarr"
+	"github.com/TBD54566975/did-dht-method/pkg/dht"
 )
 
 var (
 	encoding = base64.RawURLEncoding
 )
 
-type base64PkarrRecord struct {
+type base64BEP44Record struct {
 	// Up to an 1000 byte base64URL encoded string
 	V string `json:"v" validate:"required"`
 	// 32 byte base64URL encoded string
@@ -23,8 +23,8 @@ type base64PkarrRecord struct {
 	Seq int64  `json:"seq" validate:"required"`
 }
 
-func encodeRecord(r pkarr.Record) base64PkarrRecord {
-	return base64PkarrRecord{
+func encodeRecord(r dht.BEP44Record) base64BEP44Record {
+	return base64BEP44Record{
 		V:   encoding.EncodeToString(r.Value[:]),
 		K:   encoding.EncodeToString(r.Key[:]),
 		Sig: encoding.EncodeToString(r.Signature[:]),
@@ -32,23 +32,23 @@ func encodeRecord(r pkarr.Record) base64PkarrRecord {
 	}
 }
 
-func (b base64PkarrRecord) Decode() (*pkarr.Record, error) {
+func (b base64BEP44Record) Decode() (*dht.BEP44Record, error) {
 	v, err := encoding.DecodeString(b.V)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing pkarr value field: %v", err)
+		return nil, fmt.Errorf("error parsing bep44 value field: %v", err)
 	}
 
 	k, err := encoding.DecodeString(b.K)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing pkarr key field: %v", err)
+		return nil, fmt.Errorf("error parsing bep44 key field: %v", err)
 	}
 
 	sig, err := encoding.DecodeString(b.Sig)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing pkarr sig field: %v", err)
+		return nil, fmt.Errorf("error parsing bep44 sig field: %v", err)
 	}
 
-	record, err := pkarr.NewRecord(k, v, sig, b.Seq)
+	record, err := dht.NewBEP44Record(k, v, sig, b.Seq)
 	if err != nil {
 		// TODO: do something useful if this happens
 		return nil, util.LoggingErrorMsg(err, "error loading record from database, skipping")
