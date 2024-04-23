@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Latest Update:** April 23, 2024
+**Latest Update:** April 22, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -610,16 +610,6 @@ as an initial step in recognizing the identity linked to a [[ref:DID]]. To valid
 it is essential to delve deeper, employing tools like verifiable credentials and the examination of related data.
 :::
 
-## Interoperability With Other DID Methods
-
-As an **OPTIONAL** extension, some existing DID methods can leverage `did:dht` to expand their feature set. This
-enhancement is most useful for DID methods that operate based on a single key and are compatible with the [[ref:Ed25519]]
-key format. By adopting this optional extension, users can maintain their current DIDs without any changes. Additionally,
-they gain the ability to add extra information to their DIDs. This is achieved by either publishing or retrieving
-data from [[ref:Mainline]].
-
-Interoperable DID methods ****MUST**** be registered in [this specification's registry](registry/index.html#interoperable-did-methods).
-
 ## Gateways
 
 [[ref:Gateways]] serve as specialized servers, providing a range of DID-centric functionalities that extend
@@ -700,13 +690,13 @@ Specify how gateways can report on retention guarantees and provide guidance for
 
 ### Gateway API
 
-At a minimum, a [[ref:Gateway]] ****MUST**** support the [Relay API](#relay-api) inspired by [[ref:Pkarr]], which is specified in the subsequent
+At a minimum, a [[ref:Gateway]] ****MUST**** support the [Relay API](#relay) inspired by [[ref:Pkarr]], which is specified in the subsequent
 section.
 
 Expanding on this API, a fully conformant [[ref:Gateway]] ****MUST**** support the following API, which is made 
 available via an [OpenAPI document](#open-api-definition).
 
-#### Relay API
+#### Relay
 
 Public relays will need to set up [Cross-origin resource sharing (CORS)](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) headers as follows:
 
@@ -719,30 +709,30 @@ On receiving a `PUT` request the server verifiers the `sig` and submits a mutabl
 
 - **Method:** `PUT`
 - **Path:** `/:id`
-  - `id` - **string** – **REQUIRED** – The [[ref:z-base-32]] encoded [[ref:Identity Key]], equivalent to the suffix of the DID DHT identifier.
-- **Request Body:** – application/octet-stream
+  - `id` - **string** - **REQUIRED** - The [[ref:z-base-32]] encoded [[ref:Identity Key]], equivalent to the suffix of the DID DHT identifier.
+- **Request Body:** `application/octet-stream`
   - The binary representation of `<sig><seq>[<v>]` where:
-    - `sig` – represents the 64-byte [[ref:BEP44]] payload signature.
-    - `seq` – represents the 8-byte unsigned 64-bit integer big-endian representation of a [[ref:BEP44]] sequence number.
-    - `v` – represents between 0-1000 bytes of a [[ref:bencoded]] compressed DNS packet.
-- **Returns:** – application/json
+    - `sig` - represents the 64-byte [[ref:BEP44]] payload signature.
+    - `seq` - represents the 8-byte unsigned 64-bit integer big-endian representation of a [[ref:BEP44]] sequence number.
+    - `v` - represents between 0-1000 bytes of a [[ref:bencoded]] compressed DNS packet.
+- **Returns:** `application/json`
   - `200` - Success.
-  - `400` – Bad request if the `sig` is not valid.
+  - `400` - Bad request if the `sig` is not valid.
   - `500` - Internal server error.
 
-#### Get
+##### Get
 
 On receiving a `GET` request the server submits a mutable get query to [[ref:Mainline]] as per [[ref:BEP44]].
 
 - **Method:** `GET`
 - **Path:** `/:id`
-  - `id` - **string** – **REQUIRED** – The [[ref:z-base-32]] encoded [[ref:Identity Key]], equivalent to the suffix of the DID DHT identifier.
-- **Returns:** – application/octet-stream
-  - `200` – Success. The binary representation of `<sig><seq>[<v>]` where:
-    - `sig` – represents the 64-byte [[ref:BEP44]] payload signature.
-    - `seq` – represents the 8-byte unsigned 64-bit integer big-endian representation of a [[ref:BEP44]] sequence number.
-    - `v` – represents between 0-1000 bytes of a [[ref:bencoded]] compressed DNS packet.
-  - `404` – Record not found.
+  - `id` - **string** - **REQUIRED** - The [[ref:z-base-32]] encoded [[ref:Identity Key]], equivalent to the suffix of the DID DHT identifier.
+- **Returns:** `application/octet-stream`
+  - `200` - Success. The binary representation of `<sig><seq>[<v>]` where:
+    - `sig` - represents the 64-byte [[ref:BEP44]] payload signature.
+    - `seq` - represents the 8-byte unsigned 64-bit integer big-endian representation of a [[ref:BEP44]] sequence number.
+    - `v` - represents between 0-1000 bytes of a [[ref:bencoded]] compressed DNS packet.
+  - `404` - Record not found.
 
 #### Get the Current Difficulty
 
@@ -750,7 +740,7 @@ Difficulty is exposed as an **OPTIONAL** endpoint based on support of [retention
 
 - **Method:** `GET`
 - **Path:** `/difficulty`
-- **Returns:** – application/json
+- **Returns:** `application/json`
   - `200` - Success.
     - `hash` - **string** - **REQUIRED** - The current hash.
     - `difficulty` - **integer** - **REQUIRED** - The current difficulty.
@@ -775,7 +765,7 @@ Difficulty is exposed as an **OPTIONAL** endpoint based on support of [retention
     which ****MUST**** be a [[ref:Unix Timestamp]] in seconds.
   - `v` - **string** - **REQUIRED** - An unpadded base64URL-encoded [[ref:bencoded]] compressed DNS packet containing the DID Document.
   - `retention_proof` - **string** - **OPTIONAL** - A retention proof calculated according to the [retention proof algorithm](#generating-a-retention-proof).
-- **Returns:** – application/json
+- **Returns:** `application/json`
   - `202` - Accepted. The server has accepted the request as valid and will publish to the DHT.
   - `400` - Invalid request.
   - `401` - Invalid signature.
@@ -799,7 +789,7 @@ DID by its type.
 - **Method:** `GET`
 - **Path:** `/did/:id`
   - `id` - **string** - **REQUIRED** - ID of the DID to resolve.
-- **Returns:** – application/json
+- **Returns:** `application/json`
   - `200` - Success.
     - `did` - **object** - **REQUIRED** - A JSON object representing the DID Document.
     - `dht` - **string** - **REQUIRED** - An unpadded base64URL-encoded representation of the full [[ref:BEP44]] payload, represented as 64 bytes sig,
@@ -844,7 +834,7 @@ Upon receiving a request to resolve a DID, the [[ref:Gateway]] ****MUST**** quer
 return the document. If the records are not found in the DHT, the [[ref:Gateway]] ****MAY**** fall back to its local storage.
 If the DNS Packets contain a `_typ._did.` record, the [[ref:Gateway]] ****MUST**** return the type index.
 
-This API is returns a `dht` property which matches the payload of a [Relay GET Request](#relay-api),
+This API is returns a `dht` property which matches the payload of a [Relay GET Request](#relay),
 when encoded as an unpadded base64URL string. Implementers are ****RECOMMENDED**** to verify the integrity of the response using
 the `dht` data and reconstruct the DID Document themselves. The `did` property is provided as a utility which, without independent verification,
 ****SHOULD NOT**** be trusted.
@@ -862,7 +852,7 @@ historical state for a given [[ref:DID]]. The following API can be used with spe
 - **Path:** `/did/:id?seq=:sequence_number`
   - `id` - **string** - **REQUIRED** - ID of the DID to resolve
   - `seq` - **integer** - **OPTIONAL** - [[ref:Sequence number]] of the DID to resolve
-- **Returns:** – application/json
+- **Returns:** `application/json`
   - `200` - Success.
     - `did` - **object** - **REQUIRED** - A JSON object representing the DID Document.
     - `dht` - **string** - **REQUIRED** - An unpadded base64URL-encoded representation of the full [[ref:BEP44]] payload, represented as 64 bytes sig,
@@ -888,7 +878,7 @@ type(s) for the DID.
 
 - **Method:** `GET`
 - **Path:** `/did/types`
-- **Returns:** – application/json
+- **Returns:** `application/json`
   - `200` - Success.
     - **array** - An array of objects describing the known types of the following form:
       - `type` - **integer** - **REQUIRED** - An integer representing the [type](#type-indexing).
@@ -915,7 +905,7 @@ type(s) for the DID.
   - `id` - **integer** - **REQUIRED** - The type to query from the index.
   - `offset` - **integer** - **OPTIONAL** - Specifies the starting position from where the type records should be retrieved (Default: `0`).
   - `limit` - **integer** - **OPTIONAL** - Specifies the maximum number of type records to retrieve (Default: `100`).
-- **Returns:** – application/json
+- **Returns:** `application/json`
   - `200` - Success.
     - **array** - **REQUIRED** - An array of DID Identifiers matching the associated type.
   - `400` - Invalid request.
@@ -931,6 +921,16 @@ type(s) for the DID.
 
 A query to the type index returns an array of DIDs matching the associated type. If the type is not found, a `404` is
 returned. If no DIDs match the type, an empty array is returned.
+
+## Interoperability With Other DID Methods
+
+As an **OPTIONAL** extension, some existing DID methods can leverage `did:dht` to expand their feature set. This
+enhancement is most useful for DID methods that operate based on a single key and are compatible with the [[ref:Ed25519]]
+key format. By adopting this optional extension, users can maintain their current DIDs without any changes. Additionally,
+they gain the ability to add extra information to their DIDs. This is achieved by either publishing or retrieving
+data from [[ref:Mainline]].
+
+Interoperable DID methods ****MUST**** be registered in [this specification's registry](registry/index.html#interoperable-did-methods).
 
 ## Implementation Considerations
 
