@@ -26,7 +26,7 @@ The DID DHT Method Specification 1.0
 
 ## Abstract
 
-A DID Method [[spec:DID-CORE]] based on [[ref:Pkarr]] and [[ref:Mainline DHT]], identified by the prefix `did:dht`.
+A DID Method [[spec:DID-CORE]] based on [[ref:DNS Resource Records]] and [[ref:Mainline DHT]], identified by the prefix `did:dht`.
 
 <style id="protocol-stack-styles">
   #protocol-stack-styles + table {
@@ -55,14 +55,13 @@ A DID Method [[spec:DID-CORE]] based on [[ref:Pkarr]] and [[ref:Mainline DHT]], 
 
 :--------------------------------------------------------: |
 DID DHT                                                    |
-[Pkarr](https://github.com/nuhvi/pkarr)                    |
+[DNS RRs](https://datatracker.ietf.org/doc/html/rfc1035)   |
 [Mainline DHT](https://en.wikipedia.org/wiki/Mainline_DHT) |
 
-[[ref:Pkarr]] stands for **P**ublic **K**ey **A**ddressable **R**esource **R**ecords. [[ref:Pkarr]] makes use of 
-[[ref:Mainline DHT]], specifically [[ref:BEP44]] to store signed mutable records. This DID method uses [[ref:Pkarr]] to 
-store _[[ref:DID Documents]]_.
+DID DHT makes use of [[ref:Mainline DHT]], specifically [[ref:BEP44]] to store signed mutable records.
+This DID method uses [[ref:DNS Resource Records]] to efficiently represent _[[ref:DID Documents]]_.
 
-As [[ref:Pkarr]] states, [[def:Mainline]] is used for the following reasons:
+[[def:Mainline]] is in use for the following reasons:
 
 1. It has a proven track record of 15 years.
 2. It is the biggest DHT in existence with an estimated 10 million servers.
@@ -94,12 +93,11 @@ services, and other properties outlined in the specification.
 in each `did:dht` document.
 
 [[def:DID DHT Service]]
-~ A service that provides a [[ref:DHT]] interface to the [[ref:Pkarr]] network, extended to support this [[ref:DID]] method.
+~ A service that provides a [[ref:Mainline]] interface, extended to support this [[ref:DID]] method.
 
-[[def:Pkarr]]
-~ An [open-source project](https://github.com/nuhvi/pkarr), based on [[ref:Mainline]] which aims to provide the 
-_simplest possible streamlined integration between the Domain Name System and peer-to-peer overlay networks, 
-enabling self-issued public keys to function as sovereign, publicly addressable domains_.
+[[def:DNS Resource Records]]
+~ An efficient format for representing [[ref:DID Documents]] and providing semantics pertinent to DID DHT,
+such as TTLs, caching, and different record types (e.g. `NS`, `TXT`). Follows [[spec:RFC1035]].
 
 [[def:Mainline DHT, DHT, Mainline, Mainline Server]]
 ~ [Mainline DHT](https://en.wikipedia.org/wiki/Mainline_DHT) is the name given to the 
@@ -141,7 +139,7 @@ numbers are [[ref:Unix Timestamps]] represented in seconds.
 ### Format
 
 The format for `did:dht` conforms to the [[spec:DID Core]] specification. It consists of the `did:dht` prefix followed by 
-the [[ref:Pkarr]] identifier. The [[ref:Pkarr]] identifier is a [[ref:z-base-32]]-encoded [[ref:Ed25519]] public key, which
+the [[ref:Mainline]] identifier. The [[ref:Mainline]] identifier is a [[ref:z-base-32]]-encoded [[ref:Ed25519]] public key, which
 we refer to as an [[ref:Identity Key]].
 
 ```text
@@ -218,14 +216,16 @@ each `key` or `service` as attributes.
 - `TXT` records ****MAY**** exceed 255 characters as per [[spec:RFC1035]]. Records exceeding 255 characters are
 represented as multiple strings, which upon DID Document reconstruction, can be concatenated to a single value.
 
+- DNS packets ****MUST**** be compressed as per [[spec:RFC1035]] section 4.1.4 before transmission.
+
 #### Root Record
 
 The root record is a special record which serves as instructions on how to reconstruct a [[ref:DID Document]],
 by providing a [property mapping](#property-mapping) for a [[ref:DID Document]], along with containing pertinent
 metadata such as a version identifier.
 
-- The root record's **name** ****MUST**** be of the form, `_did.<ID>.`, where `ID` is the [[ref:Pkarr]] identifier
-associated with the DID (i.e. `did:dht:<ID>` becomes `_did.<ID>.`).
+- The root record's **name** ****MUST**** be of the form, `_did.<ID>.`, where `ID` is the [[ref:Mainline]]
+identifier associated with the DID (i.e. `did:dht:<ID>` becomes `_did.<ID>.`).
 
 - The root record's **type** is `TXT`, indicating a Text record.
 
@@ -465,7 +465,7 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
 
 ### Operations
 
-Entries to the [[ref:DHT]] require a signed record as per [[ref:BEP44]]. As such, the keypair used for the [[ref:Pkarr]]
+Entries to the [[ref:DHT]] require a signed record as per [[ref:BEP44]]. As such, the keypair used for the [[ref:Mainline]]
 identifier is also used to sign the [[ref:DHT]] record.
 
 #### Create
@@ -487,32 +487,38 @@ To create a `did:dht`, the process is as follows:
 
 3. Map the output [[ref:DID Document]] to a DNS packet as outlined in [property mapping](#property-mapping).
 
-4. Construct a [[ref:BEP44]] conformant mutable put message, as specified by [Pkarr](https://github.com/Nuhvi/pkarr/blob/main/design/relays.md#put).
+4. Compress the DNS packet as per [[spec:RFC1035]] section 4.1.4.
+
+5. Construct a [[ref:BEP44]] conformant mutable put message.
   
-   a. `v` ****MUST**** be set to a [[ref:bencoded]] DNS packet from the prior step.
+   a. `v` ****MUST**** be set to a [[ref:bencoded]] compressed DNS packet from the prior step.
 
    b. `seq` ****MUST**** be set to the current [[ref:Unix Timestamp]] in seconds.
 
-5. Submit the result of to the [[ref:DHT]] via a [[ref:Pkarr]] relay, or a [[ref:Gateway]], with the identifier created in step 1.
+6. Submit the result of to the [[ref:DHT]] via a [[ref:Mainline]] node, or a [[ref:Gateway]], with the identifier created in step 1.
 
+::: note
 This specification **does not** make use of [JSON-LD](https://json-ld.org/). As such DID DHT Documents ****MUST NOT**** include the `@context` property.
+:::
 
 #### Read
 
 To read a `did:dht`, the process is as follows:
 
-1. Take the [[ref:suffix]] of the DID, that is, the _[[ref:z-base-32]] encoded identifier key_, and submit it to a [[ref:Pkarr]]
-relay or a [[ref:Gateway]].
+1. Take the [[ref:suffix]] of the DID, that is, the _[[ref:z-base-32]] encoded identifier key_, and submit it to a [[ref:Mainline]]
+node or a [[ref:Gateway]].
 
 2. Decode the resulting [[ref:BEP44]] response's `v` value using [[ref:bencode]].
 
-3. Reverse the DNS [property mapping](#property-mapping) process and re-construct a conformant [[ref:DID Document]].
+3. Uncompress the DNS packet according to [[spec:RFC1035]] section 4.1.4.
+
+4. Reverse the DNS [property mapping](#property-mapping) process and re-construct a conformant [[ref:DID Document]].
 
     a. Expand all identifiers (i.e. Verification Methods, Services, etc.) to their fully-qualified 
     form (e.g. `did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#0` 
     as opposed to `0` or `#0`, `did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#service-1` as opposed to `#service-1`).
 
-4. If [NS records](#designating-authoritative-gateways) are present this process should be repeated, making the initial
+5. If [NS records](#designating-authoritative-gateways) are present this process should be repeated, making the initial
 request against the given [[ref:Gateway]]. The document with the highest [[ref:sequence number]] is to be treated as authoritative.
 
 ::: note
@@ -552,7 +558,7 @@ Add guidance for rotating to a new DID after deactivation.
 
 ### Designating Authoritative Gateways
 
-[Gateways](#gateways) provide additional benfits to `did:dht`, such as the ability to [resolve historical DID Documents](#historical-resolution),
+[Gateways](#gateways) provide additional benefits to `did:dht`, such as the ability to [resolve historical DID Documents](#historical-resolution),
 or support [type indexing](#type-indexing). To enable the usage of these additional features, `did:dht` documents need to be published to 
 Gateway(s) that with the necessary capabilities. Whether it's accessing historical states, engaging with type indexes, or utilizing other
 specialized features, the [resolution process](#resolving-a-did) must be directed towards a [[ref:Gateway]] that maintains this supplementary data.
@@ -603,16 +609,6 @@ Identifying entities through type-based indexing is a relatively unreliable prac
 as an initial step in recognizing the identity linked to a [[ref:DID]]. To validate identity assertions more robustly,
 it is essential to delve deeper, employing tools like verifiable credentials and the examination of related data.
 :::
-
-## Interoperability With Other DID Methods
-
-As an **OPTIONAL** extension, some existing DID methods can leverage `did:dht` to expand their feature set. This
-enhancement is most useful for DID methods that operate based on a single key and are compatible with the [[ref:Ed25519]]
-key format. By adopting this optional extension, users can maintain their current DIDs without any changes. Additionally,
-they gain the ability to add extra information to their DIDs. This is achieved by either publishing or retrieving
-data from [[ref:Mainline]].
-
-Interoperable DID methods ****MUST**** be registered in [this specification's registry](registry/index.html#interoperable-did-methods).
 
 ## Gateways
 
@@ -694,10 +690,49 @@ Specify how gateways can report on retention guarantees and provide guidance for
 
 ### Gateway API
 
-At a minimum, a gateway ****MUST**** support the [Relay API defined by Pkarr](https://github.com/Nuhvi/pkarr/blob/main/design/relays.md).
+At a minimum, a [[ref:Gateway]] ****MUST**** support the [Relay API](#relay) inspired by [[ref:Pkarr]], which is specified in the subsequent
+section.
 
-Expanding on this API, a conforming [[ref:Gateway]] ****MUST**** support the following API, which is also made 
+Expanding on this API, a fully conformant [[ref:Gateway]] ****MUST**** support the following API, which is made 
 available via an [OpenAPI document](#open-api-definition).
+
+#### Relay
+
+Public relays will need to set up [Cross-origin resource sharing (CORS)](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) headers as follows:
+
+- `Access-Control-Allow-Origin`: `*`
+- `Access-Control-Allow-Methods`: `GET`, `PUT`, `OPTIONS`
+
+##### Put
+
+On receiving a `PUT` request the server verifiers the `sig` and submits a mutable put to [[ref:Mainline]] as per [[ref:BEP44]].
+
+- **Method:** `PUT`
+- **Path:** `/:id`
+  - `id` - **string** - **REQUIRED** - The [[ref:z-base-32]] encoded [[ref:Identity Key]], equivalent to the suffix of the DID DHT identifier.
+- **Request Body:** `application/octet-stream`
+  - The binary representation of `<sig><seq>[<v>]` where:
+    - `sig` - represents the 64-byte [[ref:BEP44]] payload signature.
+    - `seq` - represents the 8-byte unsigned 64-bit integer big-endian representation of a [[ref:BEP44]] sequence number.
+    - `v` - represents between 0-1000 bytes of a [[ref:bencoded]] compressed DNS packet.
+- **Returns:** `application/json`
+  - `200` - Success.
+  - `400` - Bad request if the `sig` is not valid.
+  - `500` - Internal server error.
+
+##### Get
+
+On receiving a `GET` request the server submits a mutable get query to [[ref:Mainline]] as per [[ref:BEP44]].
+
+- **Method:** `GET`
+- **Path:** `/:id`
+  - `id` - **string** - **REQUIRED** - The [[ref:z-base-32]] encoded [[ref:Identity Key]], equivalent to the suffix of the DID DHT identifier.
+- **Returns:** `application/octet-stream`
+  - `200` - Success. The binary representation of `<sig><seq>[<v>]` where:
+    - `sig` - represents the 64-byte [[ref:BEP44]] payload signature.
+    - `seq` - represents the 8-byte unsigned 64-bit integer big-endian representation of a [[ref:BEP44]] sequence number.
+    - `v` - represents between 0-1000 bytes of a [[ref:bencoded]] compressed DNS packet.
+  - `404` - Record not found.
 
 #### Get the Current Difficulty
 
@@ -705,7 +740,7 @@ Difficulty is exposed as an **OPTIONAL** endpoint based on support of [retention
 
 - **Method:** `GET`
 - **Path:** `/difficulty`
-- **Returns:**
+- **Returns:** `application/json`
   - `200` - Success.
     - `hash` - **string** - **REQUIRED** - The current hash.
     - `difficulty` - **integer** - **REQUIRED** - The current difficulty.
@@ -723,13 +758,14 @@ Difficulty is exposed as an **OPTIONAL** endpoint based on support of [retention
 - **Method:** `PUT`
 - **Path:** `/did/:id`
   - `id` - **string** - **REQUIRED** - ID of the DID to publish.
-    - `did` - **string** - **REQUIRED** - The DID to register or update.
-    - `sig` - **string** - **REQUIRED** - An unpadded base64URL-encoded signature of the [[ref:BEP44]] payload.
-    - `seq` - **integer** - **REQUIRED** - A [[ref:sequence number]] for the request. This number ****MUST**** be unique for each DID operation,
+- **Request Body:** – application/json
+  - `did` - **string** - **REQUIRED** - The DID to register or update.
+  - `sig` - **string** - **REQUIRED** - An unpadded base64URL-encoded signature of the [[ref:BEP44]] payload.
+  - `seq` - **integer** - **REQUIRED** - A [[ref:sequence number]] for the request. This number ****MUST**** be unique for each DID operation,
     which ****MUST**** be a [[ref:Unix Timestamp]] in seconds.
-    - `v` - **string** - **REQUIRED** - An unpadded base64URL-encoded [[ref:bencoded]] DNS packet containing the DID Document.
-    - `retention_proof` - **string** - **OPTIONAL** - A retention proof calculated according to the [retention proof algorithm](#generating-a-retention-proof).
-- **Returns:**
+  - `v` - **string** - **REQUIRED** - An unpadded base64URL-encoded [[ref:bencoded]] compressed DNS packet containing the DID Document.
+  - `retention_proof` - **string** - **OPTIONAL** - A retention proof calculated according to the [retention proof algorithm](#generating-a-retention-proof).
+- **Returns:** `application/json`
   - `202` - Accepted. The server has accepted the request as valid and will publish to the DHT.
   - `400` - Invalid request.
   - `401` - Invalid signature.
@@ -753,10 +789,10 @@ DID by its type.
 - **Method:** `GET`
 - **Path:** `/did/:id`
   - `id` - **string** - **REQUIRED** - ID of the DID to resolve.
-- **Returns:**
+- **Returns:** `application/json`
   - `200` - Success.
     - `did` - **object** - **REQUIRED** - A JSON object representing the DID Document.
-    - `pkarr` - **string** - **REQUIRED** - An unpadded base64URL-encoded representation of the full [[ref:Pkarr]] payload, represented as 64 bytes sig,
+    - `dht` - **string** - **REQUIRED** - An unpadded base64URL-encoded representation of the full [[ref:BEP44]] payload, represented as 64 bytes sig,
     8 bytes u64 big-endian seq, and 0-1000 bytes of v concatenated, enabling independent verification.
     - `types` - **array** - **OPTIONAL** - An array of [type integers](#type-indexing) for the DID.
     - `sequence_numbers` - **array** - **OPTIONAL** - An sorted array of seen [[ref:sequence numbers]], used with [historical resolution](#historical-resolution).
@@ -788,7 +824,7 @@ DID by its type.
       "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y#0"
     ]
   },
-  "pkarr": "<unpadded-base64URL-encoded pkarr payload as [sig][seq][v]>",
+  "dht": "<unpadded-base64URL-encoded bep44 payload as [sig][seq][v]>",
   "types": [1, 4],
   "sequence_numbers": [1700356854, 1700461736]
 }
@@ -798,9 +834,9 @@ Upon receiving a request to resolve a DID, the [[ref:Gateway]] ****MUST**** quer
 return the document. If the records are not found in the DHT, the [[ref:Gateway]] ****MAY**** fall back to its local storage.
 If the DNS Packets contain a `_typ._did.` record, the [[ref:Gateway]] ****MUST**** return the type index.
 
-This API is returns a `pkarr` property which matches the payload of a [Pkarr Get Request](https://github.com/Nuhvi/pkarr/blob/main/design/relays.md#get),
+This API is returns a `dht` property which matches the payload of a [Relay GET Request](#relay),
 when encoded as an unpadded base64URL string. Implementers are ****RECOMMENDED**** to verify the integrity of the response using
-the `pkarr` data and reconstruct the DID Document themselves. The `did` property is provided as a utility which, without independent verification,
+the `dht` data and reconstruct the DID Document themselves. The `did` property is provided as a utility which, without independent verification,
 ****SHOULD NOT**** be trusted.
 
 ##### Historical Resolution
@@ -816,10 +852,10 @@ historical state for a given [[ref:DID]]. The following API can be used with spe
 - **Path:** `/did/:id?seq=:sequence_number`
   - `id` - **string** - **REQUIRED** - ID of the DID to resolve
   - `seq` - **integer** - **OPTIONAL** - [[ref:Sequence number]] of the DID to resolve
-- **Returns**:
+- **Returns:** `application/json`
   - `200` - Success.
     - `did` - **object** - **REQUIRED** - A JSON object representing the DID Document.
-    - `pkarr` - **string** - **REQUIRED** - An unpadded base64URL-encoded representation of the full [[ref:Pkarr]] payload, represented as 64 bytes sig,
+    - `dht` - **string** - **REQUIRED** - An unpadded base64URL-encoded representation of the full [[ref:BEP44]] payload, represented as 64 bytes sig,
     8 bytes u64 big-endian seq, and 0-1000 bytes of v concatenated, enabling independent verification.
     - `types` - **array** - **OPTIONAL** - An array of [type integers](#type-indexing) for the DID.
   - `400` - Invalid request.
@@ -842,7 +878,7 @@ type(s) for the DID.
 
 - **Method:** `GET`
 - **Path:** `/did/types`
-- **Returns:**
+- **Returns:** `application/json`
   - `200` - Success.
     - **array** - An array of objects describing the known types of the following form:
       - `type` - **integer** - **REQUIRED** - An integer representing the [type](#type-indexing).
@@ -869,7 +905,7 @@ type(s) for the DID.
   - `id` - **integer** - **REQUIRED** - The type to query from the index.
   - `offset` - **integer** - **OPTIONAL** - Specifies the starting position from where the type records should be retrieved (Default: `0`).
   - `limit` - **integer** - **OPTIONAL** - Specifies the maximum number of type records to retrieve (Default: `100`).
-- **Returns:**
+- **Returns:** `application/json`
   - `200` - Success.
     - **array** - **REQUIRED** - An array of DID Identifiers matching the associated type.
   - `400` - Invalid request.
@@ -885,6 +921,16 @@ type(s) for the DID.
 
 A query to the type index returns an array of DIDs matching the associated type. If the type is not found, a `404` is
 returned. If no DIDs match the type, an empty array is returned.
+
+## Interoperability With Other DID Methods
+
+As an **OPTIONAL** extension, some existing DID methods can leverage `did:dht` to expand their feature set. This
+enhancement is most useful for DID methods that operate based on a single key and are compatible with the [[ref:Ed25519]]
+key format. By adopting this optional extension, users can maintain their current DIDs without any changes. Additionally,
+they gain the ability to add extra information to their DIDs. This is achieved by either publishing or retrieving
+data from [[ref:Mainline]].
+
+Interoperable DID methods ****MUST**** be registered in [this specification's registry](registry/index.html#interoperable-did-methods).
 
 ## Implementation Considerations
 
@@ -1361,6 +1407,9 @@ format. [Bittorrent.org](https://www.bittorrent.org/).
 [[def:z-base-32]]
 ~ [z-base-32](https://philzimmermann.com/docs/human-oriented-base-32-encoding.txt). Human-oriented base-32 encoding.
 Z. O'Whielacronx; November 2002.
+
+[[def:Pkarr]]
+~ [Pkarr](https://pkarr.org). Public-Key Addressable Resource Records. Nuhvi.
 
 [[def:VC-JOSE-COSE]]
 ~ [Securing Verifiable Credentials using JOSE and COSE](https://www.w3.org/TR/vc-jose-cose/). O. Steele, M. Jones,

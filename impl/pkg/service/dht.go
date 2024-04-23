@@ -313,12 +313,11 @@ func (s *DHTService) republishBatch(ctx context.Context, wg *sync.WaitGroup, rec
 			putCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 			defer cancel()
 
-			_, putErr := s.dht.Put(putCtx, record.Put())
-			if putErr != nil {
+			if _, putErr := s.dht.Put(putCtx, record.Put()); putErr != nil {
 				if errors.Is(putErr, context.DeadlineExceeded) {
-					logrus.WithContext(putCtx).WithField("record_id", id).Info("republish timeout exceeded")
+					logrus.WithContext(putCtx).WithField("record_id", id).Debug("republish timeout exceeded")
 				} else {
-					logrus.WithContext(putCtx).WithField("record_id", id).WithError(putErr).Info("failed to republish record")
+					logrus.WithContext(putCtx).WithField("record_id", id).WithError(putErr).Debug("failed to republish record")
 				}
 				failedRecordsChan <- failedRecord{
 					record:     record,
@@ -368,7 +367,8 @@ func (s *DHTService) handleFailedRecords(ctx context.Context, failedRecords []fa
 		logrus.WithContext(ctx).WithError(err).Error("failed to get failed record count")
 		return
 	}
-	logrus.WithContext(ctx).WithField("failed_record_count", failedRecordCnt).Warn("total failed records")
+
+	logrus.WithContext(ctx).WithField("failed_record_count", failedRecordCnt).Warn("total count of record that failed to republish")
 }
 
 // Close closes the Mainline service gracefully
