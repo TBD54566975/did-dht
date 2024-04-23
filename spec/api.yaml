@@ -10,9 +10,9 @@ paths:
   /{id}:
     get:
       tags:
-        - Pkarr Relay
-      summary: Get Pkarr records from the DHT
-      description: Get a Pkarr record set from the DHT
+        - DHT
+      summary: Get DNS-encoded BEP44 records from the DHT
+      description: Get a DNS-encoded BEP44 record set from the DHT
       parameters:
         - name: id
           in: path
@@ -49,9 +49,9 @@ paths:
                 type: string
     put:
       tags:
-        - Pkarr Relay
-      summary: Put a Pkarr record set into the DHT
-      description: Put a Pkarr record set into the DHT
+        - DHT
+      summary: Put DNS-encoded BEP44 records into the DHT
+      description: Put a DNS-encoded BEP44 record set into the DHT
       parameters:
         - name: id
           in: path
@@ -97,7 +97,7 @@ paths:
           schema:
             type: string
       requestBody:
-        description: A deconstructed Pkarr request object
+        description: A deconstructed DNS-encoded BEP44 request object
         content:
           application/json:
             schema:
@@ -170,9 +170,9 @@ paths:
                   did:
                     type: object
                     description: "The DID Document."
-                  pkarr:
+                  dht:
                     type: string
-                    description: "An unpadded base64URL-encoded representation of a full Pkarr payload, represented as 64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v concatenated; enabling independent verification."  
+                    description: "An unpadded base64URL-encoded representation of a full DNS-encoded BEP44 payload, represented as 64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v concatenated; enabling independent verification."
                   types:
                     type: array
                     items:
@@ -183,7 +183,7 @@ paths:
                     items:
                       type: integer
                     description: "The sequence numbers available for querying for this node."
-                required: [ did, pkarr ]
+                required: [ did, dht ]
         "400":
           description: Invalid request.
           content:
