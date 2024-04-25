@@ -189,7 +189,7 @@ stored in the [[ref:DHT]].
 
 | Name         | Type | TTL    | Rdata                                                        |
 | ------------ | ---- | ------ | ------------------------------------------------------------ |
-| _did.`<ID>`. | TXT  |  7200  | v=0;vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2    |
+| _did.`<ID>`. | TXT  |  7200  | v=0;vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;svc=s0,s1,s2    |
 | _k0._did.    | TXT  |  7200  | id=0;t=0;k=`<unpadded-b64url>`                               |
 | _k1._did.    | TXT  |  7200  | id=1;t=1;k=`<unpadded-b64url>`                               |
 | _k2._did.    | TXT  |  7200  | id=2;t=1;k=`<unpadded-b64url>`                               |
@@ -203,7 +203,7 @@ The recommended TTL value is 7200 seconds (2 hours), the default TTL for [[ref:M
 - The [Root Record](#root-record) serves as a "map" to reconstruct a [[ref:DID Document]] from a DNS packet.
 This record contains a _version_ number, indicating the version of this specification a given record is created against.
 
-- Additional records like `srv` (services), `vm` ([Verification Methods](#verification-methods)), and 
+- Additional records like `svc` (services), `vm` ([Verification Methods](#verification-methods)), and
 [Verification Relationships](#verification-relationships) (e.g., authentication, assertion, etc.) are 
 represented as additional records in the format `<ID>._did.`. These records contain the zero-indexed value of 
 each `key` or `service` as attributes.
@@ -229,7 +229,7 @@ identifier associated with the DID (i.e. `did:dht:<ID>` becomes `_did.<ID>.`).
 
 - The root record's **type** is `TXT`, indicating a Text record.
 
-- The root record's **rdata** is represented by the form `v=M;vm=N;auth=O;asm=P;inv=Q;del=R;srv=S` where 
+- The root record's **rdata** is represented by the form `v=M;vm=N;auth=O;asm=P;inv=Q;del=R;svc=S` where
 `M` is the version of the DNS packet representation defined by this specification. `N` is the set 
 [Verification Method](#verification-methods) identifiers (e.g. `k0,k1`) present in the document, always
 containing at least `k0`. `O`, `P`, `Q`, and `R` contain the set of Verification Method resource 
@@ -243,16 +243,16 @@ Additionally:
 
   - The `vm` property ****MUST**** always contain _at least_ the [[ref:Identity Key]] represented by `k0`.
 
-  - Verification Relationships (`auth`, `asm`, `inv`, `del`, `srv`) without any members ****MUST**** be omitted.
+  - Verification Relationships (`auth`, `asm`, `inv`, `del`, `svc`) without any members ****MUST**** be omitted.
 
-  - If there are no [Services](#services) the `srv` property ****MUST**** be omitted.
+  - If there are no [Services](#services) the `svc` property ****MUST**** be omitted.
 
 
 **Example Root Record**
 
 | Name                                                       | Type | TTL    | Rdata                                                     
 | ---------------------------------------------------------- | ---- | ------ | --------------------------------------------------------- 
-| _did.o4dksfbqk85ogzdb5osziw6befigbuxmuxkuxq8434q89uj56uyy. | TXT  |  7200  | v=0;vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2 
+| _did.o4dksfbqk85ogzdb5osziw6befigbuxmuxkuxq8434q89uj56uyy.  | TXT  |  7200  | v=0;vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;svc=s0,s1,s2
 
 ### Property Mapping
 
@@ -387,7 +387,7 @@ where `M` is the Service's ID, `N` is the Service's Type and `O` is the Service'
 | --------- | ---- | ---- | -------------------------------------------------------- |
 | _s0._did. | TXT  | 7200 | id=dwn;t=DecentralizedWebNode;se=https://example.com/dwn |
 
-Each Service is represented as part of the root record (`_did.<ID>.`) as a list under the key `srv=<ids>` where `ids`
+Each Service is represented as part of the root record (`_did.<ID>.`) as a list under the key `svc=<ids>` where `ids`
 is a comma-separated list of all IDs for each Service.
 
 #### Example
@@ -456,7 +456,7 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
 
 | Name         | Type | TTL   | Rdata                                                                              |
 | ------------ | ---- | ----- | ---------------------------------------------------------------------------------- |
-| _did.`<ID>`. | TXT  | 7200  | v=0;vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;srv=s1                             |
+| _did.`<ID>`. | TXT  | 7200  | v=0;vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;svc=s1                             |
 | _cnt.did.    | TXT  | 7200  | did:example:abcd                                                                   |
 | _aka.did.    | TXT  | 7200  | did:example:efgh,did:example:ijkl                                                  |
 | _k0._did.    | TXT  | 7200  | t=0;k=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc;a=Ed25519   |
