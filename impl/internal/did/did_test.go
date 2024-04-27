@@ -6,12 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/TBD54566975/ssi-sdk/cryptosuite"
-	"github.com/goccy/go-json"
-
 	"github.com/TBD54566975/ssi-sdk/crypto"
 	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
+	"github.com/TBD54566975/ssi-sdk/cryptosuite"
 	"github.com/TBD54566975/ssi-sdk/did"
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

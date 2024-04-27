@@ -62,6 +62,19 @@ func (d DHT) Suffix() (string, error) {
 	return "", fmt.Errorf("invalid did:dht prefix: %s", d)
 }
 
+// IdentityKey returns the ed25519 public key for the DHT identifier
+func (d DHT) IdentityKey() (ed25519.PublicKey, error) {
+	suffix, err := d.Suffix()
+	if err != nil {
+		return nil, err
+	}
+	pk, err := zbase32.DecodeString(suffix)
+	if err != nil {
+		return nil, err
+	}
+	return pk, nil
+}
+
 func (DHT) Method() did.Method {
 	return DHTMethod
 }
