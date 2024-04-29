@@ -1387,9 +1387,9 @@ what is specified in the registry. The DID also has two gateway records and a se
 }
 ```
 
-**Gateways:**: `gateway1.example-did-dht-gateway.com.`, `gateway2.example-did-dht-gateway.com.`.
+**Gateways:** `gateway1.example-did-dht-gateway.com.`, `gateway2.example-did-dht-gateway.com.`.
 
-**Previous DID:**: `did:dht:pxoem5sfzxxxrnrwfgiu5i5wc7epouy1jk9zb7ad159dsxbxy8io`.
+**Previous DID:** `did:dht:pxoem5sfzxxxrnrwfgiu5i5wc7epouy1jk9zb7ad159dsxbxy8io`.
 
 **DID Document:**
 
