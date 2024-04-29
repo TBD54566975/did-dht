@@ -62,7 +62,7 @@ func (d DHT) Suffix() (string, error) {
 	return "", fmt.Errorf("invalid did:dht prefix: %s", d)
 }
 
-// IdentityKey returns the ed25519 public key for the DHT identifier
+// IdentityKey returns the ed25519 public key for the DHT identifier https://did-dht.com/#identity-key
 func (d DHT) IdentityKey() (ed25519.PublicKey, error) {
 	suffix, err := d.Suffix()
 	if err != nil {

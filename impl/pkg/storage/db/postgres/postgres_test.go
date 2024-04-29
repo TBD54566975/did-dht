@@ -3,6 +3,7 @@ package postgres_test
 import (
 	"context"
 	"net/url"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +16,7 @@ import (
 )
 
 func getTestDB(t *testing.T) storage.Storage {
-	uri := "postgres://postgres:a@127.0.0.1:5432/postgres" // os.Getenv("TEST_DB")
+	uri := os.Getenv("TEST_DB")
 	if uri == "" {
 		t.SkipNow()
 	}
