@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Last Updated:** April 26, 2024
+**Last Updated:** April 29, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -200,8 +200,8 @@ up a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then stored in the [
 | ------------ | ---- | ------ | ------------------------------------------------------------ |
 | _did.`<ID>`. | TXT  |  7200  | v=0;vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;svc=s0,s1,s2    |
 | _k0._did.    | TXT  |  7200  | id=0;t=0;k=`<unpadded-b64url>`                               |
-| _k1._did.    | TXT  |  7200  | id=1;t=1;k=`<unpadded-b64url>`                               |
-| _k2._did.    | TXT  |  7200  | id=2;t=1;k=`<unpadded-b64url>`                               |
+| _k1._did.    | TXT  |  7200  | t=1;k=`<unpadded-b64url>`                               |
+| _k2._did.    | TXT  |  7200  | t=1;k=`<unpadded-b64url>`                               |
 | _s0._did.    | TXT  |  7200  | id=domain;t=LinkedDomains;se=https://foo.com                 |
 | _s1._did.    | TXT  |  7200  | id=dwn;t=DecentralizedWebNode;se=https://dwn.tbddev.org/dwn5 |
 
@@ -261,7 +261,7 @@ Additionally:
 
 | Name                                                       | Type | TTL    | Rdata                                                     
 | ---------------------------------------------------------- | ---- | ------ | --------------------------------------------------------- 
-| _did.o4dksfbqk85ogzdb5osziw6befigbuxmuxkuxq8434q89uj56uyy.  | TXT  |  7200  | v=0;vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;svc=s0,s1,s2
+| _did.o4dksfbqk85ogzdb5osziw6befigbuxmuxkuxq8434q89uj56uyy. | TXT  |  7200  | v=0;vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;svc=s0,s1,s2
 
 ### Property Mapping
 
@@ -560,7 +560,7 @@ To deactivate a `did:dht` document, controllers have multiple options:
 
 1. Let the DHT record expire and cease to publish it.
 
-2. Publish a new DHT record where the `rdata` of the root DNS record is the string "deactivated."
+2. Publish a new DHT record where the `rdata` of the root DNS record is the string `deactivated`.
 
 | Name         | Type | TTL  | Rdata       |
 | ------------ | ---- | ---- | ----------- |
@@ -590,17 +590,18 @@ To establish a cryptographic linkage between the old and new [[ref:DID Documents
 3. Set the resulting string as the data for a new [[ref:DNS Resource Record]], called a _previous record_, in
 the new DID's record set. 
 
-A DID DHT Document ****MUST NOT**** have more than **one** Previous Record. The Previous record is defined as follows:
+A `did:dht` Document ****MUST NOT**** have more than **one** Previous Record. The Previous record is defined as follows:
 
 - The Previous record's **name** is represented as a `_prv._did.` record.
 
 - The Previous record's **type** is `TXT`, indicating a Text record.
 
-- The Previous record's **data** is represented as the unpadded base64URL string from step (3) above.
+- The Previous record's **data** is represented with the form `id=M,s=N` where `M` is the identifier of the previous DID,
+and `N` is the the unpadded base64URL signature from step (3) above.
 
 | Name         | Type | TTL   | Rdata                                                                                  |
 | ------------ | ---- | ----- | -------------------------------------------------------------------------------------- |
-| _prv._did.   | TXT  | 7200  | 0V1UE4ue8RCTDuU9eA_WLdIUYODBQbSS1GZ7EGRzH7G8Io8xPClwtwnMwpnlkYEf3VRWRdonBKnjXwfq5jkrAQ |
+| _prv._did.   | TXT  | 7200  | id=did:dht:pxoem5sfzxxxrnrwfgiu5i5wc7epouy1jk9zb7ad159dsxbxy8io;s=ol5LbUydL3_PdChE8tVYH-z_NhyFDQlop0agYtjyYbKz_-CYrj_3JGLiFne1e7PruOwf-b91uEFq9R_PgBn-Bg |
 
 
 The DID controller ****MAY**** include a statement in the old [[ref:DID Document]] indicating the rotation to the new identifier, 
@@ -647,7 +648,7 @@ type index record. This record is of the following format:
 
 - The Type Index record's **type** is `TXT`, indicating a Text record.
 
-- The Type Index record's **data** is represented with the form `id=0,1,2` where the value is a comma-separated list of
+- The Type Index record's **data** is represented with the form `id=H,I,J,...N` where the value is a comma-separated list of
 integer types from the [type index](#type-indexing).
 
 **Example Type Index Record**
@@ -856,8 +857,8 @@ index the DID by its type.
     payload, represented as 64 bytes sig,
     8 bytes u64 big-endian seq, and 0-1000 bytes of v concatenated, enabling independent verification.
     - `types` - **array** - **OPTIONAL** - An array of [type integers](#type-indexing) for the DID.
-    - `sequence_numbers` - **array** - **OPTIONAL** - An sorted array of seen [[ref:sequence numbers]], used with
-    [historical resolution](#historical-resolution).
+    - `sequence_numbers` - **array** - **OPTIONAL** - An sorted array of integers representing seen
+    [[ref:sequence numbers]], used with [historical resolution](#historical-resolution).
     - `400` - Invalid request.
   - `404` - DID not found.
 
@@ -886,7 +887,7 @@ index the DID by its type.
       "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y#0"
     ]
   },
-  "dht": "<unpadded-base64URL-encoded bep44 payload as [sig][seq][v]>",
+  "dht": "<unpadded-base64URL-encoded BEP44 payload as [sig][seq][v]>",
   "types": [1, 4],
   "sequence_numbers": [1700356854, 1700461736]
 }
@@ -1388,7 +1389,7 @@ what is specified in the registry. The DID also has two gateway records and a se
 
 **Gateways:**: `gateway1.example-did-dht-gateway.com.`, `gateway2.example-did-dht-gateway.com.`.
 
-**Previous DID:**: `did:dht:noijo9q6cxpfz7rua6p9rbhgnsmxsj1hyu19q397i14xyf1s7gty`.
+**Previous DID:**: `did:dht:pxoem5sfzxxxrnrwfgiu5i5wc7epouy1jk9zb7ad159dsxbxy8io`.
 
 **DID Document:**
 
@@ -1450,7 +1451,7 @@ what is specified in the registry. The DID also has two gateway records and a se
 
 | Name      | Type | TTL  | Rdata       |
 | --------- | ---- | ---- | ----------- |
-| _prv.did. | TXT  | 7200 | 95Bxxno933VVH1zqHIfoajFntsZMoWGYt2SxVf8pg0Q6zy3RxA96nkVloZY_SJc_58Y5OBNW4O8P1YunZJWnCg                             |
+| _prv.did. | TXT  | 7200 | id=did:dht:x3heus3ke8fhgb5pbecday9wtbfynd6m19q4pm6gcf5j356qhjzo;s=Tt9DRT6J32v7O2lzbfasW63_FfagiMHTHxtaEOD7p85zHE0r_EfiNleyL6BZGyB1P-oQ5p6_7KONaHAjr2K6Bw |
 | _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | NS  | 7200 | gateway1.example-did-dht-gateway.com.                              |
 | _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | TXT | 7200 | v=0;vm=k0,k1;auth=k0;asm=k0;agm=k1;inv=k0;del=k0;svc=s0            |
 | _k0.did.  | TXT  | 7200 | id=0;t=0;k=sTyTLYw-n1NI9X-84NaCuis1wZjAA8lku6f6Et5201g                                                             |

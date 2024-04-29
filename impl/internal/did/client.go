@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/TBD54566975/ssi-sdk/did"
 	"github.com/anacrolix/dht/v2/bep44"
 	"github.com/miekg/dns"
 	"github.com/pkg/errors"
@@ -34,30 +33,30 @@ func NewGatewayClient(gatewayURL string) (*GatewayClient, error) {
 }
 
 // GetDIDDocument gets a DID document, its types, and authoritative gateways, from a did:dht Gateway
-func (c *GatewayClient) GetDIDDocument(id string) (*did.Document, []TypeIndex, []AuthoritativeGateway, error) {
+func (c *GatewayClient) GetDIDDocument(id string) (*DIDDHTDocument, error) {
 	d := DHT(id)
 	if !d.IsValid() {
-		return nil, nil, nil, errors.New("invalid did")
+		return nil, errors.New("invalid did")
 	}
 	suffix, err := d.Suffix()
 	if err != nil {
-		return nil, nil, nil, errors.Wrap(err, "failed to get suffix")
+		return nil, errors.Wrap(err, "failed to get suffix")
 	}
 	resp, err := http.Get(c.gatewayURL + "/" + suffix)
 	if err != nil {
-		return nil, nil, nil, errors.Wrap(err, "failed to get did document")
+		return nil, errors.Wrap(err, "failed to get did document")
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, nil, nil, errors.Errorf("failed to get did document, status code: %d", resp.StatusCode)
+		return nil, errors.Errorf("failed to get did document, status code: %d", resp.StatusCode)
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, nil, nil, errors.Wrap(err, "failed to read response body")
+		return nil, errors.Wrap(err, "failed to read response body")
 	}
 	msg := new(dns.Msg)
 	if err = msg.Unpack(body[72:]); err != nil {
-		return nil, nil, nil, errors.Wrap(err, "failed to unpack records")
+		return nil, errors.Wrap(err, "failed to unpack records")
 	}
 	return d.FromDNSPacket(msg)
 }

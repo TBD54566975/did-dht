@@ -23,6 +23,11 @@ type (
 	AuthoritativeGateway string
 )
 
+type PreviousDID struct {
+	PreviousDID DHT    `json:"did"`
+	Signature   string `json:"signature"`
+}
+
 const (
 	// Prefix did:dht prefix
 	Prefix               = "did:dht"
@@ -79,9 +84,9 @@ func (DHT) Method() did.Method {
 	return DHTMethod
 }
 
+// CreateDIDDHTOpts is a set of options for creating a did:dht identifier
+// Note: this does not include additional properties only present in the DNS representation (e.g. gateways, types)
 type CreateDIDDHTOpts struct {
-	// AuthoritativeGateways is a list of authoritative gateways for the DID Document
-	AuthoritativeGateways []string
 	// Controller is the DID Controller, can be a list of DIDs
 	Controller []string
 	// AlsoKnownAs is a list of alternative identifiers for the DID Document
@@ -252,7 +257,7 @@ func GetDIDDHTIdentifier(pubKey []byte) string {
 }
 
 // ToDNSPacket converts a DID DHT Document to a DNS packet with an optional list of types to include
-func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex, gateways []AuthoritativeGateway) (*dns.Msg, error) {
+func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex, gateways []AuthoritativeGateway, previousDID *PreviousDID) (*dns.Msg, error) {
 	var records []dns.RR
 	var rootRecord []string
 	keyLookup := make(map[string]string)
@@ -260,6 +265,24 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex, gateways []Authori
 	suffix, err := d.Suffix()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get suffix while decoding DNS packet")
+	}
+
+	// handle the previous DID if it's present
+	if previousDID != nil {
+		// make sure it's valid
+		if err = ValidatePreviousDIDSignatureValid(d, *previousDID); err != nil {
+			return nil, err
+		}
+		// add it to the record set
+		records = append(records, &dns.TXT{
+			Hdr: dns.RR_Header{
+				Name:   "_prv._did.",
+				Rrtype: dns.TypeTXT,
+				Class:  dns.ClassINET,
+				Ttl:    7200,
+			},
+			Txt: chunkTextRecord(fmt.Sprintf("id=%s;s=%s", previousDID.PreviousDID, previousDID.Signature)),
+		})
 	}
 
 	// first append the version to the root record
@@ -521,22 +544,32 @@ func parseServiceData(serviceEndpoint any) string {
 	return ""
 }
 
+// DIDDHTDocument is a DID DHT Document along with additional metadata the DID supports
+type DIDDHTDocument struct {
+	Doc         did.Document           `json:"did,omitempty"`
+	Types       []TypeIndex            `json:"types,omitempty"`
+	Gateways    []AuthoritativeGateway `json:"gateways,omitempty"`
+	PreviousDID *PreviousDID           `json:"previousDid,omitempty"`
+}
+
 // FromDNSPacket converts a DNS packet to a DID DHT Document
 // Returns the DID Document, a list of types, a list of authoritative gateways, and an error
-func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, []AuthoritativeGateway, error) {
+func (d DHT) FromDNSPacket(msg *dns.Msg) (*DIDDHTDocument, error) {
 	doc := did.Document{
 		ID: d.String(),
 	}
 
 	suffix, err := d.Suffix()
 	if err != nil {
-		return nil, nil, nil, errors.Wrap(err, "failed to get suffix while decoding DNS packet")
+		return nil, errors.Wrap(err, "failed to get suffix while decoding DNS packet")
 	}
 
 	// track the authoritative gateways
 	var gateways []AuthoritativeGateway
 	// track the types
 	var types []TypeIndex
+	// track the previous DID
+	var previousDID *PreviousDID
 	keyLookup := make(map[string]string)
 	for _, rr := range msg.Answer {
 		switch record := rr.(type) {
@@ -571,23 +604,23 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, []Authorit
 				// Convert keyBase64URL back to PublicKeyJWK
 				pubKeyBytes, err := base64.RawURLEncoding.DecodeString(keyBase64URL)
 				if err != nil {
-					return nil, nil, nil, err
+					return nil, err
 				}
 				// as per the spec's guidance DNS representations use compressed keys, so we must unmarshall them as such
 				pubKey, err := crypto.BytesToPubKey(pubKeyBytes, keyType, crypto.ECDSAUnmarshalCompressed)
 				if err != nil {
-					return nil, nil, nil, err
+					return nil, err
 				}
 				pubKeyJWK, err := jwx.PublicKeyToPublicKeyJWK(&vmID, pubKey)
 				if err != nil {
-					return nil, nil, nil, err
+					return nil, err
 				}
 
 				// set the algorithm if it's not the default for the key type
 				if alg == "" {
 					defaultAlg := defaultAlgForJWK(*pubKeyJWK)
 					if defaultAlg == "" {
-						return nil, nil, nil, fmt.Errorf("unable to provide default alg for unsupported key type: %s", keyType)
+						return nil, fmt.Errorf("unable to provide default alg for unsupported key type: %s", keyType)
 					}
 					pubKeyJWK.ALG = defaultAlg
 				} else {
@@ -596,7 +629,7 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, []Authorit
 
 				// make sure the controller of the identity key matches the DID
 				if vmID == "0" && controller != d.String() {
-					return nil, nil, nil, fmt.Errorf("controller of identity key must be the DID itself, instead it is: %s", controller)
+					return nil, fmt.Errorf("controller of identity key must be the DID itself, instead it is: %s", controller)
 				}
 
 				// if the verification method ID is not set, set it to the thumbprint
@@ -605,7 +638,7 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, []Authorit
 				}
 
 				if vmID != "0" && pubKeyJWK.KID != vmID {
-					return nil, nil, nil, fmt.Errorf("verification method JWK KID must be set to its thumbprint")
+					return nil, fmt.Errorf("verification method JWK KID must be set to its thumbprint")
 				}
 
 				vm := did.VerificationMethod{
@@ -647,23 +680,34 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, []Authorit
 
 			} else if record.Hdr.Name == "_typ._did." {
 				if record.Txt[0] == "" {
-					return nil, nil, nil, fmt.Errorf("types record is empty")
+					return nil, fmt.Errorf("types record is empty")
 				}
 				unchunkedTextRecord := unchunkTextRecord(record.Txt)
 				typesStr := strings.Split(strings.TrimPrefix(unchunkedTextRecord, "id="), ",")
 				for _, t := range typesStr {
 					tInt, err := strconv.Atoi(t)
 					if err != nil {
-						return nil, nil, nil, err
+						return nil, err
 					}
 					types = append(types, TypeIndex(tInt))
 				}
 			} else if record.Hdr.Name == fmt.Sprintf("_did.%s.", suffix) && record.Hdr.Rrtype == dns.TypeNS {
 				if record.Txt[0] == "" {
-					return nil, nil, nil, fmt.Errorf("gateway record is empty")
+					return nil, fmt.Errorf("gateway record is empty")
 				}
 				unchunkedTextRecord := unchunkTextRecord(record.Txt)
 				gateways = append(gateways, AuthoritativeGateway(unchunkedTextRecord))
+			} else if record.Hdr.Name == "_prv._did." && record.Hdr.Rrtype == dns.TypeTXT {
+				unchunkedTextRecord := unchunkTextRecord(record.Txt)
+				data := parseTxtData(unchunkedTextRecord)
+				previousDID = &PreviousDID{
+					PreviousDID: DHT(data["id"]),
+					Signature:   data["s"],
+				}
+				// validate previous DID signature
+				if err = ValidatePreviousDIDSignatureValid(d, *previousDID); err != nil {
+					return nil, err
+				}
 			} else if record.Hdr.Name == fmt.Sprintf("_did.%s.", suffix) && record.Hdr.Rrtype == dns.TypeTXT {
 				unchunkedTextRecord := unchunkTextRecord(record.Txt)
 				rootItems := strings.Split(unchunkedTextRecord, ";")
@@ -681,7 +725,7 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, []Authorit
 					switch key {
 					case "v":
 						if len(valueItems) != 1 || valueItems[0] != strconv.Itoa(Version) {
-							return nil, nil, nil, fmt.Errorf("invalid version: %s", values)
+							return nil, fmt.Errorf("invalid version: %s", values)
 						}
 						seenVersion = true
 					case "auth":
@@ -707,13 +751,51 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*did.Document, []TypeIndex, []Authorit
 					}
 				}
 				if !seenVersion {
-					return nil, nil, nil, fmt.Errorf("root record missing version identifier")
+					return nil, fmt.Errorf("root record missing version identifier")
 				}
 			}
 		}
 	}
 
-	return &doc, types, gateways, nil
+	return &DIDDHTDocument{
+		Doc:         doc,
+		Types:       types,
+		Gateways:    gateways,
+		PreviousDID: previousDID,
+	}, nil
+}
+
+// CreatePreviousDIDRecord creates a PreviousDID record for the given previous DID and current DID
+func CreatePreviousDIDRecord(previousDIDPrivateKey ed25519.PrivateKey, previousDID, currentDID DHT) (*PreviousDID, error) {
+	currentDIDIdentityKey, err := currentDID.IdentityKey()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get identity key from currentDID: %s", currentDID)
+	}
+	previousDIDSignature := ed25519.Sign(previousDIDPrivateKey, currentDIDIdentityKey)
+	return &PreviousDID{
+		PreviousDID: previousDID,
+		Signature:   base64.RawURLEncoding.EncodeToString(previousDIDSignature),
+	}, nil
+}
+
+// ValidatePreviousDIDSignatureValid validates the signature of the previous DID over the current DID
+func ValidatePreviousDIDSignatureValid(currentDID DHT, previousDID PreviousDID) error {
+	identityKey, err := currentDID.IdentityKey()
+	if err != nil {
+		return errors.Wrapf(err, "failed to get identity key from the current DID: %s", currentDID)
+	}
+	previousDIDKey, err := previousDID.PreviousDID.IdentityKey()
+	if err != nil {
+		return errors.Wrapf(err, "failed to get identity key from the previous DID: %s", previousDID.PreviousDID)
+	}
+	decodedSignature, err := base64.RawURLEncoding.DecodeString(previousDID.Signature)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode the previous DID's signature")
+	}
+	if ok := ed25519.Verify(previousDIDKey, identityKey, decodedSignature); !ok {
+		return errors.New("the previous DID signature is invalid")
+	}
+	return nil
 }
 
 func parseTxtData(data string) map[string]string {

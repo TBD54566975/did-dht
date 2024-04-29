@@ -1,5 +1,11 @@
 [
   {
+    "name": "_prv._did.",
+    "type": "TXT",
+    "ttl": "7200",
+    "rdata": ["id=did:dht:x3heus3ke8fhgb5pbecday9wtbfynd6m19q4pm6gcf5j356qhjzo;s=Tt9DRT6J32v7O2lzbfasW63_FfagiMHTHxtaEOD7p85zHE0r_EfiNleyL6BZGyB1P-oQ5p6_7KONaHAjr2K6Bw"]
+  },
+  {
     "name": "_did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy.",
     "type": "NS",
     "ttl": "7200",

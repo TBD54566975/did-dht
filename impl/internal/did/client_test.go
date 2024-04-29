@@ -23,7 +23,7 @@ func TestClient(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, doc)
 
-	packet, err := DHT(doc.ID).ToDNSPacket(*doc, nil, nil)
+	packet, err := DHT(doc.ID).ToDNSPacket(*doc, nil, nil, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, packet)
 
@@ -34,9 +34,9 @@ func TestClient(t *testing.T) {
 	err = client.PutDocument(doc.ID, *bep44Put)
 	assert.NoError(t, err)
 
-	gotDID, _, _, err := client.GetDIDDocument(doc.ID)
+	gotDID, err := client.GetDIDDocument(doc.ID)
 	assert.NoError(t, err)
-	assert.EqualValues(t, doc, gotDID)
+	assert.EqualValues(t, *doc, gotDID.Doc)
 
 	since := time.Since(start)
 	t.Logf("time to put and get: %s", since)
@@ -53,33 +53,25 @@ func TestInvalidDIDDocument(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, client)
 
-	did, types, gateways, err := client.GetDIDDocument("this is not a valid did")
+	gotDID, err := client.GetDIDDocument("this is not a valid did")
 	assert.Error(t, err)
-	assert.Empty(t, did)
-	assert.Empty(t, types)
-	assert.Empty(t, gateways)
+	assert.Empty(t, gotDID)
 
-	did, types, gateways, err = client.GetDIDDocument("did:dht:example")
+	gotDID, err = client.GetDIDDocument("did:dht:example")
 	assert.EqualError(t, err, "invalid did")
-	assert.Empty(t, did)
-	assert.Empty(t, types)
-	assert.Empty(t, gateways)
+	assert.Empty(t, gotDID)
 
-	did, types, gateways, err = client.GetDIDDocument("did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y")
+	gotDID, err = client.GetDIDDocument("did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y")
 	assert.Error(t, err) // this should error because the gateway URL is invalid
-	assert.Empty(t, did)
-	assert.Empty(t, types)
-	assert.Empty(t, gateways)
+	assert.Empty(t, gotDID)
 
 	client, err = NewGatewayClient("https://tbd.website")
 	require.NoError(t, err)
 	require.NotEmpty(t, client)
 
-	did, types, gateways, err = client.GetDIDDocument("did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y")
+	gotDID, err = client.GetDIDDocument("did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y")
 	assert.Error(t, err) // this should error because the gateway URL will return a non-200
-	assert.Empty(t, did)
-	assert.Empty(t, types)
-	assert.Empty(t, gateways)
+	assert.Empty(t, gotDID)
 
 	err = client.PutDocument("did:dht:example", bep44.Put{})
 	assert.Error(t, err)
