@@ -118,7 +118,7 @@ func TestReadWrite(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, doc)
 
-	packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil, nil)
+	packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil, nil, nil)
 	require.NoError(t, err)
 	require.NotEmpty(t, packet)
 
@@ -163,7 +163,7 @@ func TestDBPagination(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, doc)
 
-		packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil, nil)
+		packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil, nil, nil)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, packet)
 
@@ -184,7 +184,7 @@ func TestDBPagination(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, doc)
 
-	packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil, nil)
+	packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil, nil, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, packet)
 

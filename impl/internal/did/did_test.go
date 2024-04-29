@@ -3,15 +3,13 @@ package did
 import (
 	"crypto/ed25519"
 	"fmt"
-	"strings"
 	"testing"
-
-	"github.com/TBD54566975/ssi-sdk/cryptosuite"
-	"github.com/goccy/go-json"
 
 	"github.com/TBD54566975/ssi-sdk/crypto"
 	"github.com/TBD54566975/ssi-sdk/crypto/jwx"
+	"github.com/TBD54566975/ssi-sdk/cryptosuite"
 	"github.com/TBD54566975/ssi-sdk/did"
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -126,20 +124,22 @@ func TestToDNSPacket(t *testing.T) {
 		require.NotEmpty(t, doc)
 
 		didID := DHT(doc.ID)
-		packet, err := didID.ToDNSPacket(*doc, nil, nil)
+		packet, err := didID.ToDNSPacket(*doc, nil, nil, nil)
 		require.NoError(t, err)
 		require.NotEmpty(t, packet)
 
-		decodedDoc, types, gateways, err := didID.FromDNSPacket(packet)
+		didDHTDoc, err := didID.FromDNSPacket(packet)
 		require.NoError(t, err)
-		require.NotEmpty(t, decodedDoc)
-		require.Empty(t, types)
-		require.Empty(t, gateways)
+		require.NotEmpty(t, didDHTDoc)
+		require.NotEmpty(t, didDHTDoc.Doc)
+		require.Empty(t, didDHTDoc.Types)
+		require.Empty(t, didDHTDoc.Gateways)
+		require.Empty(t, didDHTDoc.PreviousDID)
 
 		jsonDoc, err := json.Marshal(doc)
 		require.NoError(t, err)
 
-		jsonDecodedDoc, err := json.Marshal(decodedDoc)
+		jsonDecodedDoc, err := json.Marshal(didDHTDoc.Doc)
 		require.NoError(t, err)
 
 		assert.JSONEq(t, string(jsonDoc), string(jsonDecodedDoc))
@@ -152,19 +152,21 @@ func TestToDNSPacket(t *testing.T) {
 		require.NotEmpty(t, doc)
 
 		didID := DHT(doc.ID)
-		packet, err := didID.ToDNSPacket(*doc, []TypeIndex{1, 2, 3}, []AuthoritativeGateway{"gateway1.example-did-dht-gateway.com."})
+		packet, err := didID.ToDNSPacket(*doc, []TypeIndex{1, 2, 3}, []AuthoritativeGateway{"gateway1.example-did-dht-gateway.com."}, nil)
 		require.NoError(t, err)
 		require.NotEmpty(t, packet)
 
-		decodedDoc, types, gateways, err := didID.FromDNSPacket(packet)
+		didDHTDoc, err := didID.FromDNSPacket(packet)
 		require.NoError(t, err)
-		require.NotEmpty(t, decodedDoc)
-		require.NotEmpty(t, types)
-		require.Equal(t, types, []TypeIndex{1, 2, 3})
-		require.NotEmpty(t, gateways)
-		require.Equal(t, gateways, []AuthoritativeGateway{"gateway1.example-did-dht-gateway.com."})
+		require.NotEmpty(t, didDHTDoc)
+		require.NotEmpty(t, didDHTDoc.Doc)
+		require.NotEmpty(t, didDHTDoc.Types)
+		require.Empty(t, didDHTDoc.PreviousDID)
+		require.Equal(t, didDHTDoc.Types, []TypeIndex{1, 2, 3})
+		require.NotEmpty(t, didDHTDoc.Gateways)
+		require.Equal(t, didDHTDoc.Gateways, []AuthoritativeGateway{"gateway1.example-did-dht-gateway.com."})
 
-		assert.EqualValues(t, *doc, *decodedDoc)
+		assert.EqualValues(t, *doc, didDHTDoc.Doc)
 	})
 
 	t.Run("doc with multiple keys and services - test to dns packet round trip", func(t *testing.T) {
@@ -205,17 +207,19 @@ func TestToDNSPacket(t *testing.T) {
 		require.NotEmpty(t, doc)
 
 		didID := DHT(doc.ID)
-		packet, err := didID.ToDNSPacket(*doc, nil, nil)
+		packet, err := didID.ToDNSPacket(*doc, nil, nil, nil)
 		require.NoError(t, err)
 		require.NotEmpty(t, packet)
 
-		decodedDoc, types, gateways, err := didID.FromDNSPacket(packet)
+		didDHTDoc, err := didID.FromDNSPacket(packet)
 		require.NoError(t, err)
-		require.NotEmpty(t, decodedDoc)
-		require.Empty(t, types)
-		require.Empty(t, gateways)
+		require.NotEmpty(t, didDHTDoc)
+		require.NotEmpty(t, didDHTDoc.Doc)
+		require.Empty(t, didDHTDoc.Types)
+		require.Empty(t, didDHTDoc.Gateways)
+		require.Empty(t, didDHTDoc.PreviousDID)
 
-		decodedJSON, err := json.Marshal(decodedDoc)
+		decodedJSON, err := json.Marshal(didDHTDoc.Doc)
 		require.NoError(t, err)
 
 		docJSON, err := json.Marshal(doc)
@@ -225,273 +229,7 @@ func TestToDNSPacket(t *testing.T) {
 	})
 }
 
-func TestVectors(t *testing.T) {
-	type testVectorDNSRecord struct {
-		Name       string   `json:"name"`
-		RecordType string   `json:"type"`
-		TTL        string   `json:"ttl"`
-		Record     []string `json:"rdata"`
-	}
-
-	t.Run("test vector 1", func(t *testing.T) {
-		var pubKeyJWK jwx.PublicKeyJWK
-		retrieveTestVectorAs(t, vector1PublicKeyJWK1, &pubKeyJWK)
-
-		pubKey, err := pubKeyJWK.ToPublicKey()
-		require.NoError(t, err)
-
-		doc, err := CreateDIDDHTDID(pubKey.(ed25519.PublicKey), CreateDIDDHTOpts{})
-		require.NoError(t, err)
-		require.NotEmpty(t, doc)
-
-		var expectedDIDDocument did.Document
-		retrieveTestVectorAs(t, vector1DIDDocument, &expectedDIDDocument)
-
-		docJSON, err := json.Marshal(doc)
-		require.NoError(t, err)
-
-		expectedDIDDocJSON, err := json.Marshal(expectedDIDDocument)
-		require.NoError(t, err)
-
-		assert.JSONEq(t, string(expectedDIDDocJSON), string(docJSON))
-
-		didID := DHT(doc.ID)
-		packet, err := didID.ToDNSPacket(*doc, nil, nil)
-		require.NoError(t, err)
-		require.NotEmpty(t, packet)
-
-		var expectedDNSRecords []testVectorDNSRecord
-		retrieveTestVectorAs(t, vector1DNSRecords, &expectedDNSRecords)
-
-		// Initialize a map to track matched records
-		matchedRecords := make(map[int]bool)
-		for i := range expectedDNSRecords {
-			matchedRecords[i] = false // Initialize all expected records as unmatched
-		}
-
-		for _, record := range packet.Answer {
-			for i, expectedRecord := range expectedDNSRecords {
-				if record.Header().Name == expectedRecord.Name {
-					s := record.String()
-					if strings.Contains(s, expectedRecord.RecordType) &&
-						strings.Contains(s, expectedRecord.TTL) &&
-						strings.Contains(s, strings.Join(expectedRecord.Record, "")) {
-						matchedRecords[i] = true // Mark as matched
-						break
-					}
-				}
-			}
-		}
-
-		// Check if all expected records have been matched
-		for i, matched := range matchedRecords {
-			require.True(t, matched, fmt.Sprintf("Expected DNS record %d: %+v not matched", i, expectedDNSRecords[i]))
-		}
-
-		// Make sure going back to DID Document is consistent
-		decodedDoc, types, gateways, err := didID.FromDNSPacket(packet)
-		require.NoError(t, err)
-		require.NotEmpty(t, decodedDoc)
-		require.Empty(t, types)
-		require.Empty(t, gateways)
-
-		decodedDocJSON, err := json.Marshal(decodedDoc)
-		require.NoError(t, err)
-		assert.JSONEq(t, string(expectedDIDDocJSON), string(decodedDocJSON))
-	})
-
-	t.Run("test vector 2", func(t *testing.T) {
-		var pubKeyJWK jwx.PublicKeyJWK
-		retrieveTestVectorAs(t, vector1PublicKeyJWK1, &pubKeyJWK)
-
-		pubKey, err := pubKeyJWK.ToPublicKey()
-		require.NoError(t, err)
-
-		var secpJWK jwx.PublicKeyJWK
-		retrieveTestVectorAs(t, vector2PublicKeyJWK2, &secpJWK)
-
-		doc, err := CreateDIDDHTDID(pubKey.(ed25519.PublicKey), CreateDIDDHTOpts{
-			AuthoritativeGateways: []string{
-				"gateway1.example-did-dht-gateway.com.",
-				"gateway2.example-did-dht-gateway.com.",
-			},
-			Controller:  []string{"did:example:abcd"},
-			AlsoKnownAs: []string{"did:example:efgh", "did:example:ijkl"},
-			VerificationMethods: []VerificationMethod{
-				{
-					VerificationMethod: did.VerificationMethod{
-						ID:           secpJWK.KID,
-						Type:         cryptosuite.JSONWebKeyType,
-						PublicKeyJWK: &secpJWK,
-					},
-					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
-				},
-			},
-			Services: []did.Service{
-				{
-					ID:              "service-1",
-					Type:            "TestService",
-					ServiceEndpoint: []string{"https://test-service.com/1", "https://test-service.com/2"},
-				},
-			},
-		})
-		require.NoError(t, err)
-		require.NotEmpty(t, doc)
-
-		var expectedDIDDocument did.Document
-		retrieveTestVectorAs(t, vector2DIDDocument, &expectedDIDDocument)
-
-		docJSON, err := json.Marshal(doc)
-		require.NoError(t, err)
-
-		expectedDIDDocJSON, err := json.Marshal(expectedDIDDocument)
-		require.NoError(t, err)
-
-		assert.JSONEq(t, string(expectedDIDDocJSON), string(docJSON))
-
-		didID := DHT(doc.ID)
-		packet, err := didID.ToDNSPacket(*doc, []TypeIndex{1, 2, 3},
-			[]AuthoritativeGateway{"gateway1.example-did-dht-gateway.com.", "gateway2.example-did-dht-gateway.com."})
-		require.NoError(t, err)
-		require.NotEmpty(t, packet)
-
-		var expectedDNSRecords []testVectorDNSRecord
-		retrieveTestVectorAs(t, vector2DNSRecords, &expectedDNSRecords)
-
-		// Initialize a map to track matched records
-		matchedRecords := make(map[int]bool)
-		for i := range expectedDNSRecords {
-			matchedRecords[i] = false // Initialize all expected records as unmatched
-		}
-
-		for _, record := range packet.Answer {
-			for i, expectedRecord := range expectedDNSRecords {
-				if record.Header().Name == expectedRecord.Name {
-					s := record.String()
-					if strings.Contains(s, expectedRecord.RecordType) &&
-						strings.Contains(s, expectedRecord.TTL) &&
-						strings.Contains(s, strings.Join(expectedRecord.Record, "")) {
-						matchedRecords[i] = true // Mark as matched
-						break
-					}
-				}
-			}
-		}
-
-		// Check if all expected records have been matched
-		for i, matched := range matchedRecords {
-			require.True(t, matched, fmt.Sprintf("Expected DNS record %d: %+v not matched", i, expectedDNSRecords[i]))
-		}
-
-		// Make sure going back to DID Document is consistent
-		decodedDoc, types, gateways, err := didID.FromDNSPacket(packet)
-		require.NoError(t, err)
-		require.NotEmpty(t, decodedDoc)
-		require.NotEmpty(t, types)
-		require.Equal(t, types, []TypeIndex{1, 2, 3})
-		require.NotEmpty(t, gateways)
-		require.Equal(t, gateways, []AuthoritativeGateway{"gateway1.example-did-dht-gateway.com.", "gateway2.example-did-dht-gateway.com."})
-
-		decodedDocJSON, err := json.Marshal(decodedDoc)
-		require.NoError(t, err)
-		assert.JSONEq(t, string(expectedDIDDocJSON), string(decodedDocJSON))
-	})
-
-	t.Run("test vector 3", func(t *testing.T) {
-		var pubKeyJWK jwx.PublicKeyJWK
-		retrieveTestVectorAs(t, vector3PublicKeyJWK1, &pubKeyJWK)
-
-		pubKey, err := pubKeyJWK.ToPublicKey()
-		require.NoError(t, err)
-
-		var x25519JWK jwx.PublicKeyJWK
-		retrieveTestVectorAs(t, vector3PublicKeyJWK2, &x25519JWK)
-
-		doc, err := CreateDIDDHTDID(pubKey.(ed25519.PublicKey), CreateDIDDHTOpts{
-			VerificationMethods: []VerificationMethod{
-				{
-					VerificationMethod: did.VerificationMethod{
-						ID:           x25519JWK.KID,
-						Type:         cryptosuite.JSONWebKeyType,
-						PublicKeyJWK: &x25519JWK,
-					},
-					Purposes: []did.PublicKeyPurpose{did.KeyAgreement},
-				},
-			},
-			Services: []did.Service{
-				{
-					ID:              "service-1",
-					Type:            "TestLongService",
-					ServiceEndpoint: []string{"https://test-lllllllllllllllllllllllllllllllllllooooooooooooooooooooonnnnnnnnnnnnnnnnnnngggggggggggggggggggggggggggggggggggggsssssssssssssssssssssssssseeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrvvvvvvvvvvvvvvvvvvvviiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiccccccccccccccccccccccccccccccceeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.com/1"},
-				},
-			},
-		})
-		require.NoError(t, err)
-		require.NotEmpty(t, doc)
-
-		var expectedDIDDocument did.Document
-		retrieveTestVectorAs(t, vector3DIDDocument, &expectedDIDDocument)
-
-		docJSON, err := json.Marshal(doc)
-		require.NoError(t, err)
-
-		expectedDIDDocJSON, err := json.Marshal(expectedDIDDocument)
-		require.NoError(t, err)
-
-		assert.JSONEq(t, string(expectedDIDDocJSON), string(docJSON))
-		didID := DHT(doc.ID)
-		packet, err := didID.ToDNSPacket(*doc, nil, []AuthoritativeGateway{"gateway1.example-did-dht-gateway.com."})
-		require.NoError(t, err)
-		require.NotEmpty(t, packet)
-
-		var expectedDNSRecords []testVectorDNSRecord
-		retrieveTestVectorAs(t, vector3DNSRecords, &expectedDNSRecords)
-
-		// Initialize a map to track matched records
-		matchedRecords := make(map[int]bool)
-		for i := range expectedDNSRecords {
-			matchedRecords[i] = false // Initialize all expected records as unmatched
-		}
-
-		for _, record := range packet.Answer {
-			for i, expectedRecord := range expectedDNSRecords {
-				if record.Header().Name == expectedRecord.Name {
-					s := record.String()
-					if strings.Contains(s, expectedRecord.RecordType) &&
-						strings.Contains(s, expectedRecord.TTL) {
-						// make sure all parts of the record are contained within s
-						for _, r := range expectedRecord.Record {
-							if !strings.Contains(s, r) {
-								break
-							}
-						}
-						matchedRecords[i] = true // Mark as matched
-						break
-					}
-				}
-			}
-		}
-
-		// Check if all expected records have been matched
-		for i, matched := range matchedRecords {
-			require.True(t, matched, fmt.Sprintf("Expected DNS record %d: %+v not matched", i, expectedDNSRecords[i]))
-		}
-
-		// Make sure going back to DID Document is consistent
-		decodedDoc, types, gateways, err := didID.FromDNSPacket(packet)
-		require.NoError(t, err)
-		require.NotEmpty(t, decodedDoc)
-		require.Empty(t, types)
-		require.NotEmpty(t, gateways)
-		require.Equal(t, gateways, []AuthoritativeGateway{"gateway1.example-did-dht-gateway.com."})
-
-		decodedDocJSON, err := json.Marshal(decodedDoc)
-		require.NoError(t, err)
-		assert.JSONEq(t, string(expectedDIDDocJSON), string(decodedDocJSON))
-	})
-}
-
-func TestMisc(t *testing.T) {
+func TestDIDDHTFeatures(t *testing.T) {
 	t.Run("DHT.Method()", func(t *testing.T) {
 		privKey, doc, err := GenerateDIDDHT(CreateDIDDHTOpts{})
 		require.NoError(t, err)
@@ -638,6 +376,73 @@ func TestMisc(t *testing.T) {
 		})
 		assert.NoError(t, err)
 		assert.NotEmpty(t, doc)
+	})
+
+	t.Run("prev", func(t *testing.T) {
+		previousPrivKey, previousDoc, err := GenerateDIDDHT(CreateDIDDHTOpts{})
+		require.NoError(t, err)
+		require.NotEmpty(t, previousPrivKey)
+		require.NotEmpty(t, previousDoc)
+
+		previousDIDDHT := DHT(previousDoc.ID)
+		previousDID, err := CreatePreviousDIDRecord(previousPrivKey, previousDIDDHT, "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy")
+		assert.NoError(t, err)
+		assert.NotEmpty(t, previousDID)
+
+		println(previousDID.PreviousDID.String())
+		println(previousDID.Signature)
+	})
+
+	t.Run("Test Previous DID", func(t *testing.T) {
+		// generate previous DID
+		previousPrivKey, previousDoc, err := GenerateDIDDHT(CreateDIDDHTOpts{})
+		require.NoError(t, err)
+		require.NotEmpty(t, previousPrivKey)
+		require.NotEmpty(t, previousDoc)
+
+		// generate new DID
+		doc, err := CreateDIDDHTDID(pubKey.(ed25519.PublicKey), CreateDIDDHTOpts{})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, doc)
+
+		// set previous DID signature
+		previousDIDDHT := DHT(previousDoc.ID)
+		currentDIDDHT := DHT(doc.ID)
+		previousDID, err := CreatePreviousDIDRecord(previousPrivKey, previousDIDDHT, currentDIDDHT)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, previousDID)
+		assert.NotEmpty(t, previousDID.PreviousDID)
+		assert.Equal(t, previousDID.PreviousDID.String(), previousDoc.ID)
+		assert.NotEmpty(t, previousDID.Signature)
+
+		// validate previous DID signature
+		err = ValidatePreviousDIDSignatureValid(currentDIDDHT, *previousDID)
+		assert.NoError(t, err)
+
+		// construct the DNS packet with the previous DID entry
+		dnsMsg, err := currentDIDDHT.ToDNSPacket(*doc, nil, nil, previousDID)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, dnsMsg)
+
+		// parse the DNS packet
+		didDHTDoc, err := currentDIDDHT.FromDNSPacket(dnsMsg)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, didDHTDoc)
+		assert.NotEmpty(t, didDHTDoc.Doc)
+		assert.NotEmpty(t, didDHTDoc.PreviousDID)
+		assert.Equal(t, didDHTDoc.PreviousDID.PreviousDID.String(), previousDoc.ID)
+		assert.NotEmpty(t, didDHTDoc.PreviousDID.Signature)
+
+		// validate previous DID signature with wrong DID
+		err = ValidatePreviousDIDSignatureValid("did:dht:123456789abcdefghi", *previousDID)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get identity key from the current DID")
+
+		// validate previous DID signature with wrong signature
+		previousDID.Signature = "wrong signature"
+		err = ValidatePreviousDIDSignatureValid(currentDIDDHT, *previousDID)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to decode the previous DID's signature")
 	})
 }
 

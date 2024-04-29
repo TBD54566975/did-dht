@@ -3,6 +3,7 @@ package postgres_test
 import (
 	"context"
 	"net/url"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +16,7 @@ import (
 )
 
 func getTestDB(t *testing.T) storage.Storage {
-	uri := "postgres://postgres:a@127.0.0.1:5432/postgres" // os.Getenv("TEST_DB")
+	uri := os.Getenv("TEST_DB")
 	if uri == "" {
 		t.SkipNow()
 	}
@@ -44,7 +45,7 @@ func TestReadWrite(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, doc)
 
-	packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil, nil)
+	packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil, nil, nil)
 	require.NoError(t, err)
 	require.NotEmpty(t, packet)
 
@@ -89,7 +90,7 @@ func TestDBPagination(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, doc)
 
-		packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil, nil)
+		packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil, nil, nil)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, packet)
 
@@ -110,7 +111,7 @@ func TestDBPagination(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, doc)
 
-	packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil, nil)
+	packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil, nil, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, packet)
 

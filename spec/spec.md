@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Latest Update:** April 22, 2024
+**Last Updated:** April 29, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -26,7 +26,8 @@ The DID DHT Method Specification 1.0
 
 ## Abstract
 
-A DID Method [[spec:DID-CORE]] based on [[ref:DNS Resource Records]] and [[ref:Mainline DHT]], identified by the prefix `did:dht`.
+A DID Method [[spec:DID-CORE]] based on [[ref:DNS Resource Records]] and [[ref:Mainline DHT]], identified by the prefix
+`did:dht`.
 
 <style id="protocol-stack-styles">
   #protocol-stack-styles + table {
@@ -85,17 +86,18 @@ decentralized digital identity_. A DID identifier is associated with a JSON docu
 services, and other properties outlined in the specification.
 
 [[def:DID Suffix, Suffix]]
-~ The unique identifier string within a DID URI. For DID DHT the suffix is the [[ref:z-base-32]] encoded [[ref:Identity Key]].
+~ The unique identifier string within a DID URI. For DID DHT the suffix is the [[ref:z-base-32]] encoded
+[[ref:Identity Key]].
 
 [[def:Identity Key]]
-~ An [Identity Key](#identity-key) is a [[ref:z-base-32]] encoded [[ref:Ed25519]] public key required to authenticate all records in 
-[[ref:Mainline DHT]]. The encoded string comprises the [[ref:Suffix]] of `did:dht` identifier. This key is guaranteed to be present
-in each `did:dht` document.
+~ An [Identity Key](#identity-key) is a [[ref:z-base-32]] encoded [[ref:Ed25519]] public key required to authenticate
+all records in  [[ref:Mainline DHT]]. The encoded string comprises the [[ref:Suffix]] of `did:dht` identifier. This key
+is guaranteed to be present in each `did:dht` document.
 
 [[def:DID DHT Service]]
 ~ A service that provides a [[ref:Mainline]] interface, extended to support this [[ref:DID]] method.
 
-[[def:DNS Resource Records]]
+[[def:DNS Resource Records, DNS Resource Record]]
 ~ An efficient format for representing [[ref:DID Documents]] and providing semantics pertinent to DID DHT,
 such as TTLs, caching, and different record types (e.g. `NS`, `TXT`). Follows [[spec:RFC1035]].
 
@@ -103,8 +105,9 @@ such as TTLs, caching, and different record types (e.g. `NS`, `TXT`). Follows [[
 ~ [Mainline DHT](https://en.wikipedia.org/wiki/Mainline_DHT) is the name given to the 
 [Distributed Hash Table](https://en.wikipedia.org/wiki/Distributed_hash_table) used by the 
 [BitTorrent protocol](https://github.com/bittorrent/bittorrent.org). It is a distributed system for storing and
-finding data on a peer-to-peer network. It is based on [Kademlia](https://en.wikipedia.org/wiki/Kademlia) and is primarily
-used to store and retrieve peer data. It is estimated to consistently have tens of millions of concurrent active users.
+finding data on a peer-to-peer network. It is based on [Kademlia](https://en.wikipedia.org/wiki/Kademlia) and is
+primarily used to store and retrieve peer data. It is estimated to consistently have tens of millions of concurrent
+active users.
 
 [[def:Gateway, Gateways, DID DHT, Bitcoin-anchored Gateway]]
 ~ A server that that facilitates DID DHT operations. The gateway may offer a set of APIs to interact with the DID DHT
@@ -117,7 +120,8 @@ and other features. Gateways can make themselves discoverable via a [[ref:Gatewa
 
 [[def:Client, Clients]]
 ~ A client is a piece of software that is responsible for generating a `did:dht` and submitting it to a 
-[[ref:Mainline Server]] or [[ref:Gateway]]. Notably, a client has the ability to sign messages with the [[ref:Identity Key]].
+[[ref:Mainline Server]] or [[ref:Gateway]]. Notably, a client has the ability to sign messages with the
+[[ref:Identity Key]].
 
 [[def:Retained DID Set, Retained Set, Retention Set]]
 ~ The set of DIDs that a [[ref:Gateway]] is retaining and thus is responsible for republishing.
@@ -127,20 +131,21 @@ and other features. Gateways can make themselves discoverable via a [[ref:Gatewa
 [[ref:Gateways]] use this proof to determine how long they should retain a DID.
 
 [[def:Sequence Number, Sequence Numbers, Sequence]]
-~ A sequence number, or `seq`, is a property of a mutable item as defined in [[ref:BEP44]]. It is a 64-bit integer that increases
-in a consistent, unidirectional manner, ensuring that items are ordered sequentially. This specification requires that sequence 
-numbers are [[ref:Unix Timestamps]] represented in seconds.
+~ A sequence number, or `seq`, is a property of a mutable item as defined in [[ref:BEP44]]. It is a 64-bit integer that
+increases in a consistent, unidirectional manner, ensuring that items are ordered sequentially. This specification
+requires that sequence numbers are [[ref:Unix Timestamps]] represented in seconds.
 
 [[def:Unix Timestamp, Unix Timestamps]]
-~ A value that measures time by the number of non-leap seconds that have elapsed since 00:00:00 UTC on 1 January 1970, the Unix epoch.
+~ A value that measures time by the number of non-leap seconds that have elapsed since 00:00:00 UTC on 1 January 1970,
+the Unix epoch.
 
 ## DID DHT Method Specification
 
 ### Format
 
 The format for `did:dht` conforms to the [[spec:DID Core]] specification. It consists of the `did:dht` prefix followed by 
-the [[ref:Mainline]] identifier. The [[ref:Mainline]] identifier is a [[ref:z-base-32]]-encoded [[ref:Ed25519]] public key, which
-we refer to as an [[ref:Identity Key]].
+the [[ref:Mainline]] identifier. The [[ref:Mainline]] identifier is a [[ref:z-base-32]]-encoded [[ref:Ed25519]] public
+key, which we refer to as an [[ref:Identity Key]].
 
 ```text
 did-dht-format := did:dht:<z-base-32-value>
@@ -155,44 +160,48 @@ did-dht-format := did:dht:Z-BASE-32(raw-public-key-bytes)
 
 ### Identity Key
 
-A unique property of DID DHT is its dependence on an a single non-rotatable key which we refer to as an _Identity Key_. This requirement
-stems from [[ref:BEP44]], particularly within the _Mutable Items_ section:
+A unique property of DID DHT is its dependence on an a single non-rotatable key which we refer to as an _Identity Key_.
+This requirement stems from [[ref:BEP44]], particularly within the _Mutable Items_ section:
 
-> Mutable items can be updated, without changing their DHT keys. To authenticate that only the original publisher can update an item,
-it is signed by a private key generated by the original publisher. The target ID mutable items are stored under is the SHA-1 hash of
-the public key (as it appears in the put message).
+> Mutable items can be updated, without changing their DHT keys. To authenticate that only the original publisher can
+update an item, it is signed by a private key generated by the original publisher. The target ID mutable items are
+stored under is the SHA-1 hash of the public key (as it appears in the put message).
 
-This mechanism, as detailed in [[ref:BEP44]], ensures that all entries in the DHT are authenticated through a private key unique
-to the initial publisher. Consequently, DHT records, including DID DHT Documents, are _independently verifiable_. This independence
-implies that trust in a specific [[ref:Mainline]] or [[ref:Gateway]] server for providing unaltered messages is unnecessary. Instead,
-all clients can, and should, verify messages themselves. This approach significantly mitigates risks associated with other DID methods,
-where a compromised server or [DID resolver](https://www.w3.org/TR/did-core/#choosing-did-resolvers) might tamper with a [[ref:DID Document]]
+This mechanism, as detailed in [[ref:BEP44]], ensures that all entries in the DHT are authenticated through a private
+key unique to the initial publisher. Consequently, DHT records, including DID DHT Documents, are
+_independently verifiable_. This independence implies that trust in a specific [[ref:Mainline]] or [[ref:Gateway]] server
+for providing unaltered messages is unnecessary. Instead, all clients can, and should, verify messages themselves. This
+approach significantly mitigates risks associated with other DID methods, where a compromised server or
+[DID resolver](https://www.w3.org/TR/did-core/#choosing-did-resolvers) might tamper with a [[ref:DID Document]]
 which would be undetectable by a client.
 
-Currently, [[ref:Mainline]] exclusively supports the [[ref:Ed25519]] key type. In turn, [[ref:Ed25519]] is required by DID DHT and is 
-used to uniquely identify DID DHT Documents. DID DHT identifiers are formed by concatenating the `did:dht:` prefix with a [[ref:z-base-32]]
-encoded Identity Key, which acts as its [[ref:suffix]]. Identity Keys ****MUST**** have the identifier `0` as both its Verification Method 
-`id` and JWK `kid` [[spec:RFC7517]]. Identity Keys ****MUST**** have the [Verification Relationships](#verification-relationships) 
-_Authentication_, _Assertion_, _Capability Invocation_, and _Capability Delegation_.
+Currently, [[ref:Mainline]] exclusively supports the [[ref:Ed25519]] key type. In turn, [[ref:Ed25519]] is required by
+DID DHT and is used to uniquely identify DID DHT Documents. DID DHT identifiers are formed by concatenating the
+`did:dht:` prefix with a [[ref:z-base-32]] encoded Identity Key, which acts as its [[ref:suffix]]. Identity Keys
+****MUST**** have the identifier `0` as both its Verification Method  `id` and JWK `kid` [[spec:RFC7517]]. Identity Keys
+****MUST**** have the [Verification Relationships](#verification-relationships) _Authentication_, _Assertion_,
+_Capability Invocation_, and _Capability Delegation_.
 
-While the system requires at least one [[ref:Ed25519]], a DID DHT Document can include any number of additional keys. Additional key 
-types ****MUST**** be registered in the [Key Type Index](registry/index.html##key-type-index).
+While the system requires at least one [[ref:Ed25519]], a DID DHT Document can include any number of additional keys.
+Additional key types ****MUST**** be registered in the [Key Type Index](registry/index.html##key-type-index).
 
-As a unique consequence of the requirement of the Identity Key, DID DHT Documents are able to be partially-resolved without contacting
-[[ref:Mainline]] or [[ref:Gateway]] servers, though it is ****RECOMMENDED**** that deterministic resolution is only used as a fallback mechanism.
-Similarly, the requirement of an Identity Key enables [interoperability with other DID methods](#interoperability-with-other-did-methods).
+As a unique consequence of the requirement of the Identity Key, DID DHT Documents are able to be partially-resolved
+without contacting [[ref:Mainline]] or [[ref:Gateway]] servers, though it is ****RECOMMENDED**** that deterministic
+resolution is only used as a fallback mechanism. Similarly, the requirement of an Identity Key enables
+[interoperability with other DID methods](#interoperability-with-other-did-methods).
 
 ### DIDs as DNS Records
 
-In this scheme, we encode the [[ref:DID Document]] as [DNS Resource Records](https://en.wikipedia.org/wiki/Domain_Name_System#Resource_records). These resource records make up a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then 
-stored in the [[ref:DHT]].
+In this scheme, we encode the [[ref:DID Document]] as
+[DNS Resource Records](https://en.wikipedia.org/wiki/Domain_Name_System#Resource_records). These resource records make
+up a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then stored in the [[ref:DHT]].
 
 | Name         | Type | TTL    | Rdata                                                        |
 | ------------ | ---- | ------ | ------------------------------------------------------------ |
-| _did.`<ID>`. | TXT  |  7200  | v=0;vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2    |
+| _did.`<ID>`. | TXT  |  7200  | v=0;vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;svc=s0,s1,s2    |
 | _k0._did.    | TXT  |  7200  | id=0;t=0;k=`<unpadded-b64url>`                               |
-| _k1._did.    | TXT  |  7200  | id=1;t=1;k=`<unpadded-b64url>`                               |
-| _k2._did.    | TXT  |  7200  | id=2;t=1;k=`<unpadded-b64url>`                               |
+| _k1._did.    | TXT  |  7200  | t=1;k=`<unpadded-b64url>`                               |
+| _k2._did.    | TXT  |  7200  | t=1;k=`<unpadded-b64url>`                               |
 | _s0._did.    | TXT  |  7200  | id=domain;t=LinkedDomains;se=https://foo.com                 |
 | _s1._did.    | TXT  |  7200  | id=dwn;t=DecentralizedWebNode;se=https://dwn.tbddev.org/dwn5 |
 
@@ -203,7 +212,7 @@ The recommended TTL value is 7200 seconds (2 hours), the default TTL for [[ref:M
 - The [Root Record](#root-record) serves as a "map" to reconstruct a [[ref:DID Document]] from a DNS packet.
 This record contains a _version_ number, indicating the version of this specification a given record is created against.
 
-- Additional records like `srv` (services), `vm` ([Verification Methods](#verification-methods)), and 
+- Additional records like `svc` (services), `vm` ([Verification Methods](#verification-methods)), and
 [Verification Relationships](#verification-relationships) (e.g., authentication, assertion, etc.) are 
 represented as additional records in the format `<ID>._did.`. These records contain the zero-indexed value of 
 each `key` or `service` as attributes.
@@ -229,7 +238,7 @@ identifier associated with the DID (i.e. `did:dht:<ID>` becomes `_did.<ID>.`).
 
 - The root record's **type** is `TXT`, indicating a Text record.
 
-- The root record's **rdata** is represented by the form `v=M;vm=N;auth=O;asm=P;inv=Q;del=R;srv=S` where 
+- The root record's **rdata** is represented by the form `v=M;vm=N;auth=O;asm=P;inv=Q;del=R;svc=S` where
 `M` is the version of the DNS packet representation defined by this specification. `N` is the set 
 [Verification Method](#verification-methods) identifiers (e.g. `k0,k1`) present in the document, always
 containing at least `k0`. `O`, `P`, `Q`, and `R` contain the set of Verification Method resource 
@@ -243,16 +252,16 @@ Additionally:
 
   - The `vm` property ****MUST**** always contain _at least_ the [[ref:Identity Key]] represented by `k0`.
 
-  - Verification Relationships (`auth`, `asm`, `inv`, `del`, `srv`) without any members ****MUST**** be omitted.
+  - Verification Relationships (`auth`, `asm`, `inv`, `del`, `svc`) without any members ****MUST**** be omitted.
 
-  - If there are no [Services](#services) the `srv` property ****MUST**** be omitted.
+  - If there are no [Services](#services) the `svc` property ****MUST**** be omitted.
 
 
 **Example Root Record**
 
 | Name                                                       | Type | TTL    | Rdata                                                     
 | ---------------------------------------------------------- | ---- | ------ | --------------------------------------------------------- 
-| _did.o4dksfbqk85ogzdb5osziw6befigbuxmuxkuxq8434q89uj56uyy. | TXT  |  7200  | v=0;vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;srv=s0,s1,s2 
+| _did.o4dksfbqk85ogzdb5osziw6befigbuxmuxkuxq8434q89uj56uyy. | TXT  |  7200  | v=0;vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;svc=s0,s1,s2
 
 ### Property Mapping
 
@@ -267,9 +276,11 @@ values within each property are separated by a comma (`,`).
 commas (`,`).
 
 - Additional properties not defined by this specification ****MAY**** be represented in a [[ref:DID Document]] and
-its corresponding DNS packet if the properties [are registered in the additional properties registry](registry/index.html#additional-properties).
+its corresponding DNS packet if the properties are registered in the
+[additional properties registry](registry/index.html#additional-properties).
 
-The subsequent instructions serve as a reference for mapping DID Document properties to [DNS Resource Records](https://en.wikipedia.org/wiki/Domain_Name_System#Resource_records):
+The subsequent instructions serve as a reference for mapping DID Document properties to
+[DNS Resource Records](https://en.wikipedia.org/wiki/Domain_Name_System#Resource_records):
 
 #### Identifiers
 
@@ -281,9 +292,11 @@ A [DID controller](https://www.w3.org/TR/did-core/#did-controller) ****MAY**** b
 
 - The [Controller](https://www.w3.org/TR/did-core/#did-controller) record's **type** is `TXT`, indicating a Text record.
 
-- The [Controller](https://www.w3.org/TR/did-core/#did-controller) record's **data** is represented as a comma-separated list of controller DID identifiers.
+- The [Controller](https://www.w3.org/TR/did-core/#did-controller) record's **data** is represented as a comma-separated
+list of controller DID identifiers.
 
-To ensure that the DID controller is authorized to make changes to the DID Document, the controller for the [[ref:Identity Key]] Verification Method ****MUST**** be contained within the controller property.
+To ensure that the DID controller is authorized to make changes to the DID Document, the controller for the
+[[ref:Identity Key]] Verification Method ****MUST**** be contained within the controller property.
 
 **Example Controller Record**
 
@@ -293,13 +306,15 @@ To ensure that the DID controller is authorized to make changes to the DID Docum
 
 ##### Also Known As
 
-A `did:dht` document ****MAY**** have multiple identifiers using the [alsoKnownAs](https://www.w3.org/TR/did-core/#also-known-as) property.
+A `did:dht` document ****MAY**** have multiple identifiers using the
+[alsoKnownAs](https://www.w3.org/TR/did-core/#also-known-as) property.
 
 - The [Also Known As](https://www.w3.org/TR/did-core/#also-known-as) record's **name** is represented as a `_aka._did.`.
 
 - The [Also Known As](https://www.w3.org/TR/did-core/#also-known-as) record's **type** is `TXT`, indicating a Text record.
 
-- The [Also Known As](https://www.w3.org/TR/did-core/#also-known-as) record's **data** is represented as a comma-separated list of DID identifiers.
+- The [Also Known As](https://www.w3.org/TR/did-core/#also-known-as) record's **data** is represented as a
+comma-separated list of DID identifiers.
 
 **Example AKA Record**
 
@@ -312,7 +327,8 @@ A `did:dht` document ****MAY**** have multiple identifiers using the [alsoKnownA
 - Each [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) record's **name** is represented 
 as a `_kN._did.` record where `N` is the zero-indexed positional index of a given Verification Method (e.g. `_k0`, `_k1`).
 
-- Each [Verification Method]((https://www.w3.org/TR/did-core/#verification-methods)) record's **type** is `TXT`, indicating a Text record.
+- Each [Verification Method]((https://www.w3.org/TR/did-core/#verification-methods)) record's **type** is `TXT`,
+indicating a Text record.
 
 - Each [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) record's **rdata** is represented by the form
 `id=M;t=N;k=O;a=P` where `M` is the Verification Method's `id`, `N` is the index of the key's type from the
@@ -387,7 +403,7 @@ where `M` is the Service's ID, `N` is the Service's Type and `O` is the Service'
 | --------- | ---- | ---- | -------------------------------------------------------- |
 | _s0._did. | TXT  | 7200 | id=dwn;t=DecentralizedWebNode;se=https://example.com/dwn |
 
-Each Service is represented as part of the root record (`_did.<ID>.`) as a list under the key `srv=<ids>` where `ids`
+Each Service is represented as part of the root record (`_did.<ID>.`) as a list under the key `svc=<ids>` where `ids`
 is a comma-separated list of all IDs for each Service.
 
 #### Example
@@ -456,7 +472,7 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
 
 | Name         | Type | TTL   | Rdata                                                                              |
 | ------------ | ---- | ----- | ---------------------------------------------------------------------------------- |
-| _did.`<ID>`. | TXT  | 7200  | v=0;vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;srv=s1                             |
+| _did.`<ID>`. | TXT  | 7200  | v=0;vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;svc=s1                             |
 | _cnt.did.    | TXT  | 7200  | did:example:abcd                                                                   |
 | _aka.did.    | TXT  | 7200  | did:example:efgh,did:example:ijkl                                                  |
 | _k0._did.    | TXT  | 7200  | t=0;k=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc;a=Ed25519   |
@@ -470,7 +486,7 @@ identifier is also used to sign the [[ref:DHT]] record.
 
 #### Create
 
-To create a `did:dht`, the process is as follows:
+To create a `did:dht` document, the process is as follows:
 
 1. Generate an [[ref:Ed25519]] keypair and encode the public key using the format provided in the [format section](#format).
 
@@ -481,9 +497,9 @@ To create a `did:dht`, the process is as follows:
     `JsonWebKey` defined by [[ref:VC-JOSE-COSE]].
 
     b. The document can include any number of other [core properties](https://www.w3.org/TR/did-core/#core-properties);
-    always representing key material as a `JWK` as per [[spec:RFC7517]]. In addition to the properties required by the `JWK`
-    specification, the `alg` property ****MUST**** always be present. Default algorithms are defined per key type in
-    the [indexed types registry](registry/index.html#indexed-types).
+    always representing key material as a `JWK` as per [[spec:RFC7517]]. In addition to the properties required by
+    the `JWK` specification, the `alg` property ****MUST**** always be present. Default algorithms are defined per key
+    type in the [indexed types registry](registry/index.html#indexed-types).
 
 3. Map the output [[ref:DID Document]] to a DNS packet as outlined in [property mapping](#property-mapping).
 
@@ -495,18 +511,20 @@ To create a `did:dht`, the process is as follows:
 
    b. `seq` ****MUST**** be set to the current [[ref:Unix Timestamp]] in seconds.
 
-6. Submit the result of to the [[ref:DHT]] via a [[ref:Mainline]] node, or a [[ref:Gateway]], with the identifier created in step 1.
+6. Submit the result of to the [[ref:DHT]] via a [[ref:Mainline]] node, or a [[ref:Gateway]], with the identifier created
+in step 1.
 
 ::: note
-This specification **does not** make use of [JSON-LD](https://json-ld.org/). As such DID DHT Documents ****MUST NOT**** include the `@context` property.
+This specification **does not** make use of [JSON-LD](https://json-ld.org/). As such DID DHT Documents ****MUST NOT****
+include the `@context` property.
 :::
 
 #### Read
 
-To read a `did:dht`, the process is as follows:
+To read a `did:dht` document, the process is as follows:
 
-1. Take the [[ref:suffix]] of the DID, that is, the _[[ref:z-base-32]] encoded identifier key_, and submit it to a [[ref:Mainline]]
-node or a [[ref:Gateway]].
+1. Take the [[ref:suffix]] of the DID, that is, the _[[ref:z-base-32]] encoded identifier key_, and submit it to a
+[[ref:Mainline]] node or a [[ref:Gateway]].
 
 2. Decode the resulting [[ref:BEP44]] response's `v` value using [[ref:bencode]].
 
@@ -516,14 +534,16 @@ node or a [[ref:Gateway]].
 
     a. Expand all identifiers (i.e. Verification Methods, Services, etc.) to their fully-qualified 
     form (e.g. `did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#0` 
-    as opposed to `0` or `#0`, `did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#service-1` as opposed to `#service-1`).
+    as opposed to `0` or `#0`, `did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#service-1` as opposed
+    to `#service-1`).
 
 5. If [NS records](#designating-authoritative-gateways) are present this process should be repeated, making the initial
-request against the given [[ref:Gateway]]. The document with the highest [[ref:sequence number]] is to be treated as authoritative.
+request against the given [[ref:Gateway]]. The document with the highest [[ref:sequence number]] is to be treated
+as authoritative.
 
 ::: note
-As a fallback, if a `did:dht` value cannot be resolved via the network, it can be expanded to a conformant [[ref:DID Document]]
-containing just the [[ref:Identity Key]].
+As a fallback, if a `did:dht` value cannot be resolved via the network, it can be expanded to a conformant
+[[ref:DID Document]] containing just the [[ref:Identity Key]].
 :::
 
 #### Update
@@ -536,38 +556,73 @@ It is ****RECOMMENDED**** that updates are infrequent, as caching of the DHT is 
 
 #### Deactivate
 
-To deactivate a [[ref:DID Document]], there are a couple options:
+To deactivate a `did:dht` document, controllers have multiple options:
 
 1. Let the DHT record expire and cease to publish it.
 
-2. Publish a new DHT record where the `rdata` of the root DNS record is the string "deactivated."
+2. Publish a new DHT record where the `rdata` of the root DNS record is the string `deactivated`.
 
 | Name         | Type | TTL  | Rdata       |
 | ------------ | ---- | ---- | ----------- |
 | _did.`<ID>`. | TXT  | 7200 | deactivated |
 
 ::: note
-If you have published your DID through a [[ref:Gateway]], you may need to contact the operator to have them remove the
-record from their [[ref:Retained DID Set]].
+If you have published your DID through a [[ref:Gateway]], you can contact the operator to have them remove the
+record from their [[ref:Retained DID Set]] via the [DID Deactivation API](#deactivating-a-did).
 :::
 
-::: todo
-[](https://github.com/TBD54566975/did-dht-method/issues/100)
-Add guidance for rotating to a new DID after deactivation.
-:::
+### Rotation
+
+[Verification Method Rotation](https://www.w3.org/TR/did-core/#verification-method-rotation) is a recommended practice
+for avoiding the risks associated with [key compromise](#key-compromise). Rotating Verification Methods is straightforward
+using the [update](#update) functionality enabled by this specification; however, rotation of the [[ref:Identity Key]] is
+not possible given the constraints imposed by [[ref:Mainline]]. To mitigate this limitation, DID DHT controllers have the
+option to rotate to a new DID, and thus a new [[ref:Identity Key]], while maintaining a cryptographic linkage between the 
+two documents. This linkage can be useful in providing an auditable history of a controller's activity as they move between
+root Verification Methods and identifiers.
+
+To establish a cryptographic linkage between the old and new [[ref:DID Documents]], adhere to the following steps:
+
+1. Using the old [[ref:Identity Key]], sign over the new [[ref:Identity Key]] using EdDSA [[spec:RFC8032]].
+
+2. Encode the resulting signature data using the unpadded base64URL [[spec:RFC4648]] scheme.
+
+3. Set the resulting string as the data for a new [[ref:DNS Resource Record]], called a _previous record_, in
+the new DID's record set. 
+
+A `did:dht` Document ****MUST NOT**** have more than **one** Previous Record. The Previous record is defined as follows:
+
+- The Previous record's **name** is represented as a `_prv._did.` record.
+
+- The Previous record's **type** is `TXT`, indicating a Text record.
+
+- The Previous record's **data** is represented with the form `id=M,s=N` where `M` is the identifier of the previous DID,
+and `N` is the the unpadded base64URL signature from step (3) above.
+
+| Name         | Type | TTL   | Rdata                                                                                  |
+| ------------ | ---- | ----- | -------------------------------------------------------------------------------------- |
+| _prv._did.   | TXT  | 7200  | id=did:dht:pxoem5sfzxxxrnrwfgiu5i5wc7epouy1jk9zb7ad159dsxbxy8io;s=ol5LbUydL3_PdChE8tVYH-z_NhyFDQlop0agYtjyYbKz_-CYrj_3JGLiFne1e7PruOwf-b91uEFq9R_PgBn-Bg |
+
+
+The DID controller ****MAY**** include a statement in the old [[ref:DID Document]] indicating the rotation to the new identifier, 
+by setting the [controller property](#controller) to the new DID. Without the previous record present in the new DID's
+record set, the linkage ****MUST NOT**** be considered legitimate.
 
 ### Designating Authoritative Gateways
 
-[Gateways](#gateways) provide additional benefits to `did:dht`, such as the ability to [resolve historical DID Documents](#historical-resolution),
-or support [type indexing](#type-indexing). To enable the usage of these additional features, `did:dht` documents need to be published to 
-Gateway(s) that with the necessary capabilities. Whether it's accessing historical states, engaging with type indexes, or utilizing other
-specialized features, the [resolution process](#resolving-a-did) must be directed towards a [[ref:Gateway]] that maintains this supplementary data.
+[Gateways](#gateways) provide additional benefits to `did:dht`, such as the ability to
+[resolve historical DID Documents](#historical-resolution), or support [type indexing](#type-indexing). To enable the
+usage of these additional features, `did:dht` documents need to be published to Gateway(s) that with the necessary
+capabilities. Whether it's accessing historical states, engaging with type indexes, or utilizing other specialized
+features, the [resolution process](#resolving-a-did) must be directed towards a [[ref:Gateway]] that maintains this
+supplementary data.
 
-To facilitate the discovery of authoritative [[ref:Gateways]] for a `did:dht` and to ensure consistent access to a DID's state 
-across different [[ref:Gateways]], DID controllers may designate one or more [[ref:Gateways]] as authoritative sources for their DID. This
-designation is accomplished by incorporating [DNS NS records](https://en.wikipedia.org/wiki/List_of_DNS_record_types#NS) within the 
-DNS packet destined for storage in the DHT. A DID ****MAY**** have multiple NS records, enhancing redundancy and reliability. The format
-for these records is outlined as follows:
+To facilitate the discovery of authoritative [[ref:Gateways]] for a `did:dht` and to ensure consistent access to a DID's
+state across different [[ref:Gateways]], DID controllers may designate one or more [[ref:Gateways]] as authoritative
+sources for their DID. This designation is accomplished by incorporating
+[DNS NS records](https://en.wikipedia.org/wiki/List_of_DNS_record_types#NS) within the DNS packet destined for storage
+in the DHT. A DID ****MAY**** have multiple NS records, enhancing redundancy and reliability. The format for these
+records is outlined as follows:
 
 - Each Gateway record's **name** is represented as `_did.<ID>.` record, where `ID` represents the unique identifier of the [[ref:DID Document]].
 
@@ -586,15 +641,15 @@ Type indexing is an **OPTIONAL** feature that enables DIDs to become **discovera
 a particular type. Types are not included as a part of the DID Document, but rather as part of the DNS packet. This allows
 for DIDs to be indexed by type by [[ref:Gateways]], and for DIDs to be resolved by type.
 
-DIDs can be indexed by type by adding a `_typ._did.` record to the DNS packet. A DID ****MAY**** have **AT MOST** one type index
-record. This record is of the following format:
+DIDs can be indexed by type by adding a `_typ._did.` record to the DNS packet. A DID ****MAY**** have **AT MOST** one
+type index record. This record is of the following format:
 
 - The Type Index record's **name** is represented as a `_typ._did.` record.
 
 - The Type Index record's **type** is `TXT`, indicating a Text record.
 
-- The Type Index record's **data** is represented with the form `id=0,1,2` where the value is a comma-separated list of integer types from
-the [type index](#type-indexing).
+- The Type Index record's **data** is represented with the form `id=H,I,J,...N` where the value is a comma-separated list of
+integer types from the [type index](#type-indexing).
 
 **Example Type Index Record**
 
@@ -664,9 +719,9 @@ The algorithm, in detail, is as follows:
 
 5. Inspect the result of `ATTEMPT`, and ensure it has >= `DIFFICULTY` bits of leading zeroes.
 
-  a. If so, `ATTEMPT` = `RETENTION_PROOF`.
+    a. If so, `ATTEMPT` = `RETENTION_PROOF`.
 
-  b. Otherwise, regenerate `NONCE` and go to step 3.
+    b. Otherwise, regenerate `NONCE` and go to step 3.
 
 6. Submit the `RETENTION_PROOF` to the [Gateway API](#register=or-update-a-did).
 
@@ -705,11 +760,13 @@ Public relays will need to set up [Cross-origin resource sharing (CORS)](https:/
 
 ##### Put
 
-On receiving a `PUT` request the server verifiers the `sig` and submits a mutable put to [[ref:Mainline]] as per [[ref:BEP44]].
+On receiving a `PUT` request the server verifiers the `sig` and submits a mutable put to [[ref:Mainline]] as per
+[[ref:BEP44]].
 
 - **Method:** `PUT`
 - **Path:** `/:id`
-  - `id` - **string** - **REQUIRED** - The [[ref:z-base-32]] encoded [[ref:Identity Key]], equivalent to the suffix of the DID DHT identifier.
+  - `id` - **string** - **REQUIRED** - The [[ref:z-base-32]] encoded [[ref:Identity Key]], equivalent to the suffix of
+  the DID DHT identifier.
 - **Request Body:** `application/octet-stream`
   - The binary representation of `<sig><seq>[<v>]` where:
     - `sig` - represents the 64-byte [[ref:BEP44]] payload signature.
@@ -726,7 +783,8 @@ On receiving a `GET` request the server submits a mutable get query to [[ref:Mai
 
 - **Method:** `GET`
 - **Path:** `/:id`
-  - `id` - **string** - **REQUIRED** - The [[ref:z-base-32]] encoded [[ref:Identity Key]], equivalent to the suffix of the DID DHT identifier.
+  - `id` - **string** - **REQUIRED** - The [[ref:z-base-32]] encoded [[ref:Identity Key]], equivalent to the suffix of
+   the DID DHT identifier.
 - **Returns:** `application/octet-stream`
   - `200` - Success. The binary representation of `<sig><seq>[<v>]` where:
     - `sig` - represents the 64-byte [[ref:BEP44]] payload signature.
@@ -761,15 +819,18 @@ Difficulty is exposed as an **OPTIONAL** endpoint based on support of [retention
 - **Request Body:** – application/json
   - `did` - **string** - **REQUIRED** - The DID to register or update.
   - `sig` - **string** - **REQUIRED** - An unpadded base64URL-encoded signature of the [[ref:BEP44]] payload.
-  - `seq` - **integer** - **REQUIRED** - A [[ref:sequence number]] for the request. This number ****MUST**** be unique for each DID operation,
-    which ****MUST**** be a [[ref:Unix Timestamp]] in seconds.
-  - `v` - **string** - **REQUIRED** - An unpadded base64URL-encoded [[ref:bencoded]] compressed DNS packet containing the DID Document.
-  - `retention_proof` - **string** - **OPTIONAL** - A retention proof calculated according to the [retention proof algorithm](#generating-a-retention-proof).
+  - `seq` - **integer** - **REQUIRED** - A [[ref:sequence number]] for the request. This number ****MUST**** be unique
+   for each DID operation, which ****MUST**** be a [[ref:Unix Timestamp]] in seconds.
+  - `v` - **string** - **REQUIRED** - An unpadded base64URL-encoded [[ref:bencoded]] compressed DNS packet containing
+   the DID Document.
+  - `retention_proof` - **string** - **OPTIONAL** - A retention proof calculated according to the
+  [retention proof algorithm](#generating-a-retention-proof).
 - **Returns:** `application/json`
   - `202` - Accepted. The server has accepted the request as valid and will publish to the DHT.
   - `400` - Invalid request.
   - `401` - Invalid signature.
-  - `409` - DID already exists with a higher [[ref:sequence number]]. DID may be accepted if the [[ref:Gateway]] supports [historical resolution](#historical-resolution).
+  - `409` - DID already exists with a higher [[ref:sequence number]]. DID may be accepted if the [[ref:Gateway]]
+  supports [historical resolution](#historical-resolution).
 
 ```json
 {
@@ -781,8 +842,8 @@ Difficulty is exposed as an **OPTIONAL** endpoint based on support of [retention
 ```
 
 Upon receiving a request to register a DID, the Gateway ****MUST**** verify the signature of the request and if valid
-publish the DID Document to the DHT. If the DNS Packets contain a `_typ._did.` record, the [[ref:Gateway]] ****MUST**** index the
-DID by its type.
+publish the DID Document to the DHT. If the DNS Packets contain a `_typ._did.` record, the [[ref:Gateway]] ****MUST****
+index the DID by its type.
 
 #### Resolving a DID
 
@@ -792,10 +853,12 @@ DID by its type.
 - **Returns:** `application/json`
   - `200` - Success.
     - `did` - **object** - **REQUIRED** - A JSON object representing the DID Document.
-    - `dht` - **string** - **REQUIRED** - An unpadded base64URL-encoded representation of the full [[ref:BEP44]] payload, represented as 64 bytes sig,
+    - `dht` - **string** - **REQUIRED** - An unpadded base64URL-encoded representation of the full [[ref:BEP44]]
+    payload, represented as 64 bytes sig,
     8 bytes u64 big-endian seq, and 0-1000 bytes of v concatenated, enabling independent verification.
     - `types` - **array** - **OPTIONAL** - An array of [type integers](#type-indexing) for the DID.
-    - `sequence_numbers` - **array** - **OPTIONAL** - An sorted array of seen [[ref:sequence numbers]], used with [historical resolution](#historical-resolution).
+    - `sequence_numbers` - **array** - **OPTIONAL** - An sorted array of integers representing seen
+    [[ref:sequence numbers]], used with [historical resolution](#historical-resolution).
     - `400` - Invalid request.
   - `404` - DID not found.
 
@@ -824,20 +887,21 @@ DID by its type.
       "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y#0"
     ]
   },
-  "dht": "<unpadded-base64URL-encoded bep44 payload as [sig][seq][v]>",
+  "dht": "<unpadded-base64URL-encoded BEP44 payload as [sig][seq][v]>",
   "types": [1, 4],
   "sequence_numbers": [1700356854, 1700461736]
 }
 ```
 
-Upon receiving a request to resolve a DID, the [[ref:Gateway]] ****MUST**** query the DHT for the [[ref:DID Document]], and if found,
-return the document. If the records are not found in the DHT, the [[ref:Gateway]] ****MAY**** fall back to its local storage.
-If the DNS Packets contain a `_typ._did.` record, the [[ref:Gateway]] ****MUST**** return the type index.
+Upon receiving a request to resolve a DID, the [[ref:Gateway]] ****MUST**** query the DHT for the [[ref:DID Document]],
+and if found, return the document. If the records are not found in the DHT, the [[ref:Gateway]] ****MAY**** fall back
+to its local storage. If the DNS Packets contain a `_typ._did.` record, the [[ref:Gateway]] ****MUST**** return the
+type index.
 
 This API is returns a `dht` property which matches the payload of a [Relay GET Request](#relay),
-when encoded as an unpadded base64URL string. Implementers are ****RECOMMENDED**** to verify the integrity of the response using
-the `dht` data and reconstruct the DID Document themselves. The `did` property is provided as a utility which, without independent verification,
-****SHOULD NOT**** be trusted.
+when encoded as an unpadded base64URL string. Implementers are ****RECOMMENDED**** to verify the integrity of the
+response using the `dht` data and reconstruct the DID Document themselves. The `did` property is provided as a utility
+which, without independent verification, ****MUST NOT**** be trusted.
 
 ##### Historical Resolution
 
@@ -846,7 +910,8 @@ same [[ref:DID Document]], sorted by [[ref:sequence number]], according to the r
 [conflict resolution](#conflict-resolution).
 
 Upon [resolving a DID](#resolving-a-did), the Gateway will return the parameter `sequence_numbers` if there exists
-historical state for a given [[ref:DID]]. The following API can be used with specific [[ref:sequence numbers]] to fetch historical state:
+historical state for a given [[ref:DID]]. The following API can be used with specific [[ref:sequence numbers]] to fetch
+historical state:
 
 - **Method:** `GET`
 - **Path:** `/did/:id?seq=:sequence_number`
@@ -855,8 +920,9 @@ historical state for a given [[ref:DID]]. The following API can be used with spe
 - **Returns:** `application/json`
   - `200` - Success.
     - `did` - **object** - **REQUIRED** - A JSON object representing the DID Document.
-    - `dht` - **string** - **REQUIRED** - An unpadded base64URL-encoded representation of the full [[ref:BEP44]] payload, represented as 64 bytes sig,
-    8 bytes u64 big-endian seq, and 0-1000 bytes of v concatenated, enabling independent verification.
+    - `dht` - **string** - **REQUIRED** - An unpadded base64URL-encoded representation of the full [[ref:BEP44]]
+    payload, represented as 64 bytes sig, 8 bytes u64 big-endian seq, and 0-1000 bytes of v concatenated, enabling
+    independent verification.
     - `types` - **array** - **OPTIONAL** - An array of [type integers](#type-indexing) for the DID.
   - `400` - Invalid request.
   - `404` - DID not found for the given [[ref:sequence number]].
@@ -903,7 +969,8 @@ type(s) for the DID.
 - **Method:** `GET`
 - **Path:** `/did/types/:id`
   - `id` - **integer** - **REQUIRED** - The type to query from the index.
-  - `offset` - **integer** - **OPTIONAL** - Specifies the starting position from where the type records should be retrieved (Default: `0`).
+  - `offset` - **integer** - **OPTIONAL** - Specifies the starting position from where the type records should be
+  retrieved (Default: `0`).
   - `limit` - **integer** - **OPTIONAL** - Specifies the maximum number of type records to retrieve (Default: `100`).
 - **Returns:** `application/json`
   - `200` - Success.
@@ -930,7 +997,8 @@ key format. By adopting this optional extension, users can maintain their curren
 they gain the ability to add extra information to their DIDs. This is achieved by either publishing or retrieving
 data from [[ref:Mainline]].
 
-Interoperable DID methods ****MUST**** be registered in [this specification's registry](registry/index.html#interoperable-did-methods).
+Interoperable DID methods ****MUST**** be registered in
+[this specification's registry](registry/index.html#interoperable-did-methods).
 
 ## Implementation Considerations
 
@@ -942,10 +1010,10 @@ Per [[ref:BEP44]], [[ref:Gateway]] servers can leverage the `seq` [[ref:sequence
 ****MUST**** reject the request. If the [[ref:sequence number]] is equal, and the value is also the same, the server
 ****SHOULD**** reset its timeout counter.
 
-When the [[ref:sequence number]] is equal, but the value is different, servers need to decide which value to accept and which
-to reject. To make this determination [[ref:Gateways]] ****MUST**** compare the payloads lexicographically to determine a
-[lexicographical order](https://en.wikipedia.org/wiki/Lexicographic_order), and reject the payload with a **lower**
-lexicographical order.
+When the [[ref:sequence number]] is equal, but the value is different, servers need to decide which value to accept
+and which to reject. To make this determination [[ref:Gateways]] ****MUST**** compare the payloads lexicographically
+to determine a [lexicographical order](https://en.wikipedia.org/wiki/Lexicographic_order), and reject the payload with
+a **lower** lexicographical order.
 
 ### Size Constraints
 
@@ -1040,14 +1108,15 @@ to ensure expected and legitimate behavior.
 
 ### Data Conflicts
 
-Malicious actors may try to force [[ref:Gateways]] into uncertain states by manipulating the [[ref:sequence number]] associated
-with a record set. There are three such cases to be aware of:
+Malicious actors may try to force [[ref:Gateways]] into uncertain states by manipulating the [[ref:sequence number]]
+associated with a record set. There are three such cases to be aware of:
 
-- **Low Sequence Number** - If a [[ref:Gateway]] has yet to see [[ref:sequence numbers]] for a given record it ****MUST**** query
-its peers to see if they have encountered the record. If a peer is found who has encountered the record, the record
-with the latest sequence number must be selected. If the server has encountered greater [[ref:sequence numbers]] before, the
-server ****MAY**** reject the record set. If the server supports [historical resolution](#historical-resolution) it
-****MAY**** choose to accept the request and insert the record into its historical ordered state.
+- **Low Sequence Number** - If a [[ref:Gateway]] has yet to see [[ref:sequence numbers]] for a given record it
+****MUST**** query its peers to see if they have encountered the record. If a peer is found who has encountered the
+record, the record with the latest sequence number must be selected. If the server has encountered greater
+[[ref:sequence numbers]] before, the server ****MAY**** reject the record set. If the server supports
+[historical resolution](#historical-resolution) it ****MAY**** choose to accept the request and insert the record into
+its historical ordered state.
 
 - **Conflicting Sequence Number** - When a malicious actor publishes _valid but conflicting_ records to two different
 [[ref:Mainline Servers]] or [[ref:Gateways]]. Implementers are encouraged to follow the guidance outlined in [conflict
@@ -1073,9 +1142,10 @@ to have done the validation. Servers that do not return a signature value ****MU
 
 ### Key Compromise
 
-Since the `did:dht` uses a single, un-rotatable root key, there is a risk of root key compromise. Such a compromise
-may be tough to detect without external assurances of identity. Implementers are encouraged to be aware of this
-possibility and devise strategies that support entities transitioning to new [[ref:DIDs]] over time.
+Since the `did:dht` uses a single, un-rotatable root key, there is are significant consequences associated with root key
+compromise. Such a compromise may be tough to detect without external assurances of identity. Implementers are encouraged
+to be aware of this possibility and devise strategies that support entities transitioning to new [[ref:DIDs]] regularly,
+such as the mechanism for [rotation](#rotation) noted in this specification.
 
 ### Public Data
 
@@ -1278,7 +1348,8 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
 #### Vector 3
 
 A DID Document with two keys -- the [[ref:Identity Key]] and an X25519 key used with a different `alg` value than
-what is specified in the registry. The DID also has two gateway records and a service with an endpoint greater than 255 characters.
+what is specified in the registry. The DID also has two gateway records and a service with an endpoint greater than
+255 characters, and a previous record.
 
 **Identity Public Key JWK:**
 
@@ -1317,6 +1388,8 @@ what is specified in the registry. The DID also has two gateway records and a se
 ```
 
 **Gateways:**: `gateway1.example-did-dht-gateway.com.`, `gateway2.example-did-dht-gateway.com.`.
+
+**Previous DID:**: `did:dht:pxoem5sfzxxxrnrwfgiu5i5wc7epouy1jk9zb7ad159dsxbxy8io`.
 
 **DID Document:**
 
@@ -1378,10 +1451,11 @@ what is specified in the registry. The DID also has two gateway records and a se
 
 | Name      | Type | TTL  | Rdata       |
 | --------- | ---- | ---- | ----------- |
+| _prv.did. | TXT  | 7200 | id=did:dht:x3heus3ke8fhgb5pbecday9wtbfynd6m19q4pm6gcf5j356qhjzo;s=Tt9DRT6J32v7O2lzbfasW63_FfagiMHTHxtaEOD7p85zHE0r_EfiNleyL6BZGyB1P-oQ5p6_7KONaHAjr2K6Bw |
 | _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | NS  | 7200 | gateway1.example-did-dht-gateway.com.                              |
 | _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | TXT | 7200 | v=0;vm=k0,k1;auth=k0;asm=k0;agm=k1;inv=k0;del=k0;svc=s0            |
 | _k0.did.  | TXT  | 7200 | id=0;t=0;k=sTyTLYw-n1NI9X-84NaCuis1wZjAA8lku6f6Et5201g                                                             |
-| _k1.did.  | TXT  | 7200 | id=WVy5IWMa36AoyAXZDvPd5j9zxt2t-GjifDEV-DwgIdQ;t=3;k=3POE0_i2mGeZ2qiQCA3KcLfi1fZo0311CXFSIwt1nB4;a=ECDH-ES+A128KW   |
+| _k1.did.  | TXT  | 7200 | id=WVy5IWMa36AoyAXZDvPd5j9zxt2t-GjifDEV-DwgIdQ;t=3;k=3POE0_i2mGeZ2qiQCA3KcLfi1fZo0311CXFSIwt1nB4;a=ECDH-ES+A128KW  |
 | _s0.did.  | TXT  | 7200 | id=service-1;t=TestLongService;se=https://test-lllllllllllllllllllllllllllllllllllooooooooooooooooooooonnnnnnnnnnnnnnnnnnngggggggggggggggggggggggggggggggggggggsssssssssssssssssssssssssseeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrvvvvvvvvvvvvvvvvvvvviiiiiiiiiiiiiiii iiiiiiiiiiiiiiiccccccccccccccccccccccccccccccceeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.com/1 |
 
 ### Open API Definition

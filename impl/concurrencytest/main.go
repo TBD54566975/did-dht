@@ -114,7 +114,7 @@ func generateDIDPutRequest() (string, []byte, error) {
 		return "", nil, err
 	}
 
-	packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil, nil)
+	packet, err := did.DHT(doc.ID).ToDNSPacket(*doc, nil, nil, nil)
 	if err != nil {
 		return "", nil, err
 	}
