@@ -3,6 +3,7 @@ package did
 import (
 	"crypto/ed25519"
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -19,7 +20,7 @@ func TestVectors(t *testing.T) {
 	type testVectorDNSRecord struct {
 		Name       string   `json:"name"`
 		RecordType string   `json:"type"`
-		TTL        string   `json:"ttl"`
+		TTL        int      `json:"ttl"`
 		Record     []string `json:"rdata"`
 	}
 
@@ -65,7 +66,7 @@ func TestVectors(t *testing.T) {
 				if record.Header().Name == expectedRecord.Name {
 					s := record.String()
 					if strings.Contains(s, expectedRecord.RecordType) &&
-						strings.Contains(s, expectedRecord.TTL) &&
+						strings.Contains(s, strconv.Itoa(expectedRecord.TTL)) &&
 						strings.Contains(s, strings.Join(expectedRecord.Record, "")) {
 						matchedRecords[i] = true // Mark as matched
 						break
@@ -158,7 +159,7 @@ func TestVectors(t *testing.T) {
 				if record.Header().Name == expectedRecord.Name {
 					s := record.String()
 					if strings.Contains(s, expectedRecord.RecordType) &&
-						strings.Contains(s, expectedRecord.TTL) &&
+						strings.Contains(s, strconv.Itoa(expectedRecord.TTL)) &&
 						strings.Contains(s, strings.Join(expectedRecord.Record, "")) {
 						matchedRecords[i] = true // Mark as matched
 						break
@@ -254,7 +255,7 @@ func TestVectors(t *testing.T) {
 				if record.Header().Name == expectedRecord.Name {
 					s := record.String()
 					if strings.Contains(s, expectedRecord.RecordType) &&
-						strings.Contains(s, expectedRecord.TTL) {
+						strings.Contains(s, strconv.Itoa(expectedRecord.TTL)) {
 						// make sure all parts of the record are contained within s
 						for _, r := range expectedRecord.Record {
 							if !strings.Contains(s, r) {

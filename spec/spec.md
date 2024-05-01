@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Last Updated:** April 29, 2024
+**Last Updated:** April 30, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -1389,7 +1389,9 @@ what is specified in the registry. The DID also has two gateway records and a se
 
 **Gateways:** `gateway1.example-did-dht-gateway.com.`, `gateway2.example-did-dht-gateway.com.`.
 
-**Previous DID:** `did:dht:pxoem5sfzxxxrnrwfgiu5i5wc7epouy1jk9zb7ad159dsxbxy8io`.
+**Previous DID:** 
+  - ID: `did:dht:pxoem5sfzxxxrnrwfgiu5i5wc7epouy1jk9zb7ad159dsxbxy8io`.
+  - Signature: `Tt9DRT6J32v7O2lzbfasW63_FfagiMHTHxtaEOD7p85zHE0r_EfiNleyL6BZGyB1P-oQ5p6_7KONaHAjr2K6Bw`.
 
 **DID Document:**
 
