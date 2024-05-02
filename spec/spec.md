@@ -1457,7 +1457,7 @@ what is specified in the registry. The DID also has two gateway records and a se
 | _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | NS  | 7200 | gateway1.example-did-dht-gateway.com.                              |
 | _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | TXT | 7200 | v=0;vm=k0,k1;auth=k0;asm=k0;agm=k1;inv=k0;del=k0;svc=s0            |
 | _k0.did.  | TXT  | 7200 | id=0;t=0;k=sTyTLYw-n1NI9X-84NaCuis1wZjAA8lku6f6Et5201g                                                             |
-| _k1.did.  | TXT  | 7200 | id=WVy5IWMa36AoyAXZDvPd5j9zxt2t-GjifDEV-DwgIdQ;t=3;k=3POE0_i2mGeZ2qiQCA3KcLfi1fZo0311CXFSIwt1nB4;a=ECDH-ES+A128KW  |
+| _k1.did.  | TXT  | 7200 | t=3;k=3POE0_i2mGeZ2qiQCA3KcLfi1fZo0311CXFSIwt1nB4;a=ECDH-ES+A128KW                                                  |
 | _s0.did.  | TXT  | 7200 | id=service-1;t=TestLongService;se=https://test-lllllllllllllllllllllllllllllllllllooooooooooooooooooooonnnnnnnnnnnnnnnnnnngggggggggggggggggggggggggggggggggggggsssssssssssssssssssssssssseeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrvvvvvvvvvvvvvvvvvvvviiiiiiiiiiiiiiii iiiiiiiiiiiiiiiccccccccccccccccccccccccccccccceeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.com/1 |
 
 ### Open API Definition
