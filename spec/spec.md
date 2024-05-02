@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Last Updated:** April 30, 2024
+**Last Updated:** May 2, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -338,8 +338,8 @@ the public key, and `P` is the `JWK` `alg` identifier of the key.
   - Verification Method `id`s ****MAY**** be omitted. If omitted, they can be computed according to the 
   rules specified in the section on [representing keys](#representing-keys) when reconstructing the DID Document.
 
-  - `alg` identifiers ****MAY**** be omitted. If omitted, they are assigned to the default value specified in the
-  [key type index](registry/index.html#key-type-index).
+  - The `alg` property ****MUST**** be omitted if it is assigned to the default value specified in the
+  [key type index](registry/index.html#key-type-index). If it differs from the default value, it ****MUST**** be present.
 
   - The [[ref:Identity Key]] ****MUST**** always be at index `_k0` with `id` `0`.
 
@@ -475,7 +475,7 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
 | _did.`<ID>`. | TXT  | 7200  | v=0;vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;svc=s1                             |
 | _cnt.did.    | TXT  | 7200  | did:example:abcd                                                                   |
 | _aka.did.    | TXT  | 7200  | did:example:efgh,did:example:ijkl                                                  |
-| _k0._did.    | TXT  | 7200  | t=0;k=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc;a=Ed25519   |
+| _k0._did.    | TXT  | 7200  | t=0;k=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc             |
 | _k1._did.    | TXT  | 7200  | t=1;k=AyiNAz7y-XBr853PBAzgAOU_c0Hyw0Gb69Hr9jTC3MQ8                                 |
 | _s0._did.    | TXT  | 7200  | id=dwn;t=DecentralizedWebNode;se=https://example.com/dwn1,https://example.com/dwn2 |
 
