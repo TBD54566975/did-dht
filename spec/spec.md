@@ -338,8 +338,8 @@ the public key, and `P` is the `JWK` `alg` identifier of the key.
   - Verification Method `id`s ****MAY**** be omitted. If omitted, they can be computed according to the 
   rules specified in the section on [representing keys](#representing-keys) when reconstructing the DID Document.
 
-  - `alg` identifiers ****MUST**** be omitted if they are assigned to the default value specified in the
-  [key type index](registry/index.html#key-type-index). If they differ from the default value, they ****MUST**** be present.
+  - The `alg` property ****MUST**** be omitted if it is assigned to the default value specified in the
+  [key type index](registry/index.html#key-type-index). If it differs from the default value, it ****MUST**** be present.
 
   - The [[ref:Identity Key]] ****MUST**** always be at index `_k0` with `id` `0`.
 
