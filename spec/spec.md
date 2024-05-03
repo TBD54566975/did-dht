@@ -657,7 +657,7 @@ type index record. This record is of the following format:
 - The Type Index record's **type** is `TXT`, indicating a Text record.
 
 - The Type Index record's **data** is represented with the form `id=H,I,J,...N` where the value is a comma-separated list of
-integer types from the [type index](#type-indexing).
+integer types from the [indexed types registry](registry/index.html#indexed-types).
 
 **Example Type Index Record**
 
