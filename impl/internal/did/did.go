@@ -554,11 +554,12 @@ type DIDDHTDocument struct {
 // FromDNSPacket converts a DNS packet to a DID DHT Document
 // Returns the DID Document, a list of types, a list of authoritative gateways, and an error
 func (d DHT) FromDNSPacket(msg *dns.Msg) (*DIDDHTDocument, error) {
+	didID := d.String()
 	doc := did.Document{
-		ID: d.String(),
+		ID: didID,
 	}
 
-	identityKey, err := DHT(d.String()).IdentityKey()
+	identityKey, err := DHT(didID).IdentityKey()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get identity key while decoding DNS packet")
 	}
@@ -601,7 +602,7 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*DIDDHTDocument, error) {
 
 				// set the controller to the DID if it's not provided
 				if controller == "" {
-					controller = d.String()
+					controller = didID
 				}
 
 				// Convert keyBase64URL back to PublicKeyJWK
@@ -645,9 +646,9 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*DIDDHTDocument, error) {
 				}
 
 				vm := did.VerificationMethod{
-					ID:           d.String() + "#" + vmID,
+					ID:           didID + "#" + vmID,
 					Type:         cryptosuite.JSONWebKeyType,
-					Controller:   d.String(),
+					Controller:   controller,
 					PublicKeyJWK: pubKeyJWK,
 				}
 				doc.VerificationMethod = append(doc.VerificationMethod, vm)
@@ -661,7 +662,7 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*DIDDHTDocument, error) {
 				serviceType := data["t"]
 				serviceEndpoint := data["se"]
 				service := did.Service{
-					ID:              d.String() + "#" + sID,
+					ID:              didID + "#" + sID,
 					Type:            serviceType,
 					ServiceEndpoint: strings.Split(serviceEndpoint, ","),
 				}
