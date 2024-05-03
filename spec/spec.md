@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Last Updated:** May 2, 2024
+**Last Updated:** May 3, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -18,6 +18,7 @@ The DID DHT Method Specification 1.0
 **Contributors:**
 ~ [Moe Jangda](https://github.com/mistermoe)
 ~ [Frank Hinek](https://github.com/frankhinek)
+~ [Henry Tsai](https://github.com/thehenrytsai)
 
 **Participate:**
 ~ [GitHub repo](https://github.com/TBD54566975/did-dht-method)
@@ -200,8 +201,8 @@ up a DNS packet [[spec:RFC1034]] [[spec:RFC1035]], which is then stored in the [
 | ------------ | ---- | ------ | ------------------------------------------------------------ |
 | _did.`<ID>`. | TXT  |  7200  | v=0;vm=k0,k1,k2;auth=k0;asm=k1;inv=k2;del=k2;svc=s0,s1,s2    |
 | _k0._did.    | TXT  |  7200  | id=0;t=0;k=`<unpadded-b64url>`                               |
-| _k1._did.    | TXT  |  7200  | t=1;k=`<unpadded-b64url>`                               |
-| _k2._did.    | TXT  |  7200  | t=1;k=`<unpadded-b64url>`                               |
+| _k1._did.    | TXT  |  7200  | t=1;k=`<unpadded-b64url>`                                    |
+| _k2._did.    | TXT  |  7200  | t=1;k=`<unpadded-b64url>`                                    |
 | _s0._did.    | TXT  |  7200  | id=domain;t=LinkedDomains;se=https://foo.com                 |
 | _s1._did.    | TXT  |  7200  | id=dwn;t=DecentralizedWebNode;se=https://dwn.tbddev.org/dwn5 |
 
@@ -331,17 +332,18 @@ as a `_kN._did.` record where `N` is the zero-indexed positional index of a give
 indicating a Text record.
 
 - Each [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) record's **rdata** is represented by the form
-`id=M;t=N;k=O;a=P` where `M` is the Verification Method's `id`, `N` is the index of the key's type from the
-[key type index](registry/index.html#key-type-index), `O` is the unpadded base64URL [[spec:RFC4648]] representation of
-the public key, and `P` is the `JWK` `alg` identifier of the key.
+`t=M;k=N;a=O` `M` is the index of the key's type from the [key type index](registry/index.html#key-type-index), `N` is the unpadded
+base64URL [[spec:RFC4648]] representation of the public key, and `O` is the `JWK` `alg` identifier of the key.
 
-  - Verification Method `id`s ****MAY**** be omitted. If omitted, they can be computed according to the 
-  rules specified in the section on [representing keys](#representing-keys) when reconstructing the DID Document.
+  - The [[ref:Identity Key]] ****MUST**** always be at index `_k0`.
 
-  - The `alg` property ****MUST**** be omitted if it is assigned to the default value specified in the
+  - Verification Method `id`s ****MUST**** be omitted as they can be computed deterministically according to the 
+  rules specified in the section on [representing keys](#representing-keys). When reconstructing the DID Document from
+  it's DNS Packet representation the `id` is used `0` for the [[ref:Identity Key]], and the JWK Thumbprint 
+  [[spec:RFC7638]] for all other keys.
+
+  - The `a` property ****MUST**** be omitted if it is assigned to the default value specified in the
   [key type index](registry/index.html#key-type-index). If it differs from the default value, it ****MUST**** be present.
-
-  - The [[ref:Identity Key]] ****MUST**** always be at index `_k0` with `id` `0`.
 
 - [Verification Methods](https://www.w3.org/TR/did-core/#verification-methods) ****MAY**** have an _optional_ **controller** 
 property represented by `c=C` where `C` is the identifier of the verification method's controller (e.g. `t=N;k=O;c=C`). If 
@@ -473,8 +475,8 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
 | Name         | Type | TTL   | Rdata                                                                              |
 | ------------ | ---- | ----- | ---------------------------------------------------------------------------------- |
 | _did.`<ID>`. | TXT  | 7200  | v=0;vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;svc=s1                             |
-| _cnt.did.    | TXT  | 7200  | did:example:abcd                                                                   |
-| _aka.did.    | TXT  | 7200  | did:example:efgh,did:example:ijkl                                                  |
+| _cnt._did.   | TXT  | 7200  | did:example:abcd                                                                   |
+| _aka._did.   | TXT  | 7200  | did:example:efgh,did:example:ijkl                                                  |
 | _k0._did.    | TXT  | 7200  | t=0;k=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc             |
 | _k1._did.    | TXT  | 7200  | t=1;k=AyiNAz7y-XBr853PBAzgAOU_c0Hyw0Gb69Hr9jTC3MQ8                                 |
 | _s0._did.    | TXT  | 7200  | id=dwn;t=DecentralizedWebNode;se=https://example.com/dwn1,https://example.com/dwn2 |
@@ -532,10 +534,16 @@ To read a `did:dht` document, the process is as follows:
 
 4. Reverse the DNS [property mapping](#property-mapping) process and re-construct a conformant [[ref:DID Document]].
 
-    a. Expand all identifiers (i.e. Verification Methods, Services, etc.) to their fully-qualified 
+    a. Identify the [[ref:Identity Key]] using the [[ref:suffix]] of the `did:dht` identifier, with record name `_k0._did`,
+    and set it's Verification Method ID to `0`.
+
+    b. Set all other key Verification Method ID values to their JWK Thumbprint as per [[spec:RFC7638]]
+
+    c. Expand all identifiers (i.e. Verification Methods, Services, etc. `id`s ) to their fully-qualified 
     form (e.g. `did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#0` 
     as opposed to `0` or `#0`, `did:dht:uodqi99wuzxsz6yx445zxkp8ddwj9q54ocbcg8yifsqru45x63kj#service-1` as opposed
     to `#service-1`).
+
 
 5. If [NS records](#designating-authoritative-gateways) are present this process should be repeated, making the initial
 request against the given [[ref:Gateway]]. The document with the highest [[ref:sequence number]] is to be treated
@@ -599,9 +607,9 @@ A `did:dht` Document ****MUST NOT**** have more than **one** Previous Record. Th
 - The Previous record's **data** is represented with the form `id=M,s=N` where `M` is the identifier of the previous DID,
 and `N` is the the unpadded base64URL signature from step (3) above.
 
-| Name         | Type | TTL   | Rdata                                                                                  |
-| ------------ | ---- | ----- | -------------------------------------------------------------------------------------- |
-| _prv._did.   | TXT  | 7200  | id=did:dht:pxoem5sfzxxxrnrwfgiu5i5wc7epouy1jk9zb7ad159dsxbxy8io;s=ol5LbUydL3_PdChE8tVYH-z_NhyFDQlop0agYtjyYbKz_-CYrj_3JGLiFne1e7PruOwf-b91uEFq9R_PgBn-Bg |
+| Name       | Type | TTL   | Rdata                                                                                  |
+| ---------- | ---- | ----- | -------------------------------------------------------------------------------------- |
+| _prv._did. | TXT  | 7200  | id=did:dht:pxoem5sfzxxxrnrwfgiu5i5wc7epouy1jk9zb7ad159dsxbxy8io;s=ol5LbUydL3_PdChE8tVYH-z_NhyFDQlop0agYtjyYbKz_-CYrj_3JGLiFne1e7PruOwf-b91uEFq9R_PgBn-Bg |
 
 
 The DID controller ****MAY**** include a statement in the old [[ref:DID Document]] indicating the rotation to the new identifier, 
@@ -624,7 +632,7 @@ sources for their DID. This designation is accomplished by incorporating
 in the DHT. A DID ****MAY**** have multiple NS records, enhancing redundancy and reliability. The format for these
 records is outlined as follows:
 
-- Each Gateway record's **name** is represented as `_did.<ID>.` record, where `ID` represents the unique identifier of the [[ref:DID Document]].
+- Each Gateway record's **name** is represented as `_did.<ID>.` record, where `ID` represents the suffix of the `did:dht` identifier.
 
 - Each Gateway record's **type** is `NS`, indicating a Name Server record.
 
@@ -1031,7 +1039,7 @@ The following guidance on representations of keys and their identifiers using th
 - For all other Verification Methods, JWK identifiers (`kid`s) ****MUST**** be set to the key's JWK Thumbprint
 as per [[spec:RFC7638]].
 
-- If no Verification Method `id` is provided, the Verification Method `id` is set to the JWK's `kid` value.
+- For all keys besides the [[ref:Identity Key]], the Verification Method `id` is set to the JWK's `kid` value.
 
 - [[ref:DID Document]] representations of elliptic curve (EC) keys ****MUST**** include the x- and y-coordinate pair.
 To conserve space in the DNS packet representation, compressed point encoding ****MUST**** be used to transmit the
@@ -1221,10 +1229,10 @@ A minimal DID Document.
 
 **DNS Resource Records:**
 
-| Name      | Type | TTL  | Rdata                                                  |
-| --------- | ---- | ---- | ------------------------------------------------------ |
+| Name      | Type | TTL  | Rdata                                                                                   |
+| --------- | ---- | ---- | --------------------------------------------------------------------------------------- |
 | _did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo. | TXT  | 7200 | v=0;vm=k0;auth=k0;asm=k0;inv=k0;del=k0 |
-| _k0._did. | TXT  | 7200 | id=0;t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE |
+| _k0._did. | TXT  | 7200 | t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE                                       |
 
 #### Vector 2
 
@@ -1270,7 +1278,7 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
 }
 ```
 
-**Gateway:**: `gateway1.example-did-dht-gateway.com.`.
+**Gateway:**: `gateway1.example-did-dht-gateway.com`.
 
 **Types:** `1`, `2`, `3`.
 
@@ -1334,20 +1342,20 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
 
 **DNS Resource Records:**
 
-| Name      | Type | TTL  | Rdata       |
-| --------- | ---- | ---- | ----------- |
+| Name       | Type | TTL  | Rdata                                                                                                 |
+| ---------- | ---- | ---- | ----------------------------------------------------------------------------------------------------- |
 | _did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo. | NS  | 7200 | gateway1.example-did-dht-gateway.com.                  |
 | _did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo. | TXT | 7200 | v=0;vm=k0,k1;auth=k0;asm=k0,k1;inv=k0,k1;del=k0;svc=s0 |
-| _cnt.did. | TXT  | 7200 | did:example:abcd                                                                                       |
-| _aka.did. | TXT  | 7200 | did:example:efgh,did:example:ijkl                                                                      |
-| _k0.did.  | TXT  | 7200 | id=0;t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE;c=did:example:abcd                              |
-| _k1.did.  | TXT  | 7200 | t=1;k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9                                                     |
-| _s0.did.  | TXT  | 7200 | id=service-1;t=TestService;se=https://test-service.com/1,https://test-service.com/2                    |
-| _typ.did. | TXT  | 7200 | id=1,2,3                                                                                               |
+| _cnt._did. | TXT  | 7200 | did:example:abcd                                                                                      |
+| _aka._did. | TXT  | 7200 | did:example:efgh,did:example:ijkl                                                                     |
+| _k0._did.  | TXT  | 7200 | t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE;c=did:example:abcd                                  |
+| _k1._did.  | TXT  | 7200 | t=1;k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9                                                    |
+| _s0._did.  | TXT  | 7200 | id=service-1;t=TestService;se=https://test-service.com/1,https://test-service.com/2                   |
+| _typ._did. | TXT  | 7200 | id=1,2,3                                                                                              |
 
 #### Vector 3
 
-A DID Document with two keys -- the [[ref:Identity Key]] and an X25519 key used with a different `alg` value than
+A DID Document with two keys — the [[ref:Identity Key]] and an X25519 key used with a different `alg` value than
 what is specified in the registry. The DID also has two gateway records and a service with an endpoint greater than
 255 characters, and a previous record.
 
@@ -1387,7 +1395,7 @@ what is specified in the registry. The DID also has two gateway records and a se
 }
 ```
 
-**Gateways:** `gateway1.example-did-dht-gateway.com.`, `gateway2.example-did-dht-gateway.com.`.
+**Gateways:** `gateway1.example-did-dht-gateway.com`, `gateway2.example-did-dht-gateway.com`.
 
 **Previous DID:** 
   - ID: `did:dht:pxoem5sfzxxxrnrwfgiu5i5wc7epouy1jk9zb7ad159dsxbxy8io`.
@@ -1451,14 +1459,15 @@ what is specified in the registry. The DID also has two gateway records and a se
 
 **DNS Resource Records:**
 
-| Name      | Type | TTL  | Rdata       |
-| --------- | ---- | ---- | ----------- |
-| _prv.did. | TXT  | 7200 | id=did:dht:x3heus3ke8fhgb5pbecday9wtbfynd6m19q4pm6gcf5j356qhjzo;s=Tt9DRT6J32v7O2lzbfasW63_FfagiMHTHxtaEOD7p85zHE0r_EfiNleyL6BZGyB1P-oQ5p6_7KONaHAjr2K6Bw |
-| _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | NS  | 7200 | gateway1.example-did-dht-gateway.com.                              |
-| _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | TXT | 7200 | v=0;vm=k0,k1;auth=k0;asm=k0;agm=k1;inv=k0;del=k0;svc=s0            |
-| _k0.did.  | TXT  | 7200 | id=0;t=0;k=sTyTLYw-n1NI9X-84NaCuis1wZjAA8lku6f6Et5201g                                                             |
-| _k1.did.  | TXT  | 7200 | t=3;k=3POE0_i2mGeZ2qiQCA3KcLfi1fZo0311CXFSIwt1nB4;a=ECDH-ES+A128KW                                                  |
-| _s0.did.  | TXT  | 7200 | id=service-1;t=TestLongService;se=https://test-lllllllllllllllllllllllllllllllllllooooooooooooooooooooonnnnnnnnnnnnnnnnnnngggggggggggggggggggggggggggggggggggggsssssssssssssssssssssssssseeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrvvvvvvvvvvvvvvvvvvvviiiiiiiiiiiiiiii iiiiiiiiiiiiiiiccccccccccccccccccccccccccccccceeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.com/1 |
+| Name       | Type | TTL  | Rdata       |
+| ---------- | ---- | ---- | ----------- |
+| _prv._did. | TXT  | 7200 | id=did:dht:x3heus3ke8fhgb5pbecday9wtbfynd6m19q4pm6gcf5j356qhjzo;s=Tt9DRT6J32v7O2lzbfasW63_FfagiMHTHxtaEOD7p85zHE0r_EfiNleyL6BZGyB1P-oQ5p6_7KONaHAjr2K6Bw |
+| _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | NS  | 7200 | gateway1.example-did-dht-gateway.com.                                        |
+| _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | NS  | 7200 | gateway2.example-did-dht-gateway.com.                                        |
+| _did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy. | TXT | 7200 | v=0;vm=k0,k1;auth=k0;asm=k0;agm=k1;inv=k0;del=k0;svc=s0                      |
+| _k0._did.  | TXT  | 7200 | t=0;k=sTyTLYw-n1NI9X-84NaCuis1wZjAA8lku6f6Et5201g                                                                           |
+| _k1._did.  | TXT  | 7200 | t=3;k=3POE0_i2mGeZ2qiQCA3KcLfi1fZo0311CXFSIwt1nB4;a=ECDH-ES+A128KW                                                          |
+| _s0._did.  | TXT  | 7200 | id=service-1;t=TestLongService;se=https://test-lllllllllllllllllllllllllllllllllllooooooooooooooooooooonnnnnnnnnnnnnnnnnnngggggggggggggggggggggggggggggggggggggsssssssssssssssssssssssssseeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrvvvvvvvvvvvvvvvvvvvviiiiiiiiiiiiiiii iiiiiiiiiiiiiiiccccccccccccccccccccccccccccccceeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.com/1 |
 
 ### Open API Definition
 

@@ -21,7 +21,7 @@
     "name": "_k0._did.",
     "type": "TXT",
     "ttl": 7200,
-    "rdata": ["id=0;t=0;k=sTyTLYw-n1NI9X-84NaCuis1wZjAA8lku6f6Et5201g"]
+    "rdata": ["t=0;k=sTyTLYw-n1NI9X-84NaCuis1wZjAA8lku6f6Et5201g"]
   },
   {
     "name": "_k1._did.",

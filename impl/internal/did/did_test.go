@@ -179,7 +179,6 @@ func TestToDNSPacket(t *testing.T) {
 			VerificationMethods: []VerificationMethod{
 				{
 					VerificationMethod: did.VerificationMethod{
-						ID:           "key1",
 						Type:         cryptosuite.JSONWebKeyType,
 						PublicKeyJWK: pubKeyJWK,
 					},
