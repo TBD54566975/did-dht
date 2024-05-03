@@ -366,8 +366,7 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex, gateways []Authori
 		}
 
 		keyBase64URL := base64.RawURLEncoding.EncodeToString(pubKeyBytes)
-		vmKeyFragment := vm.ID[strings.LastIndex(vm.ID, "#")+1:]
-		txtRecord := fmt.Sprintf("id=%s;t=%d;k=%s", vmKeyFragment, keyType, keyBase64URL)
+		txtRecord := fmt.Sprintf("t=%d;k=%s", keyType, keyBase64URL)
 
 		// only include the alg if it's not the default alg for the key type
 		forKeyType := algIsDefaultForJWK(*vm.PublicKeyJWK)
@@ -559,6 +558,11 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*DIDDHTDocument, error) {
 		ID: d.String(),
 	}
 
+	identityKey, err := DHT(d.String()).IdentityKey()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get identity key while decoding DNS packet")
+	}
+
 	suffix, err := d.Suffix()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get suffix while decoding DNS packet")
@@ -590,7 +594,6 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*DIDDHTDocument, error) {
 			if strings.HasPrefix(record.Hdr.Name, "_k") {
 				unchunkedTextRecord := unchunkTextRecord(record.Txt)
 				data := parseTxtData(unchunkedTextRecord)
-				vmID := data["id"]
 				keyType := keyTypeLookUp(data["t"])
 				keyBase64URL := data["k"]
 				controller := data["c"]
@@ -606,12 +609,14 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*DIDDHTDocument, error) {
 				if err != nil {
 					return nil, err
 				}
+
 				// as per the spec's guidance DNS representations use compressed keys, so we must unmarshall them as such
 				pubKey, err := crypto.BytesToPubKey(pubKeyBytes, keyType, crypto.ECDSAUnmarshalCompressed)
 				if err != nil {
 					return nil, err
 				}
-				pubKeyJWK, err := jwx.PublicKeyToPublicKeyJWK(&vmID, pubKey)
+
+				pubKeyJWK, err := jwx.PublicKeyToPublicKeyJWK(nil, pubKey)
 				if err != nil {
 					return nil, err
 				}
@@ -627,18 +632,16 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*DIDDHTDocument, error) {
 					pubKeyJWK.ALG = alg
 				}
 
-				// make sure the controller of the identity key matches the DID
-				if vmID == "0" && controller != d.String() {
-					return nil, fmt.Errorf("controller of identity key must be the DID itself, instead it is: %s", controller)
+				// compare pubkey to identity key to see if they're equal, and if they are set the vmID and kid to 0
+				var vmID string
+				if identityKey.Equal(pubKey) {
+					vmID = "0"
+					pubKeyJWK.KID = "0"
 				}
 
 				// if the verification method ID is not set, set it to the thumbprint
 				if vmID == "" {
 					vmID = pubKeyJWK.KID
-				}
-
-				if vmID != "0" && pubKeyJWK.KID != vmID {
-					return nil, fmt.Errorf("verification method JWK KID must be set to its thumbprint")
 				}
 
 				vm := did.VerificationMethod{
