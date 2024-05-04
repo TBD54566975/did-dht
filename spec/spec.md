@@ -1342,16 +1342,16 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y`.
 
 **DNS Resource Records:**
 
-| Name       | Type | TTL  | Rdata                                                                                                 |
-| ---------- | ---- | ---- | ----------------------------------------------------------------------------------------------------- |
-| _did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo. | NS  | 7200 | gateway1.example-did-dht-gateway.com.                  |
-| _did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo. | TXT | 7200 | v=0;vm=k0,k1;auth=k0;asm=k0,k1;inv=k0,k1;del=k0;svc=s0 |
-| _cnt._did. | TXT  | 7200 | did:example:abcd                                                                                      |
-| _aka._did. | TXT  | 7200 | did:example:efgh,did:example:ijkl                                                                     |
-| _k0._did.  | TXT  | 7200 | t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE;c=did:example:abcd                                  |
-| _k1._did.  | TXT  | 7200 | t=1;k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9                                                    |
-| _s0._did.  | TXT  | 7200 | id=service-1;t=TestService;se=https://test-service.com/1,https://test-service.com/2                   |
-| _typ._did. | TXT  | 7200 | id=1,2,3                                                                                              |
+| Name       | Type | TTL  | Rdata                                                                                                             |
+| ---------- | ---- | ---- | ----------------------------------------------------------------------------------------------------------------- |
+| _did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo. | NS  | 7200 | gateway1.example-did-dht-gateway.com.                              |
+| _did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo. | TXT | 7200 | v=0;vm=k0,k1;auth=k0;asm=k0,k1;inv=k0,k1;del=k0;svc=s0             |
+| _cnt._did. | TXT  | 7200 | did:example:abcd                                                                                                  |
+| _aka._did. | TXT  | 7200 | did:example:efgh,did:example:ijkl                                                                                 |
+| _k0._did.  | TXT  | 7200 | t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE                                                                 |
+| _k1._did.  | TXT  | 7200 | t=1;k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9;c=did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y |
+| _s0._did.  | TXT  | 7200 | id=service-1;t=TestService;se=https://test-service.com/1,https://test-service.com/2                               |
+| _typ._did. | TXT  | 7200 | id=1,2,3                                                                                                          |
 
 #### Vector 3
 
