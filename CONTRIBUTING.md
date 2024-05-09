@@ -16,7 +16,7 @@ This guide is for you.
 
 | Requirement | Tested Version | Installation Instructions                             |
 |-------------|----------------|-------------------------------------------------------|
-| Go          | 1.22.2         | [go.dev](https://go.dev/doc/tutorial/compile-install) |
+| Go          | 1.22.3         | [go.dev](https://go.dev/doc/tutorial/compile-install) |
 | Mage        | 1.15.0-5       | [magefile.org](https://magefile.org/)                   |
 
 ### Go
@@ -27,7 +27,7 @@ You may verify your `go` installation via the terminal:
 
 ```
 $> go version
-go version go1.22.2 darwin/amd64
+go version go1.22.3 darwin/amd64
 ```
 
 If you do not have go, we recommend installing it by:
@@ -54,7 +54,7 @@ $> mage --version
 Mage Build Tool v1.15.0-5-g2385abb
 Build Date: 2024-03-21T12:20:13-07:00
 Commit: 2385abb
-built with: go1.22.2
+built with: go1.22.3
 ```
 
 #### MacOS
