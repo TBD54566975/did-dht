@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Last Updated:** May 3, 2024
+**Last Updated:** May 9, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -19,6 +19,7 @@ The DID DHT Method Specification 1.0
 ~ [Moe Jangda](https://github.com/mistermoe)
 ~ [Frank Hinek](https://github.com/frankhinek)
 ~ [Henry Tsai](https://github.com/thehenrytsai)
+~ [Kendall Weihe](https://github.com/KendallWeihe)
 
 **Participate:**
 ~ [GitHub repo](https://github.com/TBD54566975/did-dht-method)
@@ -67,7 +68,7 @@ This DID method uses [[ref:DNS Resource Records]] to efficiently represent _[[re
 
 1. It has a proven track record of 15 years.
 2. It is the biggest DHT in existence with an estimated 10 million servers.
-3. It is fairly generous in retaining data.
+3. It retains data for multiple hours at no cost.
 4. It has been implemented in most languages and is stable.
 
 The syntax of the identifier and accompanying data model used by the protocol is conformant with the [[spec:DID-Core]]
@@ -95,7 +96,7 @@ services, and other properties outlined in the specification.
 all records in  [[ref:Mainline DHT]]. The encoded string comprises the [[ref:Suffix]] of `did:dht` identifier. This key
 is guaranteed to be present in each `did:dht` document.
 
-[[def:DID DHT Service]]
+[[def:]]
 ~ A service that provides a [[ref:Mainline]] interface, extended to support this [[ref:DID]] method.
 
 [[def:DNS Resource Records, DNS Resource Record]]
@@ -110,26 +111,32 @@ finding data on a peer-to-peer network. It is based on [Kademlia](https://en.wik
 primarily used to store and retrieve peer data. It is estimated to consistently have tens of millions of concurrent
 active users.
 
-[[def:Gateway, Gateways, DID DHT, Bitcoin-anchored Gateway]]
-~ A server that that facilitates DID DHT operations. The gateway may offer a set of APIs to interact with the DID DHT
-method features such as providing [guaranteed retention](#retained-did-set), [historical resolution](#historical-resolution), 
-and other features. Gateways can make themselves discoverable via a [[ref:Gateway Registry]].
+[[def:Gateway, Gateways, DID DHT, Bitcoin-anchored Gateway, DID DHT Service]]
+~ A server that that facilitates [[ref:Mainline]] and DID DHT operations. The gateway may offer a set of 
+APIs to interact with the DID DHT method features such as providing [guaranteed retention](#retained-did-set),
+[historical resolution](#historical-resolution), and other features. Gateways can make themselves
+discoverable via a [[ref:Gateway Registry]].
 
 [[def:Gateway Registry, Gateway Registries]]
 ~ A system used to aid in the discovery of [[ref:Gateways]]. One such system is the 
 [registry provided by this specification]((registry/index.html#gateways)).
 
+[[def:Republish, Republishing, Republishes]]
+~ The action that keeps a record alive in [[ref:Mainline]], which offers a limited duration (approximately 2 hours)
+for retaining records in the DHT. See [Republishing Data](#republishing-data).
+
 [[def:Client, Clients]]
 ~ A client is a piece of software that is responsible for generating a `did:dht` and submitting it to a 
 [[ref:Mainline Server]] or [[ref:Gateway]]. Notably, a client has the ability to sign messages with the
-[[ref:Identity Key]].
+private key associated with an [[ref:Identity Key]].
 
 [[def:Retained DID Set, Retained Set, Retention Set]]
-~ The set of DIDs that a [[ref:Gateway]] is retaining and thus is responsible for republishing.
+~ The set of DIDs that a [[ref:Gateway]] is retaining and thus is responsible for [[ref:republishing]].
 
 [[def:Retention Proof, Retention Proofs]]
-~ A proof of work that is performed by the [[ref:DID]] controller to prove that they are still in control of the DID.
-[[ref:Gateways]] use this proof to determine how long they should retain a DID.
+~ A proof provided by the [[ref:DID]] controller to a [[ref:Gateway]] which attests that (1) they control the
+DID and (2) have done sufficient work to have a [[ref:Gateway]] retain their DID for a set period of time. See
+[Retained DID Set](#retained-did-set).
 
 [[def:Sequence Number, Sequence Numbers, Sequence]]
 ~ A sequence number, or `seq`, is a property of a mutable item as defined in [[ref:BEP44]]. It is a 64-bit integer that
@@ -176,11 +183,11 @@ approach significantly mitigates risks associated with other DID methods, where 
 [DID resolver](https://www.w3.org/TR/did-core/#choosing-did-resolvers) might tamper with a [[ref:DID Document]]
 which would be undetectable by a client.
 
-Currently, [[ref:Mainline]] exclusively supports the [[ref:Ed25519]] key type. In turn, [[ref:Ed25519]] is required by
-DID DHT and is used to uniquely identify DID DHT Documents. DID DHT identifiers are formed by concatenating the
-`did:dht:` prefix with a [[ref:z-base-32]] encoded Identity Key, which acts as its [[ref:suffix]]. Identity Keys
-****MUST**** have the identifier `0` as both its Verification Method  `id` and JWK `kid` [[spec:RFC7517]]. Identity Keys
-****MUST**** have the [Verification Relationships](#verification-relationships) _Authentication_, _Assertion_,
+Currently, [[ref:Mainline]] exclusively supports the [[ref:Ed25519]] signature system. In turn, [[ref:Ed25519]]-based
+keys are required by DID DHT and used to uniquely identify DID DHT Documents. DID DHT identifiers are formed by 
+concatenating the `did:dht:` prefix with a [[ref:z-base-32]] encoded Identity Key, which acts as its [[ref:suffix]].
+Identity Keys ****MUST**** have the identifier `0` as both its Verification Method `id` and JWK `kid` [[spec:RFC7517]].
+Identity Keys ****MUST**** have the [Verification Relationships](#verification-relationships) _Authentication_, _Assertion_,
 _Capability Invocation_, and _Capability Delegation_.
 
 While the system requires at least one [[ref:Ed25519]], a DID DHT Document can include any number of additional keys.
@@ -253,7 +260,7 @@ Additionally:
 
   - The `vm` property ****MUST**** always contain _at least_ the [[ref:Identity Key]] represented by `k0`.
 
-  - Verification Relationships (`auth`, `asm`, `inv`, `del`, `svc`) without any members ****MUST**** be omitted.
+  - Verification Relationships (`auth`, `asm`, `agm`, `inv`, `del`) any members ****MUST**** be omitted.
 
   - If there are no [Services](#services) the `svc` property ****MUST**** be omitted.
 
@@ -474,7 +481,7 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
 
 | Name         | Type | TTL   | Rdata                                                                              |
 | ------------ | ---- | ----- | ---------------------------------------------------------------------------------- |
-| _did.`<ID>`. | TXT  | 7200  | v=0;vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;svc=s1                             |
+| _did.`<ID>`. | TXT  | 7200  | v=0;vm=k0,k1;auth=k0,k1;asm=k0,k1;inv=k0;del=k0;svc=s0                             |
 | _cnt._did.   | TXT  | 7200  | did:example:abcd                                                                   |
 | _aka._did.   | TXT  | 7200  | did:example:efgh,did:example:ijkl                                                  |
 | _k0._did.    | TXT  | 7200  | t=0;k=afdea69c63605863a68edea0ff7ff49dde0a96ce7e9249eb7780dd3d6f2ab5fc             |
@@ -696,15 +703,16 @@ One such registry is [provided by this specification](registry/index.html#gatewa
 
 ### Retained DID Set
 
-A [[ref:Retained DID Set]] refers to the set of DIDs a [[ref:Gateway]] retains and republishes to the DHT. A
+A [[ref:Retained DID Set]] refers to the set of DIDs a [[ref:Gateway]] retains and [[ref:republishes]] to the DHT. A
 [[ref:Gateway]] may choose to surface additional [APIs](#gateway-api) based on this set, such as providing a
 [type index](#type-indexing).
 
 To safeguard equitable access to the resources of [[ref:Gateways]], which are publicly accessible and potentially
 subject to [a high volume of requests](#rate-limiting), we suggest an ****OPTIONAL**** mechanism aimed at upholding
-fairness in the retention and republishing of record sets by [[ref:Gateways]]. This mechanism, referred to as a
-[[ref:Retention Proof]], requires clients to generate a proof value for write requests. This process guarantees that
-the amount of work done by a client is proportional to the duration of data retention and republishing a [[ref:Gateway]]
+fairness in the retention and [[ref:republishing]] of record sets by [[ref:Gateways]]. This mechanism, referred to as a
+[[ref:Retention Proof]], requires clients to generate a proof value for write requests that attests to to an amount of work
+completed in exchange for a retention guarantee provided by a [[ref:Gateway]]. This process aims to fairly guarnatee that
+the amount of work done by a client is proportional to the duration of data retention and [[ref:republishing]] a [[ref:Gateway]]
 performs. This mechanism enhances the overall reliability and effectiveness of [[ref:Gateways]] in managing requests.
 
 #### Generating a Retention Proof
@@ -943,7 +951,7 @@ follows the same process as [updating a DID](#register-or-update-a-did), but wit
 [section on deactivation](#deactivate).
 
 Upon receiving a request to deactivate a DID, the Gateway ****MUST**** verify the signature of the request, and if valid,
-stop republishing the DHT. If the DNS Packets contain a `_typ._did.` record, the Gateway ****MUST**** stop indexing the
+stop [[ref:republishing]] the DHT. If the DNS Packets contain a `_typ._did.` record, the Gateway ****MUST**** stop indexing the
 type(s) for the DID.
 
 #### Type Indexing
