@@ -88,16 +88,13 @@ decentralized digital identity_. A DID identifier is associated with a JSON docu
 services, and other properties outlined in the specification.
 
 [[def:DID Suffix, Suffix]]
-~ The unique identifier string within a DID URI. For DID DHT the suffix is the [[ref:z-base-32]] encoded
-[[ref:Identity Key]].
+~ The unique identifier string within a DID URI (e.g. the part after `did:dht:`). For DID DHT the suffix is 
+the [[ref:z-base-32]] encoded [[ref:Identity Key]].
 
 [[def:Identity Key]]
-~ An [Identity Key](#identity-key) is a [[ref:z-base-32]] encoded [[ref:Ed25519]] public key required to authenticate
-all records in  [[ref:Mainline DHT]]. The encoded string comprises the [[ref:Suffix]] of `did:dht` identifier. This key
-is guaranteed to be present in each `did:dht` document.
-
-[[def:]]
-~ A service that provides a [[ref:Mainline]] interface, extended to support this [[ref:DID]] method.
+~ An [Identity Key](#identity-key) is an [[ref:Ed25519]] key-pair required to authenticate all records in
+[[ref:Mainline DHT]]. The public key portion is encoded using [[ref:z-base-32]] and represented in the [[ref:DID Suffix]].
+This key is guaranteed to be present in each `did:dht` document.
 
 [[def:DNS Resource Records, DNS Resource Record]]
 ~ An efficient format for representing [[ref:DID Documents]] and providing semantics pertinent to DID DHT,
