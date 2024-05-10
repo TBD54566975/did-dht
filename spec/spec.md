@@ -182,7 +182,7 @@ which would be undetectable by a client.
 
 Currently, [[ref:Mainline]] exclusively supports the [[ref:Ed25519]] signature system. In turn, [[ref:Ed25519]]-based
 keys are required by DID DHT and used to uniquely identify DID DHT Documents. DID DHT identifiers are formed by 
-concatenating the `did:dht:` prefix with a [[ref:z-base-32]] encoded Identity Key, which acts as its [[ref:suffix]].
+concatenating the `did:dht:` prefix with a [[ref:z-base-32]] encoded public key, which acts as its [[ref:suffix]].
 Identity Keys ****MUST**** have the identifier `0` as both its Verification Method `id` and JWK `kid` [[spec:RFC7517]].
 Identity Keys ****MUST**** have the [Verification Relationships](#verification-relationships) _Authentication_, _Assertion_,
 _Capability Invocation_, and _Capability Delegation_.
