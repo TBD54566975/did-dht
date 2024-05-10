@@ -257,7 +257,7 @@ Additionally:
 
   - The `vm` property ****MUST**** always contain _at least_ the [[ref:Identity Key]] represented by `k0`.
 
-  - Verification Relationships (`auth`, `asm`, `agm`, `inv`, `del`) any members ****MUST**** be omitted.
+  - Verification Relationships (`auth`, `asm`, `agm`, `inv`, `del`) without any members ****MUST**** be omitted.
 
   - If there are no [Services](#services) the `svc` property ****MUST**** be omitted.
 
