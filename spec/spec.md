@@ -89,7 +89,7 @@ services, and other properties outlined in the specification.
 
 [[def:DID Suffix, Suffix]]
 ~ The unique identifier string within a DID URI (e.g. the part after `did:dht:`). For DID DHT the suffix is 
-the [[ref:z-base-32]] encoded [[ref:Identity Key]].
+the [[ref:z-base-32]] encoded public key portion of the [[ref:Identity Key]].
 
 [[def:Identity Key]]
 ~ An [Identity Key](#identity-key) is an [[ref:Ed25519]] key-pair required to authenticate all records in
