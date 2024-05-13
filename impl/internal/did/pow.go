@@ -29,10 +29,10 @@ func hasLeadingZeros(hash string, difficulty int) bool {
 	return strings.HasPrefix(binaryHash, target)
 }
 
-// computeRetentionProof generates the Retention Proof Hash and checks if it meets the criteria.
-func computeRetentionProof(didIdentifier, bitcoinBlockHash string, difficulty, nonce int) (string, bool) {
+// solveRetentionChallenge generates the Retention Challenge Hash and checks if it meets the criteria.
+func solveRetentionChallenge(didIdentifier, inputHash string, difficulty, nonce int) (string, bool) {
 	// Concatenating the DID identifier with the retention value
-	retentionValue := didIdentifier + (bitcoinBlockHash + fmt.Sprintf("%d", nonce))
+	retentionValue := didIdentifier + (inputHash + fmt.Sprintf("%d", nonce))
 
 	// Computing the SHA-256 hash
 	hash := computeSHA256Hash(retentionValue)
