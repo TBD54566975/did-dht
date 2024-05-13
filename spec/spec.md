@@ -650,9 +650,9 @@ records is outlined as follows:
 
 ### Type Indexing
 
-Type indexing is an **OPTIONAL** feature that enables DIDs to become **discoverable**, by flagging themselves as being of
-a particular type. Types are not included as a part of the DID Document, but rather as part of the DNS packet. This allows
-for DIDs to be indexed by type by [[ref:Gateways]], and for DIDs to be resolved by type.
+Type indexing is an **OPTIONAL** feature that enables DIDs to become **discoverable**, by flagging themselves as being
+of a particular type. Types are not included as a part of the DID Document, but rather as part of the DNS packet. This
+allows for DIDs to be indexed by type by [[ref:Gateways]], and for DIDs to be resolved by type.
 
 DIDs can be indexed by type by adding a `_typ._did.` record to the DNS packet. A DID ****MAY**** have **AT MOST** one
 type index record. This record is of the following format:
@@ -661,8 +661,8 @@ type index record. This record is of the following format:
 
 - The Type Index record's **type** is `TXT`, indicating a Text record.
 
-- The Type Index record's **data** is represented with the form `id=H,I,J,...N` where the value is a comma-separated list of
-integer types from the [indexed types registry](registry/index.html#indexed-types).
+- The Type Index record's **data** is represented with the form `id=H,I,J,...N` where the value is a comma-separated
+list of integer types from the [indexed types registry](registry/index.html#indexed-types).
 
 **Example Type Index Record**
 
@@ -709,8 +709,8 @@ A [[ref:Retained DID Set]] refers to the set of DIDs a [[ref:Gateway]] retains a
 This feature aims to safeguard equitable access to the resources of [[ref:Gateways]], which are publicly accessible 
 and potentially subject to [a high volume of requests](#rate-limiting). The [[ref:Retained DID Set]] is facilitated
 by a [[ref:Retention Challenge]], which requires clients to generate a solution for the challenge — a [[ref:Retention Solution]]
-— in order to have their write requests accepted. [[ref:Retention Solutions]] act as proof of an amount of work completed in
-exchange for a retention guarantee provided by a [[ref:Gateway]] (via the `expiry` property).
+— in order to have their write requests accepted. [[ref:Retention Solutions]] act as proof of an amount of work
+completed in exchange for a retention guarantee provided by a [[ref:Gateway]] (via the `expiry` property).
 
 The [[ref:Retained DID Set]] aims to provide a fair mechanism which provides numerous benefits for clients while giving
 [[ref:Gateway]] operators anti-spam prevention, and control over the rate at which they accept new DIDs, thus enhancing
@@ -719,15 +719,15 @@ the overall reliability and effectiveness of [[ref:Gateways]] in managing DIDs.
 #### Generating a Retention Solution
 
 A [[ref:Retention Solution]] is a form of [proof of work](https://en.bitcoin.it/wiki/Proof_of_work) bound to a specific
-DID identifier, using input values supplied by given [gateway](registry/index.html#gateways). The proof of work is performed using
-the [SHA-256 hashing algorithm](https://en.wikipedia.org/wiki/SHA-2) over the concatenation of a the `did` identifier and random
-[`nonce`](https://en.wikipedia.org/wiki/Cryptographic_nonce) supplied by the user, and a `hash` value 
-[supplied by the gateway](#get-the-current-challenge). The result of a given proof of work attempt is referred to as the 
-`retention` value.
+DID identifier, using input values supplied by given [gateway](registry/index.html#gateways). The proof of work is
+performed using the [SHA-256 hashing algorithm](https://en.wikipedia.org/wiki/SHA-2) over the concatenation of a the
+`did` identifier and random [`nonce`](https://en.wikipedia.org/wiki/Cryptographic_nonce) supplied by the user, and a
+`hash` value [supplied by the gateway](#get-the-current-challenge). The result of a given proof of work attempt is
+referred to as the `retention` value.
 
-The resulting `retention` value is determined to be a valid [[ref:Retention Solution]] based on whether it has the requisite
-number of leading zeros defined by the `difficulty`. Difficulty values are [supplied by the gateway](#get-the-current-challenge)
-and ****MUST**** be no less than 26 bits of the 256-bit hash value.
+The resulting `retention` value is determined to be a valid [[ref:Retention Solution]] based on whether it has the
+requisite number of leading zeros defined by the `difficulty`. Difficulty values are
+[supplied by the gateway](#get-the-current-challenge) and ****MUST**** be no less than 26 bits of the 256-bit hash value.
 
 The algorithm, in detail, is as follows:
 
@@ -750,11 +750,11 @@ The algorithm, in detail, is as follows:
 7. Submit the `RETENTION_SOLUTION` to the [Gateway API](#register=or-update-a-did) for write operations.
 
 :::note
-When a [[ref:Client]] submits a valid [[ref:Retention Solution]], conformant [[ref:Gateways]] respond with an `expiry` timestamp.
-This timestamp indicates when DID will be evicted from the [[ref:Gateway]]'s [Retained DID Set](#retained-did-set). [[ref:Clients]]
-are advised to take note of this `expiry` timestamp and ensure they complete a new [[ref:Retention Challenge]] before the expiration
-is reached. By doing so, [[ref:Clients]] can maintain the continuity of their DID's retention and prevent unintended eviction
-of their identifier.
+When a [[ref:Client]] submits a valid [[ref:Retention Solution]], conformant [[ref:Gateways]] respond with an `expiry`
+timestamp. This timestamp indicates when DID will be evicted from the [[ref:Gateway]]'s
+[Retained DID Set](#retained-did-set). [[ref:Clients]] are advised to take note of this `expiry` timestamp and ensure
+they solve a new [[ref:Retention Challenge]] before the expiration is reached. By doing so, [[ref:Clients]] can
+maintain the continuity of their DID's retention and prevent unintended eviction of their identifier.
 :::
 
 #### Managing the Retained DID Set
@@ -781,7 +781,7 @@ to aid [[ref:Clients]] in being able to assess whether further proof of work is 
 
 A conformant [[ref:Gateway]] ****MUST**** support the API defined in the following sections. 
 
-As a convenicne, the API is made available via an [OpenAPI document](#open-api-definition).
+As a convenience this API is made available via an [OpenAPI document](#open-api-definition).
 
 #### DHT
 
@@ -838,11 +838,11 @@ Challenge is exposed as an endpoint to facilitate functionality pertaining to th
 - **Returns:** `application/json`
   - `200` - Success.
     - `hash` - **string** - **REQUIRED** - The current hash which is to be used as input for computing a [[ref:Retention Solution]].
-    - `difficulty` - **integer** - **REQUIRED** - The current difficulty of the challenge, representing the number of bits of leading
-    zeros the resulting hash must contain.
-    - `expiry` - **integer** - An _approximate_ expiry date-time value, if a valid [[ref:Retention Solution]] is submitted against
-    this challenge, which ****MUST**** be a [[ref:Unix Timestamp]] in seconds. The _precise_ expiry date-time value is returned 
-    as a part of a [PUT operation](#register-or-update-a-did).
+    - `difficulty` - **integer** - **REQUIRED** - The current difficulty of the challenge, representing the number of
+    bits of leading zeros the resulting hash must contain.
+    - `expiry` - **integer** - An _approximate_ expiry date-time value, if a valid [[ref:Retention Solution]] is
+    submitted against this challenge, which ****MUST**** be a [[ref:Unix Timestamp]] in seconds. The _precise_ expiry
+    date-time value is returned as a part of a [PUT operation](#register-or-update-a-did).
   - `501` - [[ref:Retention Sets]] are not supported by this gateway.
 
 **Example Challenge Response**
@@ -892,7 +892,8 @@ Upon receiving a request to register a DID the [[ref:Gateway]] ****MUST**** perf
 
 * Verify the signature of the request and, if valid, publish the [[ref:BEP44]] payload to the DHT.
 
-* If one is provided, validate the `retention_solution` and, if valid, add the DID to the [[ref:Gateway]]'s [[ref:Retained DID Set]].
+* If one is provided, validate the `retention_solution` and, if valid, add the DID to the [[ref:Gateway]]'s
+[[ref:Retained DID Set]].
 
 * If the DNS packet contain a `_typ._did.` record, update the specified indexes with the DID.
 
