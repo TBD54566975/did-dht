@@ -50,7 +50,7 @@ paths:
     put:
       tags:
         - DHT
-      summary: Put DNS-encoded BEP44 records into the DHT
+      summary: Put a DNS-encoded BEP44 record set into the DHT
       description: Put a DNS-encoded BEP44 record set into the DHT
       parameters:
         - name: id
@@ -112,9 +112,9 @@ paths:
                 v:
                   type: string
                   description: A base64URL-encoded bencoded DNS packet containing the DID Document.
-                retention_proof:
+                retention_solution:
                   type: string
-                  description: A retention proof calculated according to the spec-defined retention proof algorithm.
+                  description: A retention solution calculated according to the spec-defined retention solution algorithm.
               required: [ did, sig, seq, v ]
       responses:
         "202":
@@ -122,7 +122,10 @@ paths:
           content:
             application/json:
               schema:
-                type: string
+                type: object
+                properties:
+                  expiry:
+                    type: number
         "400":
           description: Invalid request.
           content:
@@ -130,7 +133,7 @@ paths:
               schema:
                 type: string
         "401":
-          description: Invalid signature.
+          description: Invalid signature or retention solution.
           content:
             application/json:
               schema:
@@ -183,6 +186,9 @@ paths:
                     items:
                       type: integer
                     description: "The sequence numbers available for querying for this node."
+                  expiry:
+                    type: number
+                    description: "The Unix Timestamp in seconds indicating when the DID will be evicted from the Gateway's Retained DID Set."
                 required: [ did, dht ]
         "400":
           description: Invalid request.
@@ -261,15 +267,15 @@ paths:
             application/json:
               schema:
                 type: string
-  /difficulty:
+  /challenge:
     get:
       tags:
         - DID
-      summary: Get information about the current difficulty.
-      description: Get information needed to calculate a retention proof for DID PUT operations.
+      summary: Get information necessary for responding to retention challenges.
+      description: Get information needed to calculate a retention solution for DID PUT operations.
       responses:
         "200":
-          description: The current hash and difficulty to calculate a retention proof against.
+          description: The current hash and difficulty to calculate a retention solution against, along with an estimated retention guarantee represented by the expiry property.
           content:
             application/json:
               schema:
@@ -277,12 +283,17 @@ paths:
                 properties:
                   hash:
                     type: string
+                    description: "The current hash which is to be used as input for computing a retention solution."
                   difficulty:
                     type: integer
-                required: [ hash, difficulty ]
+                    description: "The current difficulty of the challenge representing the number of bits of leading zeros the resulting hash must contain."
+                  expiry:
+                    type: integer
+                    description: "An approximate expiry date-time value, if a valid Retention Solution is submitted against this challenge, represented as a Unix Timestamp in seconds. The precise expiry date-time value is returned as a part of a PUT operation."
+                required: [ hash, difficult, expiry ]
         "404":
-          description: Retention proofs not supported by this gateway.
+          description: Retention challenges are not supported by this gateway.
           content:
             application/json:
               schema:
-                type: string     
+                type: string

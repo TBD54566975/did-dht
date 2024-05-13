@@ -692,45 +692,29 @@ optional integration of these gateways into a registry system.
 
 ### Discovering Gateways
 
-As an **OPTIONAL** feature of the DID DHT Method, operators of a [[ref:Gateway]] may choose to make their server
+As an **OPTIONAL** feature of the DID DHT Method, operators of a [[ref:Gateway]] ****MAY**** choose to make their server
 discoverable through a [[ref:Gateway Registry]]. This feature allows for easy location through various internet-based 
 discovery mechanisms. [[ref:Gateway Registries]] can vary in nature, encompassing a spectrum from centrally managed 
 directories to diverse decentralized systems including databases, ledgers, or other structures.
 
-One such registry is [provided by this specification](registry/index.html#gateways).
+As a convenience, one such registry is [provided by this specification](registry/index.html#gateways).
 
 ### Retained DID Set
 
-A [[ref:Retained DID Set]] refers to the set of DIDs a [[ref:Gateway]] retains and [[ref:republishes]] to the DHT. A
-[[ref:Gateway]] may choose to surface additional [APIs](#gateway-api) based on this set, such as providing a
-[type index](#type-indexing) or supporting [historical resolution](#historical-resolution).
+As feature of the DID DHT Method, operators of a [[ref:Gateway]] ****MUST**** support retaining DIDs for extended periods
+of time to reduce the burden on DID controllers and [[ref:Clients]] in needing  to [[ref:republish]] their records to
+[[ref:Mainline]].
 
-To safeguard equitable access to the resources of [[ref:Gateways]], which are publicly accessible and potentially
-subject to [a high volume of requests](#rate-limiting), we provie an _optional_ mechanism aimed at upholding
-fairness in the retention and [[ref:republishing]] of record sets by [[ref:Gateways]]. This mechanism, referred to as a
-[[ref:Retention Challenge]], requires clients to generate a solution for the challenge — a [[ref:Retention Solution]] — for
-write requests, which attest to an amount of work completed in exchange for a retention guarantee provided by a [[ref:Gateway]].
+A [[ref:Retained DID Set]] refers to the set of DIDs a [[ref:Gateway]] retains and [[ref:republishes]] to the DHT. 
+This feature aims to safeguard equitable access to the resources of [[ref:Gateways]], which are publicly accessible 
+and potentially subject to [a high volume of requests](#rate-limiting). The [[ref:Retained DID Set]] is facilitated
+by a [[ref:Retention Challenge]], which requires clients to generate a solution for the challenge — a [[ref:Retention Solution]]
+— in order to have their write requests accepted. [[ref:Retention Solutions]] act as proof of an amount of work completed in
+exchange for a retention guarantee provided by a [[ref:Gateway]] (via the `expiry` property).
 
-This process aims to provide a fair mechanism which provides numerous benefits for clients while giving [[ref:Gateway]] operators
-anti-spam prevention, and control over the rate at which they accept new DIDs, thus enhancing the overall 
-reliability and effectiveness of [[ref:Gateways]] in managing DIDs.
-
-#### Managing the Retained DID Set
-
-[[ref:Gateways]] supporting [[ref:Retention Set]] guidelines ****MUST**** provide an `expiry` value represented as a
-[[ref:Unix Timestamp]]. This timestamp precisely indicates when the [[ref:Gateway]] will cease republishing a particular DID,
-thus evicting the DID from the [[ref:Gateway]]'s Retained DID Set. This timestamp establishes a binding agreement between the
-[[ref:Client]] and the [[ref:Gateway]], and it ****MUST NOT**** be modified once set. 
-
-To guarantee a sensible minimum retention period, it is ****RECOMMENDED**** that [[ref:Gateways]] retain DIDs for at least **1 week** 
-starting from the acceptance of [[ref:Retention Solution]].
-
-[[ref:Gateways]] ****MAY**** choose to offer an extended grace period before evicting DIDs, particularly for those with a substantial history
-with the [[ref:Gateway]], such as DIDs exposed through the [historical resolution API](#historical-resolution).
-
-[[ref:Gateways]] ****MAY**** choose to include the `expiry` value as a part of the
-[DID Resolution Metadata](https://www.w3.org/TR/did-core/#did-resolution-metadata), during [DID Resolution](#did-resolution),
-to aid [[ref:Clients]] in being able to assess whether further proof of work is required.
+The [[ref:Retained DID Set]] aims to provide a fair mechanism which provides numerous benefits for clients while giving
+[[ref:Gateway]] operators anti-spam prevention, and control over the rate at which they accept new DIDs, thus enhancing
+the overall reliability and effectiveness of [[ref:Gateways]] in managing DIDs.
 
 #### Generating a Retention Solution
 
@@ -738,11 +722,12 @@ A [[ref:Retention Solution]] is a form of [proof of work](https://en.bitcoin.it/
 DID identifier, using input values supplied by given [gateway](registry/index.html#gateways). The proof of work is performed using
 the [SHA-256 hashing algorithm](https://en.wikipedia.org/wiki/SHA-2) over the concatenation of a the `did` identifier and random
 [`nonce`](https://en.wikipedia.org/wiki/Cryptographic_nonce) supplied by the user, and a `hash` value 
-[supplied by the gateway](#get-the-current-difficulty). The result of a given proof of work attempt is referred to as the 
+[supplied by the gateway](#get-the-current-challenge). The result of a given proof of work attempt is referred to as the 
 `retention` value.
 
 The resulting `retention` value is determined to be a valid [[ref:Retention Solution]] based on whether it has the requisite
-number of leading zeros defined by the `difficulty`. Difficulty values ****MUST**** be no less than 26 bits of the 256-bit hash value.
+number of leading zeros defined by the `difficulty`. Difficulty values are [supplied by the gateway](#get-the-current-challenge)
+and ****MUST**** be no less than 26 bits of the 256-bit hash value.
 
 The algorithm, in detail, is as follows:
 
@@ -754,7 +739,7 @@ The algorithm, in detail, is as follows:
 
 4. Set `RETENTION` equal to the result of (`DID` + `HASH` + `NONCE`).
 
-5. Compute the [SHA-256](https://en.wikipedia.org/wiki/SHA-2) hash over `ATTEMPT` where `ATTEMPT` = SHA256(`RETENTION_VALUE`).
+5. Compute the [SHA-256](https://en.wikipedia.org/wiki/SHA-2) hash over `RETENTION` where `ATTEMPT` = SHA256(`RETENTION`).
 
 6. Inspect the result of `ATTEMPT`, and ensure it has >= `DIFFICULTY` bits of leading zeroes.
 
@@ -765,24 +750,47 @@ The algorithm, in detail, is as follows:
 7. Submit the `RETENTION_SOLUTION` to the [Gateway API](#register=or-update-a-did) for write operations.
 
 :::note
-When a [[ref:Client]] submits a valid [[ref:Retention Solution]], compliant [[ref:Gateways]] respond with an `expiry` timestamp.
+When a [[ref:Client]] submits a valid [[ref:Retention Solution]], conformant [[ref:Gateways]] respond with an `expiry` timestamp.
 This timestamp indicates when DID will be evicted from the [[ref:Gateway]]'s [Retained DID Set](#retained-did-set). [[ref:Clients]]
 are advised to take note of this `expiry` timestamp and ensure they complete a new [[ref:Retention Challenge]] before the expiration
 is reached. By doing so, [[ref:Clients]] can maintain the continuity of their DID's retention and prevent unintended eviction
 of their identifier.
 :::
 
+#### Managing the Retained DID Set
+
+[[ref:Gateways]] supporting [[ref:Retention Set]] feature ****MUST**** provide an `expiry` value represented as a
+[[ref:Unix Timestamp]] as a part of the [Gateway API](#gateway-api). This timestamp precisely indicates when the 
+[[ref:Gateway]] will cease republishing a particular DID, thus evicting the DID from the [[ref:Gateway]]'s Retained DID Set.
+This timestamp establishes a binding agreement between the [[ref:Client]] and the [[ref:Gateway]], and it ****MUST NOT****
+be modified once set.
+
+Further, it is ****RECOMMENDED**** that [[ref:Gateway]]'s adhere to the following guidance:
+
+* To guarantee a sensible minimum retention period, it is ****RECOMMENDED**** that [[ref:Gateways]] retain DIDs for at 
+least **1 week** starting from the acceptance of [[ref:Retention Solution]].
+
+* [[ref:Gateways]] ****MAY**** choose to offer an extended grace period before evicting DIDs, particularly for those
+with a substantial history with the [[ref:Gateway]], such as DIDs exposed through the [Historical Resolution API](#historical-resolution).
+
+* [[ref:Gateways]] ****MAY**** choose to include the `expiry` value as a part of the
+[DID Resolution Metadata](https://www.w3.org/TR/did-core/#did-resolution-metadata), during [DID Resolution](#did-resolution),
+to aid [[ref:Clients]] in being able to assess whether further proof of work is required.
+
 ### Gateway API
 
-At a minimum, a [[ref:Gateway]] ****MUST**** support the [Relay API](#relay) inspired by [[ref:Pkarr]], which is specified
-in the subsequent section.
+A conformant [[ref:Gateway]] ****MUST**** support the API defined in the following sections. 
 
-Expanding on this API, a fully conformant [[ref:Gateway]] ****MUST**** support the following API, which is made 
-available via an [OpenAPI document](#open-api-definition).
+As a convenicne, the API is made available via an [OpenAPI document](#open-api-definition).
 
-#### Relay
+#### DHT
 
-Public relays will need to set up [Cross-origin resource sharing (CORS)](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) headers as follows:
+The DHT API, drawing inspiration from [[ref:Pkarr]], is built as an abstraction layer over [[ref:Mainline DHT]]
+which enables the storage of [[ref:DNS Resource Records]] within [[ref:BEP44]] payloads. It is important to exercise
+caution when utilizing the DHT API, as it **does not offer any assurances regarding data retention**.
+
+For this API, [[ref:Gateways]] will need to set up [Cross-origin resource sharing (CORS)](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
+headers as follows:
 
 - `Access-Control-Allow-Origin`: `*`
 - `Access-Control-Allow-Methods`: `GET`, `PUT`, `OPTIONS`
@@ -821,20 +829,23 @@ On receiving a `GET` request the server submits a mutable get query to [[ref:Mai
     - `v` - represents between 0-1000 bytes of a [[ref:bencoded]] compressed DNS packet.
   - `404` - Record not found.
 
-#### Get the Current Difficulty
+#### Get the Current Challenge
 
-Difficulty is exposed as an **OPTIONAL** endpoint based on support of the [Retained DID Set](#retained-did-set) feature.
+Challenge is exposed as an endpoint to facilitate functionality pertaining to the [Retained DID Set](#retained-did-set).
 
 - **Method:** `GET`
-- **Path:** `/difficulty`
+- **Path:** `/challenge`
 - **Returns:** `application/json`
   - `200` - Success.
-    - `hash` - **string** - **REQUIRED** - The current hash.
-    - `difficulty` - **integer** - **REQUIRED** - The current difficulty.
-    - `expiry` - **integer** - An _approximate_ expiry date-time value which ****MUST**** be a [[ref:Unix Timestamp]]
-    in seconds. The _precise_ expiry date-time value is returned as a part of an [update operation](#register-or-update-a-did).
+    - `hash` - **string** - **REQUIRED** - The current hash which is to be used as input for computing a [[ref:Retention Solution]].
+    - `difficulty` - **integer** - **REQUIRED** - The current difficulty of the challenge, representing the number of bits of leading
+    zeros the resulting hash must contain.
+    - `expiry` - **integer** - An _approximate_ expiry date-time value, if a valid [[ref:Retention Solution]] is submitted against
+    this challenge, which ****MUST**** be a [[ref:Unix Timestamp]] in seconds. The _precise_ expiry date-time value is returned 
+    as a part of a [PUT operation](#register-or-update-a-did).
   - `501` - [[ref:Retention Sets]] are not supported by this gateway.
 
+**Example Challenge Response**
 ```json
 {
   "hash": "000000000000000000022be0c55caae4152d023dd57e8d63dc1a55c1f6de46e7",
@@ -860,12 +871,13 @@ Difficulty is exposed as an **OPTIONAL** endpoint based on support of the [Retai
 - **Returns:** `application/json`
   - `202` - Accepted. The server has accepted the request as valid and will publish to the DHT.
     - `expiry` - **string** - **OPTIONAL** – The [[ref:Unix Timestamp]] in seconds indicating when the DID will be evicted
-    from the [[ref:Gateway]]'s' [[ref:Retained DID Set]].
+    from the [[ref:Gateway]]'s [[ref:Retained DID Set]].
   - `400` - Invalid request.
   - `401` - Invalid signature or retention solution.
   - `409` - DID already exists with a higher [[ref:sequence number]]. DID may be accepted if the [[ref:Gateway]]
   supports [historical resolution](#historical-resolution).
 
+**Example DID Registration Request**
 ```json
 {
   "did": "did:dht:example",
@@ -884,6 +896,10 @@ Upon receiving a request to register a DID the [[ref:Gateway]] ****MUST**** perf
 
 * If the DNS packet contain a `_typ._did.` record, update the specified indexes with the DID.
 
+:::note
+Requests without a `retention_solution` have **no retention guarantees**.
+:::
+
 #### Resolving a DID
 
 - **Method:** `GET`
@@ -899,10 +915,11 @@ Upon receiving a request to register a DID the [[ref:Gateway]] ****MUST**** perf
     - `sequence_numbers` - **array** - **OPTIONAL** - An sorted array of integers representing seen
     [[ref:sequence numbers]], used with [historical resolution](#historical-resolution).
     - `expiry` - **integer** - **OPTIONAL** - The [[ref:Unix Timestamp]] in seconds indicating when the DID will be evicted
-    from the [[ref:Gateway]]'s' [[ref:Retained DID Set]].
+    from the [[ref:Gateway]]'s [[ref:Retained DID Set]].
     - `400` - Invalid request.
   - `404` - DID not found.
 
+**Example DID Resolution Response**
 ```json
 {
   "did": {
@@ -954,7 +971,7 @@ for the DID, the [[ref:Gateway]] ****MUST**** return the associated `sequence_nu
 associated `expiry` value.
 
 :::note
-This API returns a `dht` property which matches the payload of a [Relay GET Request](#relay),
+This API returns a `dht` property which matches the payload of a [DHT GET Request](#DHT),
 when encoded as an unpadded base64URL string. Implementers are ****RECOMMENDED**** to verify the integrity of the
 response using the `dht` data and reconstruct the DID Document themselves. The `did` property is provided as a utility
 which, without independent verification, ****MUST NOT**** be trusted.
@@ -982,7 +999,7 @@ historical state:
     independent verification.
     - `types` - **array** - **OPTIONAL** - An array of [type integers](#type-indexing) for the DID.
     - `expiry` - **integer** - **OPTIONAL** - The [[ref:Unix Timestamp]] in seconds indicating when the DID will be evicted
-    from the [[ref:Gateway]]'s' [[ref:Retained DID Set]].
+    from the [[ref:Gateway]]'s [[ref:Retained DID Set]].
   - `400` - Invalid request.
   - `404` - DID not found for the given [[ref:sequence number]].
   - `501` - Historical resolution not supported by this gateway.
@@ -1010,6 +1027,8 @@ type(s) for the DID.
       - `description` - **string** - **REQUIRED** - A string describing the [type](#type-indexing).
   - `404` - Type indexing not supported.
 
+
+**Example Type Index Response**
 ```json
 [
   {
@@ -1038,6 +1057,7 @@ type(s) for the DID.
   - `404` - Type not found.
   - `501` - Types not supported by this gateway.
 
+**Example Type Response**
 ```json
 [
   "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
@@ -1113,15 +1133,16 @@ the [[ref:DID Document]] more concise.
 
 [[ref:Mainline]] offers a limited duration (approximately 2 hours) for retaining records in the DHT. To ensure the
 verifiability of data signed by a [[ref:DID]], consistent republishing of [[ref:DID Document]] records is crucial. To
-address this, it is ****RECOMMENDED**** to use [[ref:Gateways]] with support for a [Retained DID Set](#retained-did-set).
+address this, it is ****RECOMMENDED**** for [[ref:Clients]] to use [[ref:Retention Challenges]] when interfacing
+with [[ref:Gateways]].
 
 ### Rate Limiting
 
 To reduce the risk of [Denial of Service Attacks](https://www.cisa.gov/news-events/news/understanding-denial-service-attacks),
-spam, and other unwanted traffic, it is ****RECOMMENDED**** that [[ref:Gateways]] require [[ref:Retention Challenges]]. The
-use of [[ref:Retention Challenges]] can act as an attack prevention measure, as it would be costly to scale retention proof
-calculations. [[ref:Gateways]] ****MAY**** choose to explore other rate limiting techniques, such as IP-limiting, or an
-access-token-based approach.
+spam, and other unwanted traffic, it is ****RECOMMENDED**** that [[ref:Gateways]] require [[ref:Retention Challenges]] for
+all requests. The use of [[ref:Retention Challenges]] can act as an attack prevention measure, as it would be costly to scale
+retention challenge calculations. [[ref:Gateways]] ****MAY**** choose to explore other rate limiting techniques, such as 
+IP-limiting, or an access-token-based approaches.
 
 ### DID Resolution
 
@@ -1136,11 +1157,11 @@ However, we provide additional guidance for [DID Resolvers](https://www.w3.org/T
 [[ref:DID Document]] packet's current [[ref:sequence number]].
 
 * The metadata [`created` property](https://www.w3.org/TR/did-core/#dfn-created) ****MUST**** be set to
-[XML Datetime](https://www.w3.org/TR/xmlschema11-2/#dateTime) representation of the earliest known sequence number
+[XML Datetime](https://www.w3.org/TR/xmlschema11-2/#dateTime) representation of the earliest known [[ref:Sequence Number]]
 for the DID.
 
 * The metadata [`updated` property](https://www.w3.org/TR/did-core/#dfn-updated) ****MUST**** be set to the
-[XML Datetime](https://www.w3.org/TR/xmlschema11-2/#dateTime) representation of the last known sequence number
+[XML Datetime](https://www.w3.org/TR/xmlschema11-2/#dateTime) representation of the last known [[ref:Sequence Number]]
 for the DID.
 
 * If the [[ref:DID Document]] has [been deactivated](#deactivate) the 
@@ -1148,16 +1169,19 @@ for the DID.
 
 #### DID Resolution Metadata
 
-* The metadata `types` property ****MUST**** be set to an array of strings representing type values if
+* The metadata `types` property ****MUST**** be set to the array of strings representing type values, if
 [type data](#type-indexing) is present in the [[ref:DID Document]]'s packet.
 
-* The metadata `gateway` property ****MUST**** be set to a string representing the [[ref:Gateway]]'s URI
+* The metadata `gateway` property ****MUST**** be set to the string representing the [[ref:Gateway]]'s URI
 from which the DID was resolved. This is useful in cases where a [DID Resolvers](https://www.w3.org/TR/did-core/#dfn-did-resolvers)
 performs resolution against an [Authoritative Gateway](#designating-authoritative-gateways).
 
+* The metadata `expiry` property ****MUST**** be set to the integer representing the expiry date-time value
+for the DID in the [[ref:Gateway]]'s [Retained DID Set](#retained-did-set).
+
 ::: todo
 [](https://github.com/TBD54566975/did-dht-method/issues/136)
-Register `types` and `gateway` in the [DID Specification Registry](https://www.w3.org/TR/did-spec-registries/#did-document-metadata).
+Register `types`, `gateway`, and `expiry` types in the [DID Specification Registry](https://www.w3.org/TR/did-spec-registries/#did-document-metadata).
 ::: 
 
 ## Security and Privacy Considerations
