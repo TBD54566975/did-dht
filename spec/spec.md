@@ -729,7 +729,7 @@ The resulting `retention` value is determined to be a valid [[ref:Retention Solu
 requisite number of leading zeros defined by the `difficulty`. Difficulty values are
 [supplied by the gateway](#get-the-current-challenge) and ****MUST**** be no less than 26 bits of the 256-bit hash value.
 
-The algorithm, in detail, is as follows:
+The algorithm for generating a [[ref:Retention Solution]] is as follows:
 
 1. Obtain a DID identifier and set it to `DID`.
 
@@ -747,7 +747,9 @@ The algorithm, in detail, is as follows:
 
     b. Otherwise, return to step 3.
 
-7. Submit the `RETENTION_SOLUTION` to the [Gateway API](#register=or-update-a-did) for write operations.
+7. Set `RETENTION_SOLUTION` equal to the concatenation of `ATTEMPT` and `NONCE` separated by a colon (e.g., `ATTEMPT`:`NONCE`).
+
+8. Submit the `RETENTION_SOLUTION` to the [Gateway API](#register=or-update-a-did) for write operations.
 
 :::note
 When a [[ref:Client]] submits a valid [[ref:Retention Solution]], conformant [[ref:Gateways]] respond with an `expiry`
@@ -756,6 +758,46 @@ timestamp. This timestamp indicates when DID will be evicted from the [[ref:Gate
 they solve a new [[ref:Retention Challenge]] before the expiration is reached. By doing so, [[ref:Clients]] can
 maintain the continuity of their DID's retention and prevent unintended eviction of their identifier.
 :::
+
+#### Validating a Retention Solution
+
+When a [[ref:Gateway]] receives a [[ref:Retention Solution]] as part of a write operation, it ****MUST**** validate
+the solution to ensure it meets the required criteria before accepting the write request and providing a retention guarantee.
+
+The algorithm for validating a [[ref:Retention Solution]] is as follows:
+
+1. Extract the `RETENTION_SOLUTION` value from the write request.
+
+2. Retrieve the `DID` identifier associated with the write request.
+
+3. Obtain the current `HASH` and `DIFFICULTY` values used by the [[ref:Gateway]].
+
+4. Construct the `RETENTION_VALUE` by concatenating the `DID`, `HASH`, and the `NONCE` (extracted from the `RETENTION_SOLUTION`).
+
+5. Compute the [SHA-256](https://en.wikipedia.org/wiki/SHA-2) hash of the `RETENTION_VALUE` and set it to `COMPUTED_HASH`.
+
+6. Compare the `COMPUTED_HASH` with the `RETENTION_SOLUTION`:
+
+  a. If the `COMPUTED_HASH` matches the `RETENTION_SOLUTION`, proceed to step 7.
+
+  b. If the `COMPUTED_HASH` does not match the `RETENTION_SOLUTION`, the validation fails, and the write request is rejected.
+
+7. Check if the `COMPUTED_HASH` has the required number of leading zeros specified by the difficulty value:
+
+  a. If the `COMPUTED_HASH` has the required number of leading zeros, the [[ref:Retention Solution]] is considered valid.
+
+  b. If the `COMPUTED_HASH` does not have the required number of leading zeros, the validation fails, and the write request is rejected.
+
+If the [[ref:Retention Solution]] is deemed valid, the [[ref:Gateway]] accepts the write request and proceeds to store the DID document 
+in its [[ref:Retained DID Set]]. The [[ref:Gateway]] generates an `expiry` timestamp based on its retention policy and includes it in the
+response to the [[ref:Client]].
+
+By validating the [[ref:Retention Solution]], the [[ref:Gateway]] ensures that the [[ref:Client]] has performed the necessary proof of
+work and is eligible for the retention guarantee. This validation process helps maintain the integrity and fairness of the [[ref:Retained DID Set]]
+system. It is important for [[ref:Gateways]] to consistently apply the validation logic and reject any write requests that do not include a valid
+[[ref:Retention Solution]]. This helps prevent abuse and ensures that only [[ref:Clients]] who have invested the required computational effort can
+benefit from the retention feature. [[ref:Gateways]] ****SHOULD**** regularly update their hash value to prevent pre-computation attacks and ensure
+the uniqueness and freshness of the [[ref:Retention Solutions]]. The recommended hash refresh window is **10 minutes**.
 
 #### Managing the Retained DID Set
 
@@ -776,6 +818,16 @@ with a substantial history with the [[ref:Gateway]], such as DIDs exposed throug
 * [[ref:Gateways]] ****MAY**** choose to include the `expiry` value as a part of the
 [DID Resolution Metadata](https://www.w3.org/TR/did-core/#did-resolution-metadata), during [DID Resolution](#did-resolution),
 to aid [[ref:Clients]] in being able to assess whether further proof of work is required.
+
+* [[ref:Gateways]] ****SHOULD**** treat each new valid [[ref:Retention Solution]] as extending a DID's retention period.
+When a [[ref:Client]] submits a fresh [[ref:Retention Solution]] for a DID already in the [[ref:Retained DID Set]], the
+[[ref:Gateway]] ****SHOULD**** update the DID's expiry timestamp, effectively resetting the expiry window and granting a
+renewed retention period.
+
+* When a [[ref:Gateway]] reaches its storage capacity or experiences high load, it is ****RECOMMENDED**** that it significantly
+increases the `difficulty` parameter for [[ref:Retention Challenges]]. By raising the `difficulty`, the [[ref:Gateway]] can
+effectively limit the acceptance of new DIDs into its [[ref:Retained DID Set]], ensuring the stability and performance of the
+server under resource constraints.
 
 ### Gateway API
 
@@ -844,8 +896,10 @@ Challenge is exposed as an endpoint to facilitate functionality pertaining to th
     submitted against this challenge, which ****MUST**** be a [[ref:Unix Timestamp]] in seconds. The _precise_ expiry
     date-time value is returned as a part of a [PUT operation](#register-or-update-a-did).
   - `501` - [[ref:Retention Sets]] are not supported by this gateway.
+  - `503` - [[ref:Retention Sets]] have been temporarily disabled.
 
 **Example Challenge Response**
+
 ```json
 {
   "hash": "000000000000000000022be0c55caae4152d023dd57e8d63dc1a55c1f6de46e7",
@@ -872,12 +926,14 @@ Challenge is exposed as an endpoint to facilitate functionality pertaining to th
   - `202` - Accepted. The server has accepted the request as valid and will publish to the DHT.
     - `expiry` - **string** - **OPTIONAL** – The [[ref:Unix Timestamp]] in seconds indicating when the DID will be evicted
     from the [[ref:Gateway]]'s [[ref:Retained DID Set]].
-  - `400` - Invalid request.
-  - `401` - Invalid signature or retention solution.
+  - `400` - Invalid request, including an invalid retention solution.
+  - `401` - Invalid signature.
   - `409` - DID already exists with a higher [[ref:sequence number]]. DID may be accepted if the [[ref:Gateway]]
   supports [historical resolution](#historical-resolution).
+  - `503` - [[ref:Retention Sets]] have been temporarily disabled.
 
 **Example DID Registration Request**
+
 ```json
 {
   "did": "did:dht:example",
@@ -892,8 +948,8 @@ Upon receiving a request to register a DID the [[ref:Gateway]] ****MUST**** perf
 
 * Verify the signature of the request and, if valid, publish the [[ref:BEP44]] payload to the DHT.
 
-* If one is provided, validate the `retention_solution` and, if valid, add the DID to the [[ref:Gateway]]'s
-[[ref:Retained DID Set]].
+* If one is provided, [validate the `retention_solution`](#validating-a-retention-solution) and, if valid, 
+add the DID to the [[ref:Gateway]]'s [[ref:Retained DID Set]].
 
 * If the DNS packet contain a `_typ._did.` record, update the specified indexes with the DID.
 
@@ -921,6 +977,7 @@ Requests without a `retention_solution` have **no retention guarantees**.
   - `404` - DID not found.
 
 **Example DID Resolution Response**
+
 ```json
 {
   "did": {
@@ -1059,6 +1116,7 @@ type(s) for the DID.
   - `501` - Types not supported by this gateway.
 
 **Example Type Response**
+
 ```json
 [
   "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 )
 
@@ -39,4 +40,27 @@ func solveRetentionChallenge(didIdentifier, inputHash string, difficulty, nonce 
 
 	// Checking for the required number of leading zeros according to the difficulty
 	return hash, hasLeadingZeros(hash, difficulty)
+}
+
+// validateRetentionSolution validates the Retention Solution.
+func validateRetentionSolution(did, hash, retentionSolution string, difficulty int) bool {
+	parts := strings.Split(retentionSolution, ":")
+	if len(parts) != 2 {
+		return false
+	}
+
+	nonce, err := strconv.ParseUint(parts[1], 10, 64)
+	if err != nil {
+		return false
+	}
+
+	retentionValue := did + hash + strconv.FormatUint(nonce, 10)
+	computedHash := computeSHA256Hash(retentionValue)
+
+	if !hasLeadingZeros(computedHash, difficulty) {
+		return false
+	}
+
+	solutionHash := parts[0]
+	return solutionHash == computedHash
 }
