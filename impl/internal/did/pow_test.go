@@ -10,7 +10,7 @@ import (
 func TestPOW(t *testing.T) {
 	// Example usage of solveRetentionChallenge
 	didIdentifier := "did:dht:test"
-	inputHash := "000000000000000000022be0c55caae4152d023dd57e8d63dc1a55c1f6de46e7"
+	inputHash := "123bcdefghobc23567822be0c55caae4152d023dd57e8d63dc1a55c1f6de46e7"
 
 	// 26 leading zeros
 	difficulty := 26

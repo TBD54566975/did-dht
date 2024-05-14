@@ -501,10 +501,13 @@ To create a `did:dht` document, the process is as follows:
 2. Construct a conformant JSON representation of a [[ref:DID Document]].
 
     a. The document ****MUST**** include a [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) with
-    the [[ref:Identity Key]] encoded as a `publicKeyJwk` as per [[spec:RFC7517]] with an `id` of `0` and `type` of
-    `JsonWebKey` defined by [[ref:VC-JOSE-COSE]].
+    the [[ref:Identity Key]]. The `id` property of this Verification Method ****MUST**** be `0` and type of `JsonWebKey` as defined
+    by [[ref:VC-JOSE-COSE]]. The key ****MUST**** be represented as a `publicKeyJwk` as per [[spec:RFC7517]] with a `kid` of `0`.
 
-    b. The document can include any number of other [core properties](https://www.w3.org/TR/did-core/#core-properties);
+    b. The [[ref:Identity Key]] ****MUST**** have the [Verification Relationships](#verification-relationships) 
+    _Authentication_, _Assertion_, _Capability Invocation_, and _Capability Delegation_.
+
+    c. The document can include any number of other [core properties](https://www.w3.org/TR/did-core/#core-properties);
     always representing key material as a `JWK` as per [[spec:RFC7517]]. In addition to the properties required by
     the `JWK` specification, the `alg` property ****MUST**** always be present. Default algorithms are defined per key
     type in the [indexed types registry](registry/index.html#indexed-types).
