@@ -701,7 +701,7 @@ As a convenience, one such registry is [provided by this specification](registry
 
 ### Retained DID Set
 
-As feature of the DID DHT Method, operators of a [[ref:Gateway]] ****MUST**** support retaining DIDs for extended periods
+As a feature of the DID DHT Method, operators of a [[ref:Gateway]] ****MUST**** support retaining DIDs for extended periods
 of time to reduce the burden on DID controllers and [[ref:Clients]] in needing  to [[ref:republish]] their records to
 [[ref:Mainline]].
 
@@ -719,7 +719,7 @@ the overall reliability and effectiveness of [[ref:Gateways]] in managing DIDs.
 #### Generating a Retention Solution
 
 A [[ref:Retention Solution]] is a form of [proof of work](https://en.bitcoin.it/wiki/Proof_of_work) bound to a specific
-DID identifier, using input values supplied by given [gateway](registry/index.html#gateways). The proof of work is
+DID identifier, using input values supplied by a given [gateway](registry/index.html#gateways). The proof of work is
 performed using the [SHA-256 hashing algorithm](https://en.wikipedia.org/wiki/SHA-2) over the concatenation of a the
 `did` identifier and random [`nonce`](https://en.wikipedia.org/wiki/Cryptographic_nonce) supplied by the user, and a
 `hash` value [supplied by the gateway](#get-the-current-challenge). The result of a given proof of work attempt is
