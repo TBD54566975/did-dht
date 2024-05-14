@@ -277,7 +277,7 @@ paths:
     get:
       tags:
         - DID
-      summary: Get information necessary for responding to retention challenges
+      summary: Get information necessary to solve a retention challenge
       description: Get information needed to calculate a retention solution for DID PUT operations
       responses:
         "200":
