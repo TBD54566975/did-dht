@@ -1250,10 +1250,10 @@ to ensure expected and legitimate behavior.
 
 ### Data Conflicts
 
-Malicious actors may try to force [[ref:Gateways]] into uncertain states by manipulating the [[ref:sequence number]]
+Malicious actors may try to force [[ref:Gateways]] into uncertain states by manipulating the [[ref:Sequence Number]]
 associated with a record set. There are three such cases to be aware of:
 
-- **Low Sequence Number** - If a [[ref:Gateway]] has yet to see [[ref:sequence numbers]] for a given record it
+- **Low Sequence Number** - If a [[ref:Gateway]] has yet to see [[ref:Sequence Numbers]] for a given record it
 ****MUST**** query its peers to see if they have encountered the record. If a peer is found who has encountered the
 record, the record with the latest sequence number must be selected. If the server has encountered greater
 [[ref:sequence numbers]] before, the server ****MAY**** reject the record set. If the server supports
@@ -1264,8 +1264,8 @@ its historical ordered state.
 [[ref:Mainline Servers]] or [[ref:Gateways]]. Implementers are encouraged to follow the guidance outlined in [conflict
 resolution](#conflict-resolution).
 
-- **High Sequence Number** - Since [[ref:sequence numbers]] ****MUST**** be second representations of a [[ref:Unix Timestamp]],
-it is ****RECOMMENDED**** that [[ref:Gateways]] reject [[ref:sequence numbers]] that represent timestamps greater than 
+- **High Sequence Number** - Since [[ref:Sequence Numbers]] ****MUST**** be second representations of a [[ref:Unix Timestamp]],
+it is ****RECOMMENDED**** that [[ref:Gateways]] reject [[ref:Sequence Numbers]] that represent timestamps greater than
 **2 hours** into the future to mitigate [timing attack](#data-conflicts) risks.
 
 ### Data Availability
@@ -1632,6 +1632,6 @@ Z. O'Whielacronx; November 2002.
 
 [[def:VC-JOSE-COSE]]
 ~ [Securing Verifiable Credentials using JOSE and COSE](https://www.w3.org/TR/vc-jose-cose/). O. Steele, M. Jones,
-M. Prorock, G. Cohen; 26 February 2024. [W3C](https://www.w3.org/).
+M. Prorock, G. Cohen; 25 April 2024. [W3C](https://www.w3.org/).
 
 [[spec]]
