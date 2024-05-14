@@ -883,7 +883,8 @@ On receiving a `GET` request the server submits a mutable get query to [[ref:Mai
 
 #### Get the Current Challenge
 
-Challenge is exposed as an endpoint to facilitate functionality pertaining to the [Retained DID Set](#retained-did-set).
+Challenge is exposed as an endpoint to facilitate functionality pertaining to the [Retained DID Set](#retained-did-set),
+surfacing a [[ref:Retention Challenge]].
 
 - **Method:** `GET`
 - **Path:** `/challenge`
