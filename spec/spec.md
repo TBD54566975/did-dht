@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created:** October 20, 2023
 
-**Last Updated:** May 13, 2024
+**Last Updated:** May 14, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -255,15 +255,14 @@ the set of Service resource aliases (e.g. `s0`) for each [Service](#services).
 
 Additionally:
 
-  - A version number ****MUST**** be present. The version number for this specification version 
+- A version number ****MUST**** be present. The version number for this specification version 
   is **0** (e.g. `v=0`). The version number is not present in the corresponding DID Document.
 
-  - The `vm` property ****MUST**** always contain _at least_ the [[ref:Identity Key]] represented by `k0`.
+- The `vm` property ****MUST**** always contain _at least_ the [[ref:Identity Key]] represented by `k0`.
 
-  - Verification Relationships (`auth`, `asm`, `agm`, `inv`, `del`) without any members ****MUST**** be omitted.
+- Verification Relationships (`auth`, `asm`, `agm`, `inv`, `del`) without any members ****MUST**** be omitted.
 
-  - If there are no [Services](#services) the `svc` property ****MUST**** be omitted.
-
+- If there are no [Services](#services) the `svc` property ****MUST**** be omitted.
 
 **Example Root Record**
 
@@ -725,8 +724,9 @@ A [[ref:Retention Solution]] is a form of [proof of work](https://en.bitcoin.it/
 DID identifier, using input values supplied by a given [gateway](registry/index.html#gateways). The proof of work is
 performed using the [SHA-256 hashing algorithm](https://en.wikipedia.org/wiki/SHA-2) over the concatenation of a the
 `did` identifier and random [`nonce`](https://en.wikipedia.org/wiki/Cryptographic_nonce) supplied by the user, and a
-`hash` value [supplied by the gateway](#get-the-current-challenge). The result of a given proof of work attempt is
-referred to as the `retention` value.
+`hash` value [supplied by the gateway](#get-the-current-challenge). The source of a given `hash` referred to as a
+`hash_source` ****MUST**** be one of the values specified in the [Hash Source Registry](registry/index.html#hash-source).
+The result of a given proof of work attempt is referred to as the `retention` value.
 
 The resulting `retention` value is determined to be a valid [[ref:Retention Solution]] based on whether it has the
 requisite number of leading zeros defined by the `difficulty`. Difficulty values are
@@ -894,6 +894,7 @@ surfacing a [[ref:Retention Challenge]].
 - **Returns:** `application/json`
   - `200` - Success.
     - `hash` - **string** - **REQUIRED** - The current hash which is to be used as input for computing a [[ref:Retention Solution]].
+    - `hash_source` - **string** - **REQUIRED** - The source of the hash as defined by the [Hash Source Registry](registry/index.html#hash-source).
     - `difficulty` - **integer** - **REQUIRED** - The current difficulty of the challenge, representing the number of
     bits of leading zeros the resulting hash must contain.
     - `expiry` - **integer** - An _approximate_ expiry date-time value, if a valid [[ref:Retention Solution]] is
@@ -907,6 +908,7 @@ surfacing a [[ref:Retention Challenge]].
 ```json
 {
   "hash": "000000000000000000022be0c55caae4152d023dd57e8d63dc1a55c1f6de46e7",
+  "hash_source": "bitcoin",
   "difficulty": 26,
   "expiry": 1715578600
 }
@@ -1214,6 +1216,11 @@ However, we provide additional guidance for [DID Resolvers](https://www.w3.org/T
 [DID Document Metadata](https://www.w3.org/TR/did-core/#did-document-metadata) and 
 [DID Resolution Metadata](https://www.w3.org/TR/did-core/#did-resolution-metadata) as follows:
 
+::: todo
+[](https://github.com/TBD54566975/did-dht-method/issues/136)
+Register `types`, `gateway`, and `expiry` types in the [DID Specification Registry](https://www.w3.org/TR/did-spec-registries).
+::: 
+
 #### DID Document Metadata
 
 * The metadata [`versionId` property](https://www.w3.org/TR/did-core/#dfn-versionid) ****MUST**** be set to the
@@ -1230,22 +1237,17 @@ for the DID.
 * If the [[ref:DID Document]] has [been deactivated](#deactivate) the 
 [`deactivated` property](https://www.w3.org/TR/did-core/#dfn-deactivated) ****MUST**** be set to `true`.
 
-#### DID Resolution Metadata
-
 * The metadata `types` property ****MUST**** be set to the array of strings representing type values, if
 [type data](#type-indexing) is present in the [[ref:DID Document]]'s packet.
-
-* The metadata `gateway` property ****MUST**** be set to the string representing the [[ref:Gateway]]'s URI
-from which the DID was resolved. This is useful in cases where a [DID Resolvers](https://www.w3.org/TR/did-core/#dfn-did-resolvers)
-performs resolution against an [Authoritative Gateway](#designating-authoritative-gateways).
 
 * The metadata `expiry` property ****MUST**** be set to the integer representing the expiry date-time value
 for the DID in the [[ref:Gateway]]'s [Retained DID Set](#retained-did-set).
 
-::: todo
-[](https://github.com/TBD54566975/did-dht-method/issues/136)
-Register `types`, `gateway`, and `expiry` types in the [DID Specification Registry](https://www.w3.org/TR/did-spec-registries/#did-document-metadata).
-::: 
+#### DID Resolution Metadata
+
+* The metaata `gateway` property ****MUST**** be set to the string representing the [[ref:Gateway]]'s URI
+from which the DID was resolved. This is useful in cases where a [DID Resolvers](https://www.w3.org/TR/did-core/#dfn-did-resolvers)
+performs resolution against an [Authoritative Gateway](#designating-authoritative-gateways).
 
 ## Security and Privacy Considerations
 

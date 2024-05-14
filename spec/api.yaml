@@ -290,6 +290,9 @@ paths:
                   hash:
                     type: string
                     description: The current hash which is to be used as input for computing a retention solution
+                  hash_source:
+                    type: string
+                    description: The source of the hash as defined by the Hash Source Registry.
                   difficulty:
                     type: integer
                     description: The current difficulty of the challenge representing the number of bits of leading zeros the resulting hash must contain
