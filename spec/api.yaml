@@ -5,7 +5,7 @@ info:
   license:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.html
-  version: v0.1
+  version: v1.0
 paths:
   /{id}:
     get:
@@ -22,7 +22,7 @@ paths:
             type: string
       responses:
         "200":
-          description: "64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v."
+          description: 64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v
           content:
             application/octet-stream:
               schema:
@@ -50,7 +50,7 @@ paths:
     put:
       tags:
         - DHT
-      summary: Put DNS-encoded BEP44 records into the DHT
+      summary: Put a DNS-encoded BEP44 record set into the DHT
       description: Put a DNS-encoded BEP44 record set into the DHT
       parameters:
         - name: id
@@ -60,7 +60,7 @@ paths:
           schema:
             type: string
       requestBody:
-        description: "64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v."
+        description: 64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v
         content:
           application/octet-stream:
             schema:
@@ -105,32 +105,35 @@ paths:
               properties:
                 sig:
                   type: string
-                  description: A base64URL-encoded signature of the BEP44 payload.
+                  description: A base64URL-encoded signature of the BEP44 payload
                 seq:
                   type: integer
-                  description: A sequence number for the request, recommended to be a unix timestamp in seconds.
+                  description: A sequence number for the request, recommended to be a unix timestamp in seconds
                 v:
                   type: string
-                  description: A base64URL-encoded bencoded DNS packet containing the DID Document.
-                retention_proof:
+                  description: A base64URL-encoded bencoded DNS packet containing the DID Document
+                retention_solution:
                   type: string
-                  description: A retention proof calculated according to the spec-defined retention proof algorithm.
+                  description: A retention solution calculated according to the spec-defined retention solution algorithm
               required: [ did, sig, seq, v ]
       responses:
         "202":
-          description: Accepted. The server has accepted the request as valid and will publish it to the
+          description: The server has accepted the request as valid and will publish it to the DHT
           content:
             application/json:
               schema:
-                type: string
+                type: object
+                properties:
+                  expiry:
+                    type: number
         "400":
-          description: Invalid request.
+          description: Invalid request
           content:
             application/json:
               schema:
                 type: string
         "401":
-          description: Invalid signature.
+          description: Invalid signature or retention solution
           content:
             application/json:
               schema:
@@ -141,27 +144,33 @@ paths:
             application/json:
               schema:
                 type: string
+        "503":
+          description: Retention sets have been temporarily disabled.
+          content:
+            application/json:
+              schema:
+                type: string
     get:
       tags:
         - DID
       summary: Resolve a DID
-      description: Resolve a DID from the DHT first, with a fallback to local storage.
+      description: Resolve a DID from the DHT first, with a fallback to local storage
       parameters:
         - name: id
           in: path
-          description: DID to resolve.
+          description: The DID to resolve
           required: true
           schema:
             type: string
         - name: seq
           in: query
-          description: Sequence number of the DID to resolve.
+          description: The sequence number of the DID to resolve
           required: false
           schema:
             type: integer
       responses:
         "200":
-          description: The resolved DID Document.
+          description: The resolved DID Document
           content:
             application/json:
               schema:
@@ -169,29 +178,32 @@ paths:
                 properties: 
                   did:
                     type: object
-                    description: "The DID Document."
+                    description: The DID Document
                   dht:
                     type: string
-                    description: "An unpadded base64URL-encoded representation of a full DNS-encoded BEP44 payload, represented as 64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v concatenated; enabling independent verification."
+                    description: An unpadded base64URL-encoded representation of a full DNS-encoded BEP44 payload, represented as 64 bytes sig, 8 bytes u64 big-endian seq, 0-1000 bytes of v concatenated; enabling independent verification
                   types:
                     type: array
                     items:
                       type: integer
-                    description: "The types associated with the DID."
+                    description: The types associated with the DID
                   sequence_numbers:
                     type: array
                     items:
                       type: integer
-                    description: "The sequence numbers available for querying for this node."
+                    description: The sequence numbers available for querying for this node
+                  expiry:
+                    type: number
+                    description: The Unix Timestamp in seconds indicating when the DID will be evicted from the Gateway's Retained DID Set
                 required: [ did, dht ]
         "400":
-          description: Invalid request.
+          description: Invalid request
           content:
             application/json:
               schema:
                 type: string
         "404":
-          description: DID could not be resolved.
+          description: The requested DID could not be resolved
           content:
             application/json:
               schema:
@@ -200,11 +212,11 @@ paths:
     get:
       tags:
         - DID
-      summary: Retrieve a list of supported types for indexing.
-      description: Retrieve a list of supported indexing types, according to the spec-defined type list.
+      summary: Retrieve a list of supported types for indexing
+      description: Retrieve a list of supported indexing types, according to the spec-defined type list
       responses:
         "200":
-          description: A list of types support, alongside their human-readable description.
+          description: A list of types support, alongside their human-readable description
           content:
             application/json:
               schema:
@@ -218,7 +230,7 @@ paths:
                       type: string
                   required: [ type, description ]
         "404":
-          description: Type indexing not supported by this gateway.
+          description: Type indexing not supported by this gateway
           content:
             application/json:
               schema:
@@ -227,8 +239,8 @@ paths:
     get:
       tags:
         - DID
-      summary: Retrieve a list of DIDs indexed under a given type.
-      description: Retrieve a list of DIDs indexed under a given type, according to the spec-defined type index.
+      summary: Retrieve a list of DIDs indexed under a given type
+      description: Retrieve a list of DIDs indexed under a given type, according to the spec-defined type index
       parameters:
         - name: id
           in: path
@@ -238,17 +250,17 @@ paths:
             type: integer
         - name: offset
           in: query
-          description: Specifies the starting position from where the type records should be retrieved. Default is 0.
+          description: Specifies the starting position from where the type records should be retrieved. Default is 0
           schema:
             type: integer
         - name: limit
           in: query
-          description: Specifies the maximum number of type records to retrieve. Default is 100.
+          description: Specifies the maximum number of type records to retrieve. The default is 100.
           schema:
             type: integer
       responses:
         "200":
-          description: A list of DIDs indexed under the given type.
+          description: A list of DIDs indexed under the given type
           content:
             application/json:
               schema:
@@ -256,20 +268,20 @@ paths:
                 items:
                   type: string
         "404":
-          description: Type not found.
+          description: Type not found
           content:
             application/json:
               schema:
                 type: string
-  /difficulty:
+  /challenge:
     get:
       tags:
         - DID
-      summary: Get information about the current difficulty.
-      description: Get information needed to calculate a retention proof for DID PUT operations.
+      summary: Get information necessary to solve a retention challenge
+      description: Get information needed to calculate a retention solution for DID PUT operations
       responses:
         "200":
-          description: The current hash and difficulty to calculate a retention proof against.
+          description: The current hash and difficulty to calculate a retention solution against, along with an estimated retention guarantee represented by the expiry property
           content:
             application/json:
               schema:
@@ -277,12 +289,26 @@ paths:
                 properties:
                   hash:
                     type: string
+                    description: The current hash which is to be used as input for computing a retention solution
+                  hash_source:
+                    type: string
+                    description: The source of the hash as defined by the Hash Source Registry.
                   difficulty:
                     type: integer
-                required: [ hash, difficulty ]
-        "404":
-          description: Retention proofs not supported by this gateway.
+                    description: The current difficulty of the challenge representing the number of bits of leading zeros the resulting hash must contain
+                  expiry:
+                    type: integer
+                    description: An approximate expiry date-time value, if a valid Retention Solution is submitted against this challenge, represented as a Unix Timestamp in seconds. The precise expiry date-time value is returned as a part of a PUT operation
+                required: [ hash, difficult, expiry ]
+        "501":
+          description: Retention challenges are not supported
           content:
             application/json:
               schema:
                 type: string     
+        "503":
+          description: Retention sets have been temporarily disabled
+          content:
+            application/json:
+              schema:
+                type: string

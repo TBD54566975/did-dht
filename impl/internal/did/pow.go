@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 )
 
@@ -29,14 +30,37 @@ func hasLeadingZeros(hash string, difficulty int) bool {
 	return strings.HasPrefix(binaryHash, target)
 }
 
-// computeRetentionProof generates the Retention Proof Hash and checks if it meets the criteria.
-func computeRetentionProof(didIdentifier, bitcoinBlockHash string, difficulty, nonce int) (string, bool) {
+// solveRetentionChallenge generates the Retention Challenge Hash and checks if it meets the criteria.
+func solveRetentionChallenge(didIdentifier, inputHash string, difficulty, nonce int) (string, bool) {
 	// Concatenating the DID identifier with the retention value
-	retentionValue := didIdentifier + (bitcoinBlockHash + fmt.Sprintf("%d", nonce))
+	retentionValue := didIdentifier + (inputHash + fmt.Sprintf("%d", nonce))
 
 	// Computing the SHA-256 hash
 	hash := computeSHA256Hash(retentionValue)
 
 	// Checking for the required number of leading zeros according to the difficulty
 	return hash, hasLeadingZeros(hash, difficulty)
+}
+
+// validateRetentionSolution validates the Retention Solution.
+func validateRetentionSolution(did, hash, retentionSolution string, difficulty int) bool {
+	parts := strings.Split(retentionSolution, ":")
+	if len(parts) != 2 {
+		return false
+	}
+
+	nonce, err := strconv.ParseUint(parts[1], 10, 64)
+	if err != nil {
+		return false
+	}
+
+	retentionValue := did + hash + strconv.FormatUint(nonce, 10)
+	computedHash := computeSHA256Hash(retentionValue)
+
+	if !hasLeadingZeros(computedHash, difficulty) {
+		return false
+	}
+
+	solutionHash := parts[0]
+	return solutionHash == computedHash
 }

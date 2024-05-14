@@ -9,7 +9,7 @@ The DID DHT Method Specification Registry 1.0
 
 **Draft Created:** November 20, 2023
 
-**Latest Update:** May 2, 2024
+**Latest Update:** May 14, 2024
 
 **Editors:**
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -92,7 +92,6 @@ These properties are for use on a service object, in the value of [service](http
 | `sig`         | String or array of strings | `enc=E` where `E` is a string or array of strings | id=s1;t=TestService;se=https://test-service.com/1;enc=1 |
 | `enc`         | String or array of strings | `sig=S` where `S` is a string or array of strings | id=s1;t=TestService;se=https://test-service.com/1;sig=2 |
 
-
 ### Interoperable DID Methods
 
 As an **OPTIONAL** extension, some existing DID methods can leverage `did:dht` to broaden their feature set. This registry serves
@@ -168,25 +167,34 @@ ensure the maintenance of an active timelock, which serves as a proof-of-legitim
 
 1. Generate a relative [[ref:timelock]] transaction for the Bitcoin blockchain with the following attributes:
     - Set the lock duration to 1000
-    - Add locked value locked must be no less than the mean value of the upper quintile of [UTXOs](https://en.wikipedia.org/wiki/Unspent_transaction_output) as of a block that is no more than 10 blocks earlier from the block the locking transaction is included in (this effectively provides a 10 block grace period for the transaction to make it into the chain).
+    - Add locked value locked must be no less than the mean value of the upper quintile of 
+    [UTXOs](https://en.wikipedia.org/wiki/Unspent_transaction_output) as of a block that is no more than 10 blocks earlier from the block
+    the locking transaction is included in (this effectively provides a 10 block grace period for the transaction to make it into the chain).
     - Add an `OP_RETURN` string composed of the following comma-separated values:
         - The block number used to compute the mean value of the upper quintile of [UTXOs](https://en.wikipedia.org/wiki/Unspent_transaction_output).
         - The `URI` where your node can be addressed
 2. Include the [[ref:timelock]] transaction within 10 blocks of the block number specified for the average UTXO value calculation.
 3. If this is a relocking transaction that refreshes an existing registration of a node:
     - The relocking transaction ****MUST**** spend the outputs of the lock it replaces.
-    - If the operator wants to prevent other nodes and clients using the decentralized registry from dropping the Registered Gateway from their Registered Gateway list, the relocking transaction ****MUST**** be included in the blockchain within ten blocks of the previous lock's expiration.
+    - If the operator wants to prevent other nodes and clients using the decentralized registry from dropping the Registered Gateway from their
+    Registered Gateway list, the relocking transaction ****MUST**** be included in the blockchain within ten blocks of the previous lock's expiration.
 
-##### Hash
+##### Hash Source
 
-The hash source to be used is [Bitcoin block hashes](https://csrc.nist.gov/glossary/term/block_header#:~:text=Definitions%3A,cryptographic%20nonce%20(if%20needed).). It is ****RECOMMENDED**** to use the most recent block hash value.
+The hash source used for providing [Retention Challenges](../index.html#retained-did-set) is configurable. The registry table
+below serves as a way to define new hash sources and communicate them as a part of the [Gateway API](../index.html#gateway-api).
+
+| Hash Source Name | Hash Source                               |
+|------------------|-------------------------------------------|
+| `bitcoin`        | [Bitcoin block hashes](https://csrc.nist.gov/glossary/term/block_header#:~:text=Definitions%3A,cryptographic%20nonce%20(if%20needed) |
 
 ##### Discovery
 
 To discover Bitcoin Anchored Gateways one must follow the following steps:
 
-1. Starting at block height of `817714` traverse the chain, checking the value of the `OP_RETURN` field of transactions with _at least_ **6 confirmations**.
-2. Find transactions that match the form `block number + uri`, as per the [steps outlined in the section above](#bitcoin-anchored-gateways).
+1. Starting at block height of `817714` traverse the chain, checking the value of the `OP_RETURN` field of
+transactions with _at least_ **6 confirmations**.
+2. Find transactions that match the form `block number + URI`, as per the [steps outlined in the section above](#bitcoin-anchored-gateways).
 
 ## References
 
