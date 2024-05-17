@@ -12,8 +12,8 @@ import (
 	"github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
 
-	"github.com/TBD54566975/did-dht-method/pkg/dht"
-	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
+	"github.com/TBD54566975/did-dht/pkg/dht"
+	"github.com/TBD54566975/did-dht/pkg/telemetry"
 )
 
 const (

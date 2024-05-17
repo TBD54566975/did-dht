@@ -17,7 +17,7 @@ import (
 	"github.com/anacrolix/dht/v2/krpc"
 	"github.com/anacrolix/dht/v2/traversal"
 
-	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
+	"github.com/TBD54566975/did-dht/pkg/telemetry"
 )
 
 // Copied from https://github.com/anacrolix/dht/blob/master/exts/getput/getput.go and modified

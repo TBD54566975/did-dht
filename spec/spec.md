@@ -22,9 +22,9 @@ The DID DHT Method Specification 1.0
 ~ [Kendall Weihe](https://github.com/KendallWeihe)
 
 **Participate:**
-~ [GitHub repo](https://github.com/TBD54566975/did-dht-method)
-~ [File a bug](https://github.com/TBD54566975/did-dht-method/issues)
-~ [Commit history](https://github.com/TBD54566975/did-dht-method/commits/main)
+~ [GitHub repo](https://github.com/TBD54566975/did-dht)
+~ [File a bug](https://github.com/TBD54566975/did-dht/issues)
+~ [Commit history](https://github.com/TBD54566975/did-dht/commits/main)
 
 ## Abstract
 
@@ -1217,7 +1217,7 @@ However, we provide additional guidance for [DID Resolvers](https://www.w3.org/T
 [DID Resolution Metadata](https://www.w3.org/TR/did-core/#did-resolution-metadata) as follows:
 
 ::: todo
-[](https://github.com/TBD54566975/did-dht-method/issues/136)
+[](https://github.com/TBD54566975/did-dht/issues/136)
 Register `types`, `gateway`, and `expiry` types in the [DID Specification Registry](https://www.w3.org/TR/did-spec-registries).
 ::: 
 

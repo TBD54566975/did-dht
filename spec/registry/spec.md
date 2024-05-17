@@ -20,9 +20,9 @@ The DID DHT Method Specification Registry 1.0
 ~ [Frank Hinek](https://github.com/frankhinek)
 
 **Participate:**
-~ [GitHub repo](https://github.com/TBD54566975/did-dht-method)
-~ [File a bug](https://github.com/TBD54566975/did-dht-method/issues)
-~ [Commit history](https://github.com/TBD54566975/did-dht-method/commits/main)
+~ [GitHub repo](https://github.com/TBD54566975/did-dht)
+~ [File a bug](https://github.com/TBD54566975/did-dht/issues)
+~ [Commit history](https://github.com/TBD54566975/did-dht/commits/main)
 
 ## Abstract
 
@@ -81,7 +81,7 @@ DID Documents may contain [additional properties](https://www.w3.org/TR/did-core
 properties ****MAY**** be registered in the [[spec:DID-SPEC-REGISTRIES]], or in the following table. Independent of where
 the property is registered, a mapping ****MUST**** be provided between the property and its DNS packet representation.
 
-To add additional properties and note their mappings, please [open a pull request](https://github.com/TBD54566975/did-dht-method/pulls).
+To add additional properties and note their mappings, please [open a pull request](https://github.com/TBD54566975/did-dht/pulls).
 
 #### Service
 
@@ -116,7 +116,7 @@ with `options.publicKeyFormat` set to `JsonWebKey`.
 ::: todo
 [](https://github.com/w3c-ccg/did-method-key/issues/66)
 
-[](https://github.com/TBD54566975/did-dht-method/issues/57)
+[](https://github.com/TBD54566975/did-dht/issues/57)
 
 Update this algorithm after the `did:key` spec is updated to support `did:dht`.
 ::: 

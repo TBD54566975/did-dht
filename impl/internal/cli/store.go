@@ -6,7 +6,7 @@ import (
 	"github.com/TBD54566975/ssi-sdk/util"
 	"github.com/goccy/go-json"
 
-	"github.com/TBD54566975/did-dht-method/internal"
+	"github.com/TBD54566975/did-dht/internal"
 )
 
 const (

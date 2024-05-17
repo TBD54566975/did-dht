@@ -10,10 +10,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/TBD54566975/did-dht-method/internal/util"
-	"github.com/TBD54566975/did-dht-method/pkg/dht"
-	"github.com/TBD54566975/did-dht-method/pkg/service"
-	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
+	"github.com/TBD54566975/did-dht/internal/util"
+	"github.com/TBD54566975/did-dht/pkg/dht"
+	"github.com/TBD54566975/did-dht/pkg/service"
+	"github.com/TBD54566975/did-dht/pkg/telemetry"
 )
 
 // DHTRouter is the router for the DHT API

@@ -17,9 +17,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 
-	dhtint "github.com/TBD54566975/did-dht-method/internal/dht"
-	"github.com/TBD54566975/did-dht-method/internal/util"
-	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
+	dhtint "github.com/TBD54566975/did-dht/internal/dht"
+	"github.com/TBD54566975/did-dht/internal/util"
+	"github.com/TBD54566975/did-dht/pkg/telemetry"
 )
 
 // DHT is a wrapper around anacrolix/dht that implements the BEP-44 DHT protocol.

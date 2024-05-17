@@ -9,7 +9,7 @@ info:
   contact:
     email: tbd-developer@squareup.com
     name: TBD
-    url: https://github.com/TBD54566975/did-dht-method
+    url: https://github.com/TBD54566975/did-dht
   description: The DID DHT Service
   license:
     name: Apache 2.0

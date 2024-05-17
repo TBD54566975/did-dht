@@ -16,11 +16,11 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/TBD54566975/did-dht-method/config"
+	"github.com/TBD54566975/did-dht/config"
 )
 
 const (
-	scopeName = "github.com/TBD54566975/did-dht-method"
+	scopeName = "github.com/TBD54566975/did-dht"
 )
 
 var (

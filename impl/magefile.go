@@ -32,7 +32,7 @@ func Build() error {
 		println("error getting current version: ", err.Error())
 	}
 
-	return sh.Run(Go, "build", fmt.Sprintf("-ldflags=-X github.com/TBD54566975/did-dht-method/config.Version=%s", version), "-tags", "jwx_es256k", "./...")
+	return sh.Run(Go, "build", fmt.Sprintf("-ldflags=-X github.com/TBD54566975/did-dht/config.Version=%s", version), "-tags", "jwx_es256k", "./...")
 }
 
 // Clean deletes any build artifacts.

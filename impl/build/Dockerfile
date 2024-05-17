@@ -18,7 +18,7 @@ ARG VERSION
 ENV VERSION=$VERSION
 
 # Build using the environment variable
-RUN go build -ldflags="-X github.com/TBD54566975/did-dht-method/config.Version=$VERSION" -tags jwx_es256k -o /did-dht ./cmd
+RUN go build -ldflags="-X github.com/TBD54566975/did-dht/config.Version=$VERSION" -tags jwx_es256k -o /did-dht ./cmd
 
 EXPOSE 8305
 EXPOSE 6881/udp

@@ -1,12 +1,12 @@
 {
-  "name": "did-dht-method",
+  "name": "did-dht",
   "description": "The DID DHT Method",
   "version": "1.0.0",
-  "homepage": "http://tbd.website",
+  "homepage": "https://tbd.website",
   "license": "Apache 2.0",
   "repository": {
     "type": "git",
-    "url": "git://github.com/TBD54566975/did-dht-method"
+    "url": "git://github.com/TBD54566975/did-dht"
   },
   "dependencies": {
     "spec-up": "^0.10.7"

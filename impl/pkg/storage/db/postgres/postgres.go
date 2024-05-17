@@ -12,8 +12,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/tv42/zbase32"
 
-	"github.com/TBD54566975/did-dht-method/pkg/dht"
-	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
+	"github.com/TBD54566975/did-dht/pkg/dht"
+	"github.com/TBD54566975/did-dht/pkg/telemetry"
 )
 
 //go:embed migrations

@@ -9,7 +9,7 @@ import (
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/miekg/dns"
 
-	"github.com/TBD54566975/did-dht-method/internal/dht"
+	"github.com/TBD54566975/did-dht/internal/dht"
 )
 
 // CreateDNSPublishRequest creates a put request for the given records. Requires a public/private keypair and
