@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
+	"github.com/TBD54566975/did-dht/pkg/telemetry"
 )
 
 type GetHealthCheckResponse struct {

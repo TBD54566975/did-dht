@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/TBD54566975/did-dht-method/pkg/dht"
+	"github.com/TBD54566975/did-dht/pkg/dht"
 )
 
 func TestClient(t *testing.T) {

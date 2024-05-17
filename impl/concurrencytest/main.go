@@ -11,8 +11,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/TBD54566975/did-dht-method/internal/did"
-	"github.com/TBD54566975/did-dht-method/pkg/dht"
+	"github.com/TBD54566975/did-dht/internal/did"
+	"github.com/TBD54566975/did-dht/pkg/dht"
 )
 
 var (

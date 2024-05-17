@@ -14,10 +14,10 @@ import (
 	ginswagger "github.com/swaggo/gin-swagger"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
-	"github.com/TBD54566975/did-dht-method/config"
-	"github.com/TBD54566975/did-dht-method/pkg/dht"
-	"github.com/TBD54566975/did-dht-method/pkg/service"
-	"github.com/TBD54566975/did-dht-method/pkg/storage"
+	"github.com/TBD54566975/did-dht/config"
+	"github.com/TBD54566975/did-dht/pkg/dht"
+	"github.com/TBD54566975/did-dht/pkg/service"
+	"github.com/TBD54566975/did-dht/pkg/storage"
 )
 
 const (

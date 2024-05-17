@@ -6,7 +6,7 @@ import (
 
 	"github.com/TBD54566975/ssi-sdk/util"
 
-	"github.com/TBD54566975/did-dht-method/pkg/dht"
+	"github.com/TBD54566975/did-dht/pkg/dht"
 )
 
 var (

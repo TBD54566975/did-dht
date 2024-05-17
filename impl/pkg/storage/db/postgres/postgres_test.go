@@ -9,10 +9,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/TBD54566975/did-dht-method/internal/did"
-	"github.com/TBD54566975/did-dht-method/pkg/dht"
-	"github.com/TBD54566975/did-dht-method/pkg/storage"
-	"github.com/TBD54566975/did-dht-method/pkg/storage/db/postgres"
+	"github.com/TBD54566975/did-dht/internal/did"
+	"github.com/TBD54566975/did-dht/pkg/dht"
+	"github.com/TBD54566975/did-dht/pkg/storage"
+	"github.com/TBD54566975/did-dht/pkg/storage/db/postgres"
 )
 
 func getTestDB(t *testing.T) storage.Storage {

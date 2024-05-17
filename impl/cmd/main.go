@@ -11,11 +11,11 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/TBD54566975/did-dht-method/config"
-	int "github.com/TBD54566975/did-dht-method/internal/util"
-	"github.com/TBD54566975/did-dht-method/pkg/dht"
-	"github.com/TBD54566975/did-dht-method/pkg/server"
-	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
+	"github.com/TBD54566975/did-dht/config"
+	int "github.com/TBD54566975/did-dht/internal/util"
+	"github.com/TBD54566975/did-dht/pkg/dht"
+	"github.com/TBD54566975/did-dht/pkg/server"
+	"github.com/TBD54566975/did-dht/pkg/telemetry"
 )
 
 // main godoc
@@ -23,7 +23,7 @@ import (
 //	@title			The DID DHT Service
 //	@description	The DID DHT Service
 //	@contact.name	TBD
-//	@contact.url	https://github.com/TBD54566975/did-dht-method
+//	@contact.url	https://github.com/TBD54566975/did-dht
 //	@contact.email	tbd-developer@squareup.com
 //	@license.name	Apache 2.0
 //	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html

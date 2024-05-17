@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/TBD54566975/did-dht-method/pkg/storage"
-	"github.com/TBD54566975/did-dht-method/pkg/storage/db/bolt"
-	"github.com/TBD54566975/did-dht-method/pkg/storage/db/postgres"
+	"github.com/TBD54566975/did-dht/pkg/storage"
+	"github.com/TBD54566975/did-dht/pkg/storage/db/bolt"
+	"github.com/TBD54566975/did-dht/pkg/storage/db/postgres"
 )
 
 func TestNewStoragePostgres(t *testing.T) {

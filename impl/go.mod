@@ -1,4 +1,4 @@
-module github.com/TBD54566975/did-dht-method
+module github.com/TBD54566975/did-dht
 
 go 1.22
 

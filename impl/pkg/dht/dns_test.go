@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/TBD54566975/did-dht-method/internal/did"
-	"github.com/TBD54566975/did-dht-method/internal/util"
+	"github.com/TBD54566975/did-dht/internal/did"
+	"github.com/TBD54566975/did-dht/internal/util"
 )
 
 func TestGetPutDNSDHT(t *testing.T) {

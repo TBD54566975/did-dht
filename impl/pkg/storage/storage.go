@@ -8,9 +8,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/TBD54566975/did-dht-method/pkg/dht"
-	"github.com/TBD54566975/did-dht-method/pkg/storage/db/bolt"
-	"github.com/TBD54566975/did-dht-method/pkg/storage/db/postgres"
+	"github.com/TBD54566975/did-dht/pkg/dht"
+	"github.com/TBD54566975/did-dht/pkg/storage/db/bolt"
+	"github.com/TBD54566975/did-dht/pkg/storage/db/postgres"
 )
 
 type Storage interface {

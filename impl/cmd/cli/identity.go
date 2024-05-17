@@ -11,11 +11,11 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/TBD54566975/did-dht-method/config"
-	"github.com/TBD54566975/did-dht-method/internal"
-	"github.com/TBD54566975/did-dht-method/internal/cli"
-	"github.com/TBD54566975/did-dht-method/internal/util"
-	"github.com/TBD54566975/did-dht-method/pkg/dht"
+	"github.com/TBD54566975/did-dht/config"
+	"github.com/TBD54566975/did-dht/internal"
+	"github.com/TBD54566975/did-dht/internal/cli"
+	"github.com/TBD54566975/did-dht/internal/util"
+	"github.com/TBD54566975/did-dht/pkg/dht"
 )
 
 func init() {

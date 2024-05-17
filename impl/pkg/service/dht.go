@@ -12,13 +12,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/TBD54566975/did-dht-method/internal/util"
+	"github.com/TBD54566975/did-dht/internal/util"
 
-	"github.com/TBD54566975/did-dht-method/config"
-	dhtint "github.com/TBD54566975/did-dht-method/internal/dht"
-	"github.com/TBD54566975/did-dht-method/pkg/dht"
-	"github.com/TBD54566975/did-dht-method/pkg/storage"
-	"github.com/TBD54566975/did-dht-method/pkg/telemetry"
+	"github.com/TBD54566975/did-dht/config"
+	dhtint "github.com/TBD54566975/did-dht/internal/dht"
+	"github.com/TBD54566975/did-dht/pkg/dht"
+	"github.com/TBD54566975/did-dht/pkg/storage"
+	"github.com/TBD54566975/did-dht/pkg/telemetry"
 )
 
 const recordSizeLimitBytes = 1000

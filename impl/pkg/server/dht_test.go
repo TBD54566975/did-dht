@@ -12,11 +12,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/TBD54566975/did-dht-method/config"
-	"github.com/TBD54566975/did-dht-method/internal/did"
-	"github.com/TBD54566975/did-dht-method/pkg/dht"
-	"github.com/TBD54566975/did-dht-method/pkg/service"
-	"github.com/TBD54566975/did-dht-method/pkg/storage"
+	"github.com/TBD54566975/did-dht/config"
+	"github.com/TBD54566975/did-dht/internal/did"
+	"github.com/TBD54566975/did-dht/pkg/dht"
+	"github.com/TBD54566975/did-dht/pkg/service"
+	"github.com/TBD54566975/did-dht/pkg/storage"
 )
 
 func TestDHTRouter(t *testing.T) {
