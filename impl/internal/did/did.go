@@ -760,18 +760,15 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*DIDDHTDocument, error) {
 						seenVersion = true
 					case "auth":
 						for _, valueItem := range valueItems {
-							s := keyLookup[valueItem]
-							doc.Authentication = append(doc.Authentication, doc.ID+"#"+s)
+							doc.Authentication = append(doc.Authentication, doc.ID+"#"+keyLookup[valueItem])
 						}
 					case "asm":
 						for _, valueItem := range valueItems {
-							s := keyLookup[valueItem]
-							doc.AssertionMethod = append(doc.AssertionMethod, doc.ID+"#"+s)
+							doc.AssertionMethod = append(doc.AssertionMethod, doc.ID+"#"+keyLookup[valueItem])
 						}
 					case "agm":
 						for _, valueItem := range valueItems {
-							s := keyLookup[valueItem]
-							doc.KeyAgreement = append(doc.KeyAgreement, doc.ID+"#"+s)
+							doc.KeyAgreement = append(doc.KeyAgreement, doc.ID+"#"+keyLookup[valueItem])
 						}
 					case "inv":
 						for _, valueItem := range valueItems {
