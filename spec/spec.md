@@ -3,25 +3,25 @@ The DID DHT Method Specification 1.0
 
 **Specification Status**: Implementer's Draft
 
-**Latest Draft:** [https://did-dht.com](https://did-dht.com)
+**Latest Draft**: [https://did-dht.com](https://did-dht.com)
 
-**Registry:** [https://did-dht.com/registry](https://did-dht.com/registry)
+**Registry**: [https://did-dht.com/registry](https://did-dht.com/registry)
 
-**Draft Created:** October 20, 2023
+**Draft Created**: October 20, 2023
 
-**Last Updated:** May 22, 2024
+**Last Updated**: May 22, 2024
 
-**Editors:**
+**Editors**:
 ~ [Gabe Cohen](https://github.com/decentralgabe)
 ~ [Daniel Buchner](https://github.com/csuwildcat)
 
-**Contributors:**
+**Contributors**:
 ~ [Moe Jangda](https://github.com/mistermoe)
 ~ [Frank Hinek](https://github.com/frankhinek)
 ~ [Henry Tsai](https://github.com/thehenrytsai)
 ~ [Kendall Weihe](https://github.com/KendallWeihe)
 
-**Participate:**
+**Participate**:
 ~ [GitHub repo](https://github.com/TBD54566975/did-dht)
 ~ [File a bug](https://github.com/TBD54566975/did-dht/issues)
 ~ [Commit history](https://github.com/TBD54566975/did-dht/commits/main)
@@ -510,16 +510,17 @@ To create a `did:dht` document, the process is as follows:
 2. Construct a conformant JSON representation of a [[ref:DID Document]].
 
     a. The document ****MUST**** include a [Verification Method](https://www.w3.org/TR/did-core/#verification-methods) with
-    the [[ref:Identity Key]]. The `id` property of this Verification Method ****MUST**** be `0` and type of `JsonWebKey` as defined
-    by [[ref:VC-JOSE-COSE]]. The key ****MUST**** be represented as a `publicKeyJwk` as per [[spec:RFC7517]] with a `kid` of `0`.
+    the [[ref:Identity Key]]. The `id` property of this Verification Method ****MUST**** be `0` and type of `JsonWebKey`
+    as defined by [[ref:VC-JOSE-COSE]]. The key ****MUST**** be represented as a `publicKeyJwk` as per [[spec:RFC7517]]
+    with a `kid` of `0`.
 
     b. The [[ref:Identity Key]] ****MUST**** have the [Verification Relationships](#verification-relationships) 
     _Authentication_, _Assertion_, _Capability Invocation_, and _Capability Delegation_.
 
     c. The document can include any number of other [core properties](https://www.w3.org/TR/did-core/#core-properties);
     always representing key material as a `JWK` as per [[spec:RFC7517]]. In addition to the properties required by
-    the `JWK` specification, the `alg` property ****MUST**** always be present in the DID Document representation. Default algorithm
-    values are defined per key type in the [indexed types registry](registry/index.html#indexed-types).
+    the `JWK` specification, the `alg` property ****MUST**** always be present in the DID Document representation.
+    Default algorithm values are defined per key type in the [indexed types registry](registry/index.html#indexed-types).
 
 3. Map the output [[ref:DID Document]] to a DNS packet as outlined in [property mapping](#property-mapping).
 
@@ -805,26 +806,29 @@ The algorithm for validating a [[ref:Retention Solution]] is as follows:
 
   a. If the `COMPUTED_HASH` has the required number of leading zeros, the [[ref:Retention Solution]] is considered valid.
 
-  b. If the `COMPUTED_HASH` does not have the required number of leading zeros, the validation fails, and the write request is rejected.
+  b. If the `COMPUTED_HASH` does not have the required number of leading zeros, the validation fails, and the write
+  request is rejected.
 
-If the [[ref:Retention Solution]] is deemed valid, the [[ref:Gateway]] accepts the write request and proceeds to store the DID document 
-in its [[ref:Retained DID Set]]. The [[ref:Gateway]] generates an `expiry` timestamp based on its retention policy and includes it in the
-response to the [[ref:Client]].
+If the [[ref:Retention Solution]] is deemed valid, the [[ref:Gateway]] accepts the write request and proceeds to store
+the DID document in its [[ref:Retained DID Set]]. The [[ref:Gateway]] generates an `expiry` timestamp based on its
+retention policy and includes it in the response to the [[ref:Client]].
 
-By validating the [[ref:Retention Solution]], the [[ref:Gateway]] ensures that the [[ref:Client]] has performed the necessary proof of
-work and is eligible for the retention guarantee. This validation process helps maintain the integrity and fairness of the [[ref:Retained DID Set]]
-system. It is important for [[ref:Gateways]] to consistently apply the validation logic and reject any write requests that do not include a valid
-[[ref:Retention Solution]]. This helps prevent abuse and ensures that only [[ref:Clients]] who have invested the required computational effort can
-benefit from the retention feature. [[ref:Gateways]] ****SHOULD**** regularly update their hash value to prevent pre-computation attacks and ensure
-the uniqueness and freshness of the [[ref:Retention Solutions]]. The recommended hash refresh window is **10 minutes**.
+By validating the [[ref:Retention Solution]], the [[ref:Gateway]] ensures that the [[ref:Client]] has performed the
+necessary proof of work and is eligible for the retention guarantee. This validation process helps maintain the
+integrity and fairness of the [[ref:Retained DID Set]] system. It is important for [[ref:Gateways]] to consistently
+apply the validation logic and reject any write requests that do not include a valid [[ref:Retention Solution]]. This
+helps prevent abuse and ensures that only [[ref:Clients]] who have invested the required computational effort can benefit
+from the retention feature. [[ref:Gateways]] ****SHOULD**** regularly update their hash value to prevent pre-computation
+attacks and ensure the uniqueness and freshness of the [[ref:Retention Solutions]]. The recommended hash refresh window
+is **10 minutes**.
 
 #### Managing the Retained DID Set
 
 [[ref:Gateways]] supporting [[ref:Retention Set]] feature ****MUST**** provide an `expiry` value represented as a
 [[ref:Unix Timestamp]] as a part of the [Gateway API](#gateway-api). This timestamp precisely indicates when the 
-[[ref:Gateway]] will cease republishing a particular DID, thus evicting the DID from the [[ref:Gateway]]'s Retained DID Set.
-This timestamp establishes a binding agreement between the [[ref:Client]] and the [[ref:Gateway]], and it ****MUST NOT****
-be modified once set.
+[[ref:Gateway]] will cease republishing a particular DID, thus evicting the DID from the [[ref:Gateway]]'s Retained
+DID Set. This timestamp establishes a binding agreement between the [[ref:Client]] and the [[ref:Gateway]], and it
+****MUST NOT**** be modified once set.
 
 Further, it is ****RECOMMENDED**** that [[ref:Gateway]]'s adhere to the following guidance:
 
@@ -843,10 +847,10 @@ When a [[ref:Client]] submits a fresh [[ref:Retention Solution]] for a DID alrea
 [[ref:Gateway]] ****SHOULD**** update the DID's expiry timestamp, effectively resetting the expiry window and granting a
 renewed retention period.
 
-* When a [[ref:Gateway]] reaches its storage capacity or experiences high load, it is ****RECOMMENDED**** that it significantly
-increases the `difficulty` parameter for [[ref:Retention Challenges]]. By raising the `difficulty`, the [[ref:Gateway]] can
-effectively limit the acceptance of new DIDs into its [[ref:Retained DID Set]], ensuring the stability and performance of the
-server under resource constraints.
+* When a [[ref:Gateway]] reaches its storage capacity or experiences high load, it is ****RECOMMENDED**** that it
+significantly increases the `difficulty` parameter for [[ref:Retention Challenges]]. By raising the `difficulty`, the
+[[ref:Gateway]] can effectively limit the acceptance of new DIDs into its [[ref:Retained DID Set]], ensuring the
+stability and performance of the server under resource constraints.
 
 ### Gateway API
 
@@ -935,7 +939,7 @@ surfacing a [[ref:Retention Challenge]].
 - **Method**: `PUT`
 - **Path**: `/did/:id`
   - `id` - **string** - **REQUIRED** - ID of the DID to publish.
-- **Request Body:** – application/json
+- **Request Body**: – application/json
   - `did` - **string** - **REQUIRED** - The DID to register or update.
   - `sig` - **string** - **REQUIRED** - An unpadded base64URL-encoded signature of the [[ref:BEP44]] payload.
   - `seq` - **integer** - **REQUIRED** - A [[ref:sequence number]] for the request. This number ****MUST**** be unique
@@ -1044,8 +1048,8 @@ for the DID, return the stored DIDs.
 * If the DNS Packet contains a `_typ._did.` record, the [[ref:Gateway]] ****MUST**** return the
 associated `types` value.
 
-* If the [[ref:Gateway]] supports [historical resolution](#historical-resolution) and has multiple stored [[ref:Sequence Numbers]]
-for the DID, the [[ref:Gateway]] ****MUST**** return the associated `sequence_number` value(s).
+* If the [[ref:Gateway]] supports [historical resolution](#historical-resolution) and has multiple stored
+[[ref:Sequence Numbers]] for the DID, the [[ref:Gateway]] ****MUST**** return the associated `sequence_number` value(s).
 
 * If the DID is in the [[ref:Gateway]]'s [[ref:Retained DID Set]], the [[ref:Gateway]] ****MUST**** return the
 associated `expiry` value.
@@ -1078,8 +1082,8 @@ historical state:
     payload, represented as 64 bytes sig, 8 bytes u64 big-endian seq, and 0-1000 bytes of v concatenated, enabling
     independent verification.
     - `types` - **array** - **OPTIONAL** - An array of [type integers](#type-indexing) for the DID.
-    - `expiry` - **integer** - **OPTIONAL** - The [[ref:Unix Timestamp]] in seconds indicating when the DID will be evicted
-    from the [[ref:Gateway]]'s [[ref:Retained DID Set]].
+    - `expiry` - **integer** - **OPTIONAL** - The [[ref:Unix Timestamp]] in seconds indicating when the DID will be
+    evicted from the [[ref:Gateway]]'s [[ref:Retained DID Set]].
   - `400` - Invalid request.
   - `404` - DID not found for the given [[ref:sequence number]].
   - `501` - Historical resolution not supported by this gateway.
@@ -1091,8 +1095,8 @@ follows the same process as [updating a DID](#register-or-update-a-did), but wit
 [section on deactivation](#deactivate).
 
 Upon receiving a request to deactivate a DID, the Gateway ****MUST**** verify the signature of the request, and if valid,
-stop [[ref:republishing]] the DHT. If the DNS Packets contain a `_typ._did.` record, the Gateway ****MUST**** stop indexing the
-type(s) for the DID.
+stop [[ref:republishing]] the DHT. If the DNS Packets contain a `_typ._did.` record, the Gateway ****MUST**** stop
+indexing the type(s) for the DID.
 
 #### Type Indexing
 
@@ -1106,7 +1110,6 @@ type(s) for the DID.
       - `type` - **integer** - **REQUIRED** - An integer representing the [type](#type-indexing).
       - `description` - **string** - **REQUIRED** - A string describing the [type](#type-indexing).
   - `404` - Type indexing not supported.
-
 
 **Example Type Index Response**:
 
@@ -1167,14 +1170,14 @@ Interoperable DID methods ****MUST**** be registered in
 
 Per [[ref:BEP44]], [[ref:Gateway]] servers can leverage the `seq` [[ref:Sequence Number]] to handle conflicts:
 
-> [[ref:Gateways]] receiving a put request where `seq` is lower than or equal to what's already stored on the [[ref:Gateway]],
-****MUST**** reject the request. If the [[ref:Sequence Number]] is equal, and the value is also the same, the [[ref:Gateway]]
-****SHOULD**** reset its timeout counter.
+> [[ref:Gateways]] receiving a put request where `seq` is lower than or equal to what's already stored on the
+[[ref:Gateway]], ****MUST**** reject the request. If the [[ref:Sequence Number]] is equal, and the value is also the
+same, the [[ref:Gateway]] ****SHOULD**** reset its timeout counter.
 
-When the [[ref:Sequence Number]] is equal, but the value is different, [[ref:Gateways]] need to decide which value to accept
-and which to reject. To make this determination [[ref:Gateways]] ****MUST**** compare the payloads lexicographically
-to determine a [lexicographical order](https://en.wikipedia.org/wiki/Lexicographic_order), and reject the payload with
-a **lower** lexicographical order.
+When the [[ref:Sequence Number]] is equal, but the value is different, [[ref:Gateways]] need to decide which value
+to accept and which to reject. To make this determination [[ref:Gateways]] ****MUST**** compare the payloads
+lexicographically to determine a [lexicographical order](https://en.wikipedia.org/wiki/Lexicographic_order), and reject
+the payload with a **lower** lexicographical order.
 
 ### Size Constraints
 
@@ -1220,10 +1223,10 @@ with [[ref:Gateways]].
 ### Rate Limiting
 
 To reduce the risk of [Denial of Service Attacks](https://www.cisa.gov/news-events/news/understanding-denial-service-attacks),
-spam, and other unwanted traffic, it is ****RECOMMENDED**** that [[ref:Gateways]] require [[ref:Retention Challenges]] for
-all requests. The use of [[ref:Retention Challenges]] can act as an attack prevention measure, as it would be costly to scale
-retention challenge calculations. [[ref:Gateways]] ****MAY**** choose to explore other rate limiting techniques, such as 
-IP-limiting, or an access-token-based approaches.
+spam, and other unwanted traffic, it is ****RECOMMENDED**** that [[ref:Gateways]] require [[ref:Retention Challenges]]
+for all requests. The use of [[ref:Retention Challenges]] can act as an attack prevention measure, as it would be
+costly to scale retention challenge calculations. [[ref:Gateways]] ****MAY**** choose to explore other rate limiting
+techniques, such as IP-limiting, or an access-token-based approaches.
 
 ### DID Resolution
 
@@ -1286,9 +1289,9 @@ its historical ordered state.
 [[ref:Mainline Servers]] or [[ref:Gateways]]. Implementers are encouraged to follow the guidance outlined in [conflict
 resolution](#conflict-resolution).
 
-- **High Sequence Number** - Since [[ref:Sequence Numbers]] ****MUST**** be second representations of a [[ref:Unix Timestamp]],
-it is ****RECOMMENDED**** that [[ref:Gateways]] reject [[ref:Sequence Numbers]] that represent timestamps greater than
-**2 hours** into the future to mitigate [timing attack](#data-conflicts) risks.
+- **High Sequence Number** - Since [[ref:Sequence Numbers]] ****MUST**** be second representations of a
+[[ref:Unix Timestamp]], it is ****RECOMMENDED**** that [[ref:Gateways]] reject [[ref:Sequence Numbers]] that represent
+timestamps greater than **2 hours** into the future to mitigate [timing attack](#data-conflicts) risks.
 
 ### Data Availability
 
