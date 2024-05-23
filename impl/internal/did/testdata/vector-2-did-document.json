@@ -16,7 +16,7 @@
       }
     },
     {
-      "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw",
+      "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#sig",
       "type": "JsonWebKey",
       "controller": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
       "publicKeyJwk": {
@@ -25,13 +25,13 @@
         "x": "1_o0IKHGNamet8-3VYNUTiKlhVK-LilcKrhJSPHSNP0",
         "y": "qzU8qqh0wKB6JC_9HCu8pHE-ZPkDpw4AdJ-MsV2InVY",
         "alg": "ES256K",
-        "kid": "0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw"
+        "kid": "sig"
       }
     }
   ],
   "authentication": ["did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0"],
-  "assertionMethod": ["did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0", "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw"],
-  "capabilityInvocation": ["did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0", "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw"],
+  "assertionMethod": ["did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0", "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#sig"],
+  "capabilityInvocation": ["did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0", "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#sig"],
   "capabilityDelegation": ["did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0"],
   "service": [
     {

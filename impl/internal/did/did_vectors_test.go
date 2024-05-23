@@ -110,7 +110,7 @@ func TestVectors(t *testing.T) {
 			VerificationMethods: []VerificationMethod{
 				{
 					VerificationMethod: did.VerificationMethod{
-						ID:           secpJWK.KID,
+						ID:           "sig",
 						Type:         cryptosuite.JSONWebKeyType,
 						Controller:   "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
 						PublicKeyJWK: &secpJWK,
