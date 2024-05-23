@@ -353,22 +353,7 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex, gateways []Authori
 	var vmIDs []string
 	for i, vm := range doc.VerificationMethod {
 		recordIdentifier := fmt.Sprintf("k%d", i)
-
-		// calculate the JWK thumbprint
-		thumbprint, err := vm.PublicKeyJWK.Thumbprint()
-		if err != nil {
-			return nil, fmt.Errorf("failed to calculate JWK thumbprint: %v", err)
-		}
-
-		// check if the VM ID matches the JWK thumbprint
-		unqualifiedVMID := strings.TrimPrefix(vm.ID, doc.ID+"#")
-		if unqualifiedVMID == thumbprint {
-			// if the VM ID matches the thumbprint, use the thumbprint as the key in the keyLookup map
-			keyLookup[vm.ID] = thumbprint
-		} else {
-			// otherwise, use the unqualified VM ID
-			keyLookup[vm.ID] = unqualifiedVMID
-		}
+		keyLookup[vm.ID] = recordIdentifier
 
 		keyType := keyTypeForJWK(*vm.PublicKeyJWK)
 		if keyType < 0 {
@@ -389,7 +374,14 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex, gateways []Authori
 
 		txtRecord := ""
 
+		// calculate the JWK thumbprint
+		thumbprint, err := vm.PublicKeyJWK.Thumbprint()
+		if err != nil {
+			return nil, fmt.Errorf("failed to calculate JWK thumbprint: %v", err)
+		}
+
 		// only include the id if it's not the JWK thumbprint
+		unqualifiedVMID := strings.TrimPrefix(vm.ID, doc.ID+"#")
 		if unqualifiedVMID != thumbprint {
 			txtRecord += fmt.Sprintf("id=%s;", unqualifiedVMID)
 		}
