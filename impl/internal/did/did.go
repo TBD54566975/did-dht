@@ -169,18 +169,25 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 			// mark as seen
 			seenIDs[vm.VerificationMethod.ID] = true
 
-			// make sure the verification method JWK KID is set to its thumbprint
-			vm.VerificationMethod.ID = id + "#" + vm.VerificationMethod.PublicKeyJWK.KID
-
-			// e.g. #key-1 -> did:dht:123456789abcdefghi#key-1
-			if strings.HasPrefix(vm.VerificationMethod.ID, "#") {
-				vm.VerificationMethod.ID = id + vm.VerificationMethod.ID
+			// if verification method ID is set, make sure it's fully qualified
+			if vm.VerificationMethod.ID != "" {
+				if strings.HasPrefix(vm.VerificationMethod.ID, "#") {
+					vm.VerificationMethod.ID = id + vm.VerificationMethod.ID
+				} else if !strings.Contains(vm.VerificationMethod.ID, "#") {
+					vm.VerificationMethod.ID = id + "#" + vm.VerificationMethod.ID
+				}
+			} else {
+				// if no verification method ID is set, set it to the JWK thumbprint
+				thumbprint, err := vm.VerificationMethod.PublicKeyJWK.Thumbprint()
+				if err != nil {
+					return nil, fmt.Errorf("failed to calculate JWK thumbprint: %v", err)
+				}
+				vm.VerificationMethod.ID = id + "#" + thumbprint
+				vm.VerificationMethod.PublicKeyJWK.KID = thumbprint
 			}
 
-			// e.g. key-1 -> did:dht:123456789abcdefghi#key-1
-			if !strings.Contains(vm.VerificationMethod.ID, "#") {
-				vm.VerificationMethod.ID = id + "#" + vm.VerificationMethod.ID
-			}
+			// make sure the JWK KID matches the unqualified VM ID
+			vm.VerificationMethod.PublicKeyJWK.KID = strings.TrimPrefix(vm.VerificationMethod.ID, id+"#")
 
 			// if there's no controller, set it to the DID itself
 			if vm.VerificationMethod.Controller == "" {
@@ -365,8 +372,20 @@ func (d DHT) ToDNSPacket(doc did.Document, types []TypeIndex, gateways []Authori
 			return nil, err
 		}
 
-		keyBase64URL := base64.RawURLEncoding.EncodeToString(pubKeyBytes)
-		txtRecord := fmt.Sprintf("t=%d;k=%s", keyType, keyBase64URL)
+		txtRecord := ""
+
+		// calculate the JWK thumbprint
+		thumbprint, err := vm.PublicKeyJWK.Thumbprint()
+		if err != nil {
+			return nil, fmt.Errorf("failed to calculate JWK thumbprint: %v", err)
+		}
+
+		// only include the id if it's not the JWK thumbprint
+		unqualifiedVMID := strings.TrimPrefix(vm.ID, doc.ID+"#")
+		if unqualifiedVMID != thumbprint {
+			txtRecord += fmt.Sprintf("id=%s;", unqualifiedVMID)
+		}
+		txtRecord += fmt.Sprintf("t=%d;k=%s", keyType, base64.RawURLEncoding.EncodeToString(pubKeyBytes))
 
 		// only include the alg if it's not the default alg for the key type
 		forKeyType := algIsDefaultForJWK(*vm.PublicKeyJWK)
@@ -595,6 +614,7 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*DIDDHTDocument, error) {
 			if strings.HasPrefix(record.Hdr.Name, "_k") {
 				unchunkedTextRecord := unchunkTextRecord(record.Txt)
 				data := parseTxtData(unchunkedTextRecord)
+				vmID := data["id"]
 				keyType := keyTypeLookUp(data["t"])
 				keyBase64URL := data["k"]
 				controller := data["c"]
@@ -634,7 +654,6 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*DIDDHTDocument, error) {
 				}
 
 				// compare pubkey to identity key to see if they're equal, and if they are set the vmID and kid to 0
-				var vmID string
 				if identityKey.Equal(pubKey) {
 					vmID = "0"
 					pubKeyJWK.KID = "0"
@@ -642,7 +661,14 @@ func (d DHT) FromDNSPacket(msg *dns.Msg) (*DIDDHTDocument, error) {
 
 				// if the verification method ID is not set, set it to the thumbprint
 				if vmID == "" {
-					vmID = pubKeyJWK.KID
+					thumbprint, err := pubKeyJWK.Thumbprint()
+					if err != nil {
+						return nil, fmt.Errorf("failed to calculate JWK thumbprint: %v", err)
+					}
+					vmID = thumbprint
+					pubKeyJWK.KID = thumbprint
+				} else {
+					pubKeyJWK.KID = vmID
 				}
 
 				vm := did.VerificationMethod{
