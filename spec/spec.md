@@ -9,7 +9,7 @@ The DID DHT Method Specification 1.0
 
 **Draft Created**: October 20, 2023
 
-**Last Updated**: May 22, 2024
+**Last Updated**: May 31, 2024
 
 **Editors**:
 ~ [Gabe Cohen](https://github.com/decentralgabe)
@@ -441,7 +441,7 @@ A sample transformation of a fully-featured DID Document to a DNS packet is exem
       "controller": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
       "publicKeyJwk": {
         "kid": "0",
-        "alg": "Ed25519",
+        "alg": "EdDSA",
         "crv": "Ed25519",
         "kty": "OKP",
         "x": "r96mnGNgWGOmjt6g_3_0nd4Kls5-kknrd4DdPW8qtfw"
@@ -1015,7 +1015,7 @@ Requests without a `retention_solution` have **no retention guarantees**.
         "controller": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
         "publicKeyJwk": {
           "kid": "0",
-          "alg": "Ed25519",
+          "alg": "EdDSA",
           "crv": "Ed25519",
           "kty": "OKP",
           "x": "r96mnGNgWGOmjt6g_3_0nd4Kls5-kknrd4DdPW8qtfw"
@@ -1345,7 +1345,7 @@ A minimal DID Document.
 ```json
 {
   "kid": "0",
-  "alg": "Ed25519",
+  "alg": "EdDSA",
   "crv": "Ed25519",
   "kty": "OKP",
   "x": "YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE"
@@ -1364,7 +1364,7 @@ A minimal DID Document.
       "controller": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo",
       "publicKeyJwk": {
         "kid": "0",
-        "alg": "Ed25519",
+        "alg": "EdDSA",
         "crv": "Ed25519",
         "kty": "OKP",
         "x": "YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE"
@@ -1403,7 +1403,7 @@ with multiple endpoints, a gateway, two types to index, an aka, and controller p
 ```json
 {
   "kid": "0",
-  "alg": "Ed25519",
+  "alg": "EdDSA",
   "crv": "Ed25519",
   "kty": "OKP",
   "x": "YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE"
@@ -1455,7 +1455,7 @@ With controller: `did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y` 
       "controller": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo",
       "publicKeyJwk": {
         "kid": "0",
-        "alg": "Ed25519",
+        "alg": "EdDSA",
         "crv": "Ed25519",
         "kty": "OKP",
         "x": "YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE"
@@ -1523,7 +1523,7 @@ what is specified in the registry. The DID also has two gateway records and a se
 ```json
 {
   "kid": "0",
-  "alg": "Ed25519",
+  "alg": "EdDSA",
   "crv": "Ed25519",
   "kty": "OKP",
   "x": "sTyTLYw-n1NI9X-84NaCuis1wZjAA8lku6f6Et5201g"
@@ -1572,7 +1572,7 @@ what is specified in the registry. The DID also has two gateway records and a se
       "controller": "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy",
       "publicKeyJwk": {
         "kid": "0",
-        "alg": "Ed25519",
+        "alg": "EdDSA",
         "crv": "Ed25519",
         "kty": "OKP",
         "x": "sTyTLYw-n1NI9X-84NaCuis1wZjAA8lku6f6Et5201g"

@@ -233,8 +233,8 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 	// create the did document
 	kid := "0"
 	key0JWK, err := jwx.PublicKeyToPublicKeyJWK(&kid, pubKey)
-	// temporary workaround until https://github.com/TBD54566975/ssi-sdk/issues/520 is in place
-	key0JWK.ALG = string(crypto.Ed25519DSA)
+	//nolint:staticcheck
+	key0JWK.ALG = string(crypto.EdDSA)
 	if err != nil {
 		return nil, err
 	}
@@ -843,9 +843,10 @@ func parseTxtData(data string) map[string]string {
 // algIsDefaultForJWK returns true if the given JWK ALG is the default for the given key type
 // according to the key type index https://did-dht.com/registry/#key-type-index
 func algIsDefaultForJWK(jwk jwx.PublicKeyJWK) bool {
-	// Ed25519 : Ed25519
+	// Ed25519 : EdDSA
 	if jwk.CRV == crypto.Ed25519.String() && jwk.KTY == jwa.OKP.String() {
-		return jwk.ALG == string(crypto.Ed25519DSA)
+		//nolint:staticcheck
+		return jwk.ALG == string(crypto.EdDSA)
 	}
 	// secp256k1 : ES256K
 	if jwk.CRV == crypto.SECP256k1.String() && jwk.KTY == jwa.EC.String() {
@@ -865,9 +866,10 @@ func algIsDefaultForJWK(jwk jwx.PublicKeyJWK) bool {
 // defaultAlgForJWK returns the default signature algorithm for the given JWK based on the key type index
 // https://did-dht.com/registry/#key-type-index
 func defaultAlgForJWK(jwk jwx.PublicKeyJWK) string {
-	// Ed25519 : Ed25519
+	// Ed25519 : EdDSA
 	if jwk.CRV == crypto.Ed25519.String() && jwk.KTY == jwa.OKP.String() {
-		return string(crypto.Ed25519DSA)
+		//nolint:staticcheck
+		return string(crypto.EdDSA)
 	}
 	// secp256k1 : ES256K
 	if jwk.CRV == crypto.SECP256k1.String() && jwk.KTY == jwa.EC.String() {
@@ -904,7 +906,7 @@ func keyTypeLookUp(keyType string) crypto.KeyType {
 // keyTypeForJWK returns the key type index for the given JWK according to the key type index
 // https://did-dht.com/registry/#key-type-index
 func keyTypeForJWK(jwk jwx.PublicKeyJWK) int {
-	// Ed25519 : Ed25519 : 0
+	// Ed25519 : EdDSA : 0
 	if jwk.CRV == crypto.Ed25519.String() && jwk.KTY == jwa.OKP.String() {
 		return 0
 	}
