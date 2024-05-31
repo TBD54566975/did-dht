@@ -233,6 +233,7 @@ func CreateDIDDHTDID(pubKey ed25519.PublicKey, opts CreateDIDDHTOpts) (*did.Docu
 	// create the did document
 	kid := "0"
 	key0JWK, err := jwx.PublicKeyToPublicKeyJWK(&kid, pubKey)
+	//nolint:staticcheck
 	key0JWK.ALG = string(crypto.EdDSA)
 	if err != nil {
 		return nil, err
@@ -844,6 +845,7 @@ func parseTxtData(data string) map[string]string {
 func algIsDefaultForJWK(jwk jwx.PublicKeyJWK) bool {
 	// Ed25519 : EdDSA
 	if jwk.CRV == crypto.Ed25519.String() && jwk.KTY == jwa.OKP.String() {
+		//nolint:staticcheck
 		return jwk.ALG == string(crypto.EdDSA)
 	}
 	// secp256k1 : ES256K
@@ -866,6 +868,7 @@ func algIsDefaultForJWK(jwk jwx.PublicKeyJWK) bool {
 func defaultAlgForJWK(jwk jwx.PublicKeyJWK) string {
 	// Ed25519 : EdDSA
 	if jwk.CRV == crypto.Ed25519.String() && jwk.KTY == jwa.OKP.String() {
+		//nolint:staticcheck
 		return string(crypto.EdDSA)
 	}
 	// secp256k1 : ES256K
