@@ -1,5 +1,5 @@
 [![godoc did-dht](https://img.shields.io/badge/godoc-did_dht-blue)](https://github.com/TBD54566975/did-dht/impl)
-[![go version 1.22.3](https://img.shields.io/badge/go_version-1.22.3-brightgreen)](https://go.dev/)
+[![go version 1.22.4](https://img.shields.io/badge/go_version-1.22.4-brightgreen)](https://go.dev/)
 [![license Apache 2](https://img.shields.io/badge/license-Apache%202-black)](https://github.com/TBD54566975/did-dht/blob/main/LICENSE)
 [![issues](https://img.shields.io/github/issues/TBD54566975/did-dht)](https://github.com/TBD54566975/did-dht/issues)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/TBD54566975/did-dht/ci.yml)
