@@ -10,6 +10,7 @@ import (
 	errutil "github.com/TBD54566975/ssi-sdk/util"
 	"github.com/anacrolix/dht/v2"
 	"github.com/anacrolix/dht/v2/bep44"
+	"github.com/anacrolix/dht/v2/exts/getput"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/torrent/types/infohash"
 	"github.com/pkg/errors"
@@ -17,7 +18,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 
-	dhtint "github.com/TBD54566975/did-dht/internal/dht"
 	"github.com/TBD54566975/did-dht/internal/util"
 	"github.com/TBD54566975/did-dht/pkg/telemetry"
 )
@@ -92,7 +92,7 @@ func (d *DHT) Put(ctx context.Context, request bep44.Put) (string, error) {
 	}
 
 	key := util.Z32Encode(request.K[:])
-	t, err := dhtint.Put(ctx, request.Target(), d.Server, nil, func(int64) bep44.Put {
+	t, err := getput.Put(ctx, request.Target(), d.Server, nil, func(int64) bep44.Put {
 		return request
 	})
 	if err != nil {
@@ -109,7 +109,7 @@ func (d *DHT) Put(ctx context.Context, request bep44.Put) (string, error) {
 // GetFull returns the full BEP-44 result for the given key from the DHT, using our modified
 // implementation of getput.Get. It should ONLY be used when it's needed to get the signature
 // data for a record.
-func (d *DHT) GetFull(ctx context.Context, key string) (*dhtint.FullGetResult, error) {
+func (d *DHT) GetFull(ctx context.Context, key string) (*getput.GetResult, error) {
 	ctx, span := telemetry.GetTracer().Start(ctx, "DHT.GetFull")
 	defer span.End()
 
@@ -117,7 +117,7 @@ func (d *DHT) GetFull(ctx context.Context, key string) (*dhtint.FullGetResult, e
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to decode key [%s]", key)
 	}
-	res, t, err := dhtint.Get(ctx, infohash.HashBytes(z32Decoded), d.Server, nil, nil)
+	res, t, err := getput.Get(ctx, infohash.HashBytes(z32Decoded), d.Server, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get key[%s] from dht; tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
 	}

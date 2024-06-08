@@ -6,10 +6,9 @@ import (
 
 	"github.com/TBD54566975/ssi-sdk/util"
 	"github.com/anacrolix/dht/v2/bep44"
+	"github.com/anacrolix/dht/v2/exts/getput"
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/miekg/dns"
-
-	"github.com/TBD54566975/did-dht/internal/dht"
 )
 
 // CreateDNSPublishRequest creates a put request for the given records. Requires a public/private keypair and
@@ -51,7 +50,7 @@ func CreateDNSPublishRequest(privateKey ed25519.PrivateKey, msg dns.Msg) (*bep44
 
 // ParseDNSGetResponse parses the response from a get request.
 // The response is expected to be a slice of DNS resource records.
-func ParseDNSGetResponse(response dht.FullGetResult) (*dns.Msg, error) {
+func ParseDNSGetResponse(response getput.GetResult) (*dns.Msg, error) {
 	var payload string
 	if err := bencode.Unmarshal(response.V, &payload); err != nil {
 		return nil, util.LoggingErrorMsg(err, "failed to unmarshal payload value")

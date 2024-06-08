@@ -151,3 +151,5 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/anacrolix/dht/v2 => github.com/TBD54566975/dht/v2 v2.0.0-20240608032934-ba76f42385e2
