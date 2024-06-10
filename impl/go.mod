@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/TBD54566975/ssi-sdk v0.0.4-alpha.0.20240410030603-dcd73d6ce8b3
 	github.com/allegro/bigcache/v3 v3.1.0
-	github.com/anacrolix/dht/v2 v2.21.1
+	github.com/anacrolix/dht/v2 v2.21.2-0.20240610083721-3b9f2a0566f2
 	github.com/anacrolix/log v0.15.2
 	github.com/anacrolix/torrent v1.56.0
 	github.com/gin-contrib/cors v1.7.2
@@ -155,5 +155,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.1.6 // indirect
 )
-
-replace github.com/anacrolix/dht/v2 => github.com/TBD54566975/dht/v2 v2.0.0-20240608032934-ba76f42385e2
