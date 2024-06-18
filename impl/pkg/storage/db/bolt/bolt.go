@@ -235,9 +235,7 @@ func (b *Bolt) WriteFailedRecord(ctx context.Context, id string) error {
 		var count int32 = 1
 		v := bucket.Get([]byte(id))
 		if v != nil {
-			if err = json.Unmarshal(v, &count); err != nil {
-				return err
-			}
+			count = int32(binary.LittleEndian.Uint32(v))
 			count++
 		}
 
