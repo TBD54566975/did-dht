@@ -52,11 +52,11 @@ func (r *DHTRouter) GetRecord(c *gin.Context) {
 	// make sure the key is valid
 	key, err := util.Z32Decode(*id)
 	if err != nil {
-		LoggingRespondErrWithMsg(c, err, "invalid record id", http.StatusInternalServerError)
+		LoggingRespondErrWithMsg(c, err, fmt.Sprintf("invalid record id: %s", *id), http.StatusInternalServerError)
 		return
 	}
 	if len(key) != ed25519.PublicKeySize {
-		LoggingRespondErrMsg(c, "invalid z32 encoded ed25519 public key", http.StatusBadRequest)
+		LoggingRespondErrMsg(c, fmt.Sprintf("invalid z32 encoded ed25519 public key: %s", *id), http.StatusBadRequest)
 		return
 	}
 
@@ -67,11 +67,11 @@ func (r *DHTRouter) GetRecord(c *gin.Context) {
 			LoggingRespondErrMsg(c, fmt.Sprintf("too many requests for bad key %s", *id), http.StatusTooManyRequests)
 			return
 		}
-		LoggingRespondErrWithMsg(c, err, "failed to get dht record", http.StatusInternalServerError)
+		LoggingRespondErrWithMsg(c, err, fmt.Sprintf("failed to get dht record: %s", *id), http.StatusInternalServerError)
 		return
 	}
 	if resp == nil {
-		LoggingRespondErrMsg(c, "dht record not found", http.StatusNotFound)
+		LoggingRespondErrMsg(c, fmt.Sprintf("dht record not found: %s", *id), http.StatusNotFound)
 		return
 	}
 
@@ -106,24 +106,24 @@ func (r *DHTRouter) PutRecord(c *gin.Context) {
 	}
 	key, err := util.Z32Decode(*id)
 	if err != nil {
-		LoggingRespondErrWithMsg(c, err, "invalid record id", http.StatusInternalServerError)
+		LoggingRespondErrWithMsg(c, err, fmt.Sprintf("invalid record id: %s", *id), http.StatusInternalServerError)
 		return
 	}
 	if len(key) != ed25519.PublicKeySize {
-		LoggingRespondErrMsg(c, "invalid z32 encoded ed25519 public key", http.StatusBadRequest)
+		LoggingRespondErrMsg(c, fmt.Sprintf("invalid z32 encoded ed25519 public key: %s", *id), http.StatusBadRequest)
 		return
 	}
 
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		LoggingRespondErrWithMsg(c, err, "failed to read body", http.StatusInternalServerError)
+		LoggingRespondErrWithMsg(c, err, fmt.Sprintf("failed to read body for id: %s", *id), http.StatusInternalServerError)
 		return
 	}
 	defer c.Request.Body.Close()
 
 	// 64 byte signature and 8 byte sequence number
 	if len(body) <= 72 {
-		LoggingRespondErrMsg(c, "invalid request body", http.StatusBadRequest)
+		LoggingRespondErrMsg(c, fmt.Sprintf("invalid request body for id: %s", *id), http.StatusBadRequest)
 		return
 	}
 
@@ -138,7 +138,7 @@ func (r *DHTRouter) PutRecord(c *gin.Context) {
 	}
 
 	if err = r.service.PublishDHT(ctx, *id, *request); err != nil {
-		LoggingRespondErrWithMsg(c, err, "failed to publish dht record", http.StatusInternalServerError)
+		LoggingRespondErrWithMsg(c, err, fmt.Sprintf("failed to publish dht record: %s", *id), http.StatusInternalServerError)
 		return
 	}
 
