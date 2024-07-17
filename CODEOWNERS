@@ -11,7 +11,7 @@
 # These owners will be the default owners for everything in the repo.
 *       @decentralgabe
 spec    @decentralgabe @csuwildcat @frankhinek @mistermoe
-impl    @decentralgabe @mistermoe @finn-tbd
+impl    @decentralgabe
 
 # -----------------------------------------------
 # BELOW THIS LINE ARE TEMPLATES, UNUSED
