@@ -145,7 +145,7 @@ func (s *DHTService) GetDHT(ctx context.Context, id string) (*dht.BEP44Response,
 	if got, err := s.cache.Get(id); err == nil {
 		var resp dht.BEP44Response
 		if err = json.Unmarshal(got, &resp); err == nil {
-			logrus.WithContext(ctx).WithField("record_id", id).Info("resolved record from cache")
+			logrus.WithContext(ctx).WithField("record_id", id).Debug("resolved record from cache")
 			return &resp, nil
 		}
 		logrus.WithContext(ctx).WithError(err).WithField("record_id", id).Warn("failed to get record from cache, falling back to dht")
@@ -175,7 +175,7 @@ func (s *DHTService) GetDHT(ctx context.Context, id string) (*dht.BEP44Response,
 			return nil, err
 		}
 
-		logrus.WithContext(ctx).WithField("record_id", id).Info("resolved record from storage")
+		logrus.WithContext(ctx).WithField("record_id", id).Debug("resolved record from storage")
 		resp := record.Response()
 		// add the record back to the cache for future lookups
 		if err = s.addRecordToCache(id, record.Response()); err != nil {
@@ -204,7 +204,7 @@ func (s *DHTService) GetDHT(ctx context.Context, id string) (*dht.BEP44Response,
 	if err = s.addRecordToCache(id, resp); err != nil {
 		logrus.WithContext(ctx).WithField("record_id", id).WithError(err).Error("failed to set record in cache")
 	} else {
-		logrus.WithContext(ctx).WithField("record_id", id).Info("added record back to cache")
+		logrus.WithContext(ctx).WithField("record_id", id).Debug("added record back to cache")
 	}
 
 	return &resp, nil
@@ -294,7 +294,7 @@ func (s *DHTService) republishRecords(ctx context.Context) []failedRecord {
 		"success": seenRecords - int32(len(failedRecords)),
 		"errors":  len(failedRecords),
 		"total":   seenRecords,
-	}).Infof("republishing complete with [%d] batches of [%d] total records with a [%.2f] percent success rate", batchCnt, seenRecords, successRate)
+	}).Debugf("republishing complete with [%d] batches of [%d] total records with a [%.2f] percent success rate", batchCnt, seenRecords, successRate)
 
 	return failedRecords
 }
