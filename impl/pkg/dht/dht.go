@@ -11,6 +11,7 @@ import (
 	"github.com/anacrolix/dht/v2"
 	"github.com/anacrolix/dht/v2/bep44"
 	"github.com/anacrolix/dht/v2/exts/getput"
+	"github.com/anacrolix/dht/v2/traversal"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/torrent/types/infohash"
 	"github.com/pkg/errors"
@@ -95,15 +96,27 @@ func (d *DHT) Put(ctx context.Context, request bep44.Put) (string, error) {
 	t, err := getput.Put(ctx, request.Target(), d.Server, nil, func(int64) bep44.Put {
 		return request
 	})
-	if err != nil {
-		if t == nil {
-			return "", fmt.Errorf("failed to put key[%s] into dht: %v", key, err)
-		}
-		return "", fmt.Errorf("failed to put key[%s] into dht, tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
-	} else {
-		logrus.WithContext(ctx).WithField("key", key).Debug("successfully put key into dht")
+	if err = isPutSuccessful(key, t, err); err != nil {
+		logrus.WithContext(ctx).WithField("key", key).Error("error putting key into dht")
+		return "", err
 	}
+	logrus.WithContext(ctx).WithField("key", key).Debug("successfully put key into dht")
 	return util.Z32Encode(request.K[:]), nil
+}
+
+const successThreshold = 0.33
+
+func isPutSuccessful(key string, t *traversal.Stats, err error) error {
+	if err != nil {
+		return nil
+	}
+	if t == nil {
+		return fmt.Errorf("failed to put key[%s] into dht: %v", key, err)
+	}
+	if float64(t.NumResponses)/float64(t.NumAddrsTried) < successThreshold {
+		return fmt.Errorf("failed to put key[%s] into dht, tried %d nodes, got %d responses", key, t.NumAddrsTried, t.NumResponses)
+	}
+	return nil
 }
 
 // GetFull returns the full BEP-44 result for the given key from the DHT, using our modified
