@@ -17,7 +17,7 @@ import (
 
 var (
 	iterationsPerServer = 1000
-	servers             = []string{"diddht-a", "diddht-b"}
+	server             = "http://localhost:8305"
 )
 
 func main() {
@@ -26,32 +26,30 @@ func main() {
 	programStart := time.Now()
 
 	var wg sync.WaitGroup
-	for _, server := range servers {
-		for i := 0; i < iterationsPerServer; i++ {
-			log := logrus.WithField("server", server).WithField("i", i)
+	for i := 0; i < iterationsPerServer; i++ {
+		log := logrus.WithField("server", server).WithField("i", i)
 
-			s := server
-			wg.Add(1)
-			go func() {
-				putStart := time.Now()
-				suffix, err := put(s)
-				if err != nil {
-					log = log.WithError(err)
-				}
-				log.WithField("time", time.Since(putStart)).Info("PUT request completed")
-				if err != nil {
-					return
-				}
+		s := server
+		wg.Add(1)
+		go func() {
+			putStart := time.Now()
+			suffix, err := put(s)
+			if err != nil {
+				log = log.WithError(err)
+			}
+			log.WithField("time", time.Since(putStart)).Info("PUT request completed")
+			if err != nil {
+				return
+			}
 
-				getStart := time.Now()
-				if err = get(s, suffix); err != nil {
-					log = log.WithError(err)
-				}
-				log.WithField("time", time.Since(getStart)).Info("GET request completed")
+			getStart := time.Now()
+			if err = get(s, suffix); err != nil {
+				log = log.WithError(err)
+			}
+			log.WithField("time", time.Since(getStart)).Info("GET request completed")
 
-				wg.Done()
-			}()
-		}
+			wg.Done()
+		}()
 	}
 
 	wg.Wait()
@@ -70,7 +68,7 @@ func put(server string) (string, error) {
 		return "", err
 	}
 
-	req, err := http.NewRequest(http.MethodPut, "http://"+server+":8305/"+suffix, bytes.NewReader(reqData))
+	req, err := http.NewRequest(http.MethodPut, server+"/"+suffix, bytes.NewReader(reqData))
 	if err != nil {
 		return "", err
 	}
@@ -94,7 +92,7 @@ func put(server string) (string, error) {
 }
 
 func get(server, suffix string) error {
-	resp, err := http.Get("http://" + server + ":8305/" + suffix)
+	resp, err := http.Get(server + "/" + suffix)
 	if err != nil {
 		return err
 	}
