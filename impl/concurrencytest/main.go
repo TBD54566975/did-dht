@@ -17,7 +17,7 @@ import (
 
 var (
 	iterationsPerServer = 1000
-	server             = "http://localhost:8305"
+	servers             = []string{"http://localhost:8305", "http://localhost:8305"}
 )
 
 func main() {
@@ -26,30 +26,32 @@ func main() {
 	programStart := time.Now()
 
 	var wg sync.WaitGroup
-	for i := 0; i < iterationsPerServer; i++ {
-		log := logrus.WithField("server", server).WithField("i", i)
+	for _, server := range servers {
+		for i := 0; i < iterationsPerServer; i++ {
+			log := logrus.WithField("server", server).WithField("i", i)
 
-		s := server
-		wg.Add(1)
-		go func() {
-			putStart := time.Now()
-			suffix, err := put(s)
-			if err != nil {
-				log = log.WithError(err)
-			}
-			log.WithField("time", time.Since(putStart)).Info("PUT request completed")
-			if err != nil {
-				return
-			}
+			s := server
+			wg.Add(1)
+			go func() {
+				putStart := time.Now()
+				suffix, err := put(s)
+				if err != nil {
+					log = log.WithError(err)
+				}
+				log.WithField("time", time.Since(putStart)).Info("PUT request completed")
+				if err != nil {
+					return
+				}
 
-			getStart := time.Now()
-			if err = get(s, suffix); err != nil {
-				log = log.WithError(err)
-			}
-			log.WithField("time", time.Since(getStart)).Info("GET request completed")
+				getStart := time.Now()
+				if err = get(s, suffix); err != nil {
+					log = log.WithError(err)
+				}
+				log.WithField("time", time.Since(getStart)).Info("GET request completed")
 
-			wg.Done()
-		}()
+				wg.Done()
+			}()
+		}
 	}
 
 	wg.Wait()

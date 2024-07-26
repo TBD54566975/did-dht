@@ -12,7 +12,7 @@ import (
 )
 
 func TestClient(t *testing.T) {
-	client, err := NewGatewayClient("https://diddht.tbddev.org")
+	client, err := NewGatewayClient("http://localhost:8305")
 
 	require.NoError(t, err)
 	require.NotNil(t, client)
@@ -49,7 +49,7 @@ func TestClientInvalidGateway(t *testing.T) {
 }
 
 func TestInvalidDIDDocument(t *testing.T) {
-	client, err := NewGatewayClient("https://diddht.tbddev.test")
+	client, err := NewGatewayClient("http://localhost:8305")
 	require.NoError(t, err)
 	require.NotEmpty(t, client)
 
