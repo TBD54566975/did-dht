@@ -129,12 +129,7 @@ func TestToDNSPacket(t *testing.T) {
 		require.NotEmpty(t, packet)
 
 		pb, _ := packet.Pack()
-		println("DNS: ", len(pb))
-
-		cborPacket, err := didID.ToCBOR(*doc, nil, nil, nil)
-		require.NoError(t, err)
-		println("CBOR: ", len(cborPacket))
-		println("CBOR: ", string(cborPacket))
+		println("1 - DNS Length: ", len(pb))
 
 		didDHTDoc, err := didID.FromDNSPacket(packet)
 		require.NoError(t, err)
@@ -144,13 +139,35 @@ func TestToDNSPacket(t *testing.T) {
 		require.Empty(t, didDHTDoc.Gateways)
 		require.Empty(t, didDHTDoc.PreviousDID)
 
-		didDHTDocCBOR, err := didID.FromCBOR(cborPacket)
+		jsonDoc, err := json.Marshal(doc)
 		require.NoError(t, err)
-		require.NotEmpty(t, didDHTDocCBOR)
-		require.NotEmpty(t, didDHTDocCBOR.Doc)
-		require.Empty(t, didDHTDocCBOR.Types)
-		require.Empty(t, didDHTDocCBOR.Gateways)
-		require.Empty(t, didDHTDocCBOR.PreviousDID)
+
+		jsonDecodedDoc, err := json.Marshal(didDHTDoc.Doc)
+		require.NoError(t, err)
+
+		assert.JSONEq(t, string(jsonDoc), string(jsonDecodedDoc))
+	})
+
+	t.Run("simple doc - test to dns packet round trip - cbor", func(t *testing.T) {
+		privKey, doc, err := GenerateDIDDHT(CreateDIDDHTOpts{})
+		require.NoError(t, err)
+		require.NotEmpty(t, privKey)
+		require.NotEmpty(t, doc)
+
+		didID := DHT(doc.ID)
+		packet, err := didID.ToCBOR(*doc, nil, nil, nil)
+		require.NoError(t, err)
+		require.NotEmpty(t, packet)
+
+		println("1 - CBOR Length: ", len(packet))
+
+		didDHTDoc, err := didID.FromCBOR(packet)
+		require.NoError(t, err)
+		require.NotEmpty(t, didDHTDoc)
+		require.NotEmpty(t, didDHTDoc.Doc)
+		require.Empty(t, didDHTDoc.Types)
+		require.Empty(t, didDHTDoc.Gateways)
+		require.Empty(t, didDHTDoc.PreviousDID)
 
 		jsonDoc, err := json.Marshal(doc)
 		require.NoError(t, err)
@@ -159,12 +176,6 @@ func TestToDNSPacket(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.JSONEq(t, string(jsonDoc), string(jsonDecodedDoc))
-
-		jsonDecodedDocCBOR, err := json.Marshal(didDHTDocCBOR.Doc)
-		require.NoError(t, err)
-		println(string(jsonDecodedDocCBOR))
-
-		assert.JSONEq(t, string(jsonDoc), string(jsonDecodedDocCBOR))
 	})
 
 	t.Run("doc with types and a gateway - test to dns packet round trip", func(t *testing.T) {
@@ -178,7 +189,36 @@ func TestToDNSPacket(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, packet)
 
+		pb, _ := packet.Pack()
+		println("2 - DNS Length: ", len(pb))
+
 		didDHTDoc, err := didID.FromDNSPacket(packet)
+		require.NoError(t, err)
+		require.NotEmpty(t, didDHTDoc)
+		require.NotEmpty(t, didDHTDoc.Doc)
+		require.NotEmpty(t, didDHTDoc.Types)
+		require.Empty(t, didDHTDoc.PreviousDID)
+		require.Equal(t, didDHTDoc.Types, []TypeIndex{1, 2, 3})
+		require.NotEmpty(t, didDHTDoc.Gateways)
+		require.Equal(t, didDHTDoc.Gateways, []AuthoritativeGateway{"gateway1.example-did-dht-gateway.com."})
+
+		assert.EqualValues(t, *doc, didDHTDoc.Doc)
+	})
+
+	t.Run("doc with types and a gateway - test to dns packet round trip - cbor", func(t *testing.T) {
+		privKey, doc, err := GenerateDIDDHT(CreateDIDDHTOpts{})
+		require.NoError(t, err)
+		require.NotEmpty(t, privKey)
+		require.NotEmpty(t, doc)
+
+		didID := DHT(doc.ID)
+		packet, err := didID.ToCBOR(*doc, []TypeIndex{1, 2, 3}, []AuthoritativeGateway{"gateway1.example-did-dht-gateway.com."}, nil)
+		require.NoError(t, err)
+		require.NotEmpty(t, packet)
+
+		println("2 - CBOR Length: ", len(packet))
+
+		didDHTDoc, err := didID.FromCBOR(packet)
 		require.NoError(t, err)
 		require.NotEmpty(t, didDHTDoc)
 		require.NotEmpty(t, didDHTDoc.Doc)
@@ -232,7 +272,70 @@ func TestToDNSPacket(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, packet)
 
+		pb, _ := packet.Pack()
+		println("3 - DNS Length: ", len(pb))
+
 		didDHTDoc, err := didID.FromDNSPacket(packet)
+		require.NoError(t, err)
+		require.NotEmpty(t, didDHTDoc)
+		require.NotEmpty(t, didDHTDoc.Doc)
+		require.Empty(t, didDHTDoc.Types)
+		require.Empty(t, didDHTDoc.Gateways)
+		require.Empty(t, didDHTDoc.PreviousDID)
+
+		decodedJSON, err := json.Marshal(didDHTDoc.Doc)
+		require.NoError(t, err)
+
+		docJSON, err := json.Marshal(doc)
+		require.NoError(t, err)
+
+		assert.JSONEq(t, string(docJSON), string(decodedJSON))
+	})
+
+	t.Run("doc with multiple keys and services - test to dns packet round trip - cbor", func(t *testing.T) {
+		pubKey, _, err := crypto.GenerateSECP256k1Key()
+		require.NoError(t, err)
+		pubKeyJWK, err := jwx.PublicKeyToPublicKeyJWK(nil, pubKey)
+		require.NoError(t, err)
+
+		opts := CreateDIDDHTOpts{
+			VerificationMethods: []VerificationMethod{
+				{
+					VerificationMethod: did.VerificationMethod{
+						Type:         cryptosuite.JSONWebKeyType,
+						PublicKeyJWK: pubKeyJWK,
+					},
+					Purposes: []did.PublicKeyPurpose{did.AssertionMethod, did.CapabilityInvocation},
+				},
+			},
+			Services: []did.Service{
+				{
+					ID:              "vcs",
+					Type:            "VerifiableCredentialService",
+					ServiceEndpoint: []string{"https://example.com/vc/"},
+					Sig:             []string{"1", "2"},
+					Enc:             "3",
+				},
+				{
+					ID:              "hub",
+					Type:            "MessagingService",
+					ServiceEndpoint: []string{"https://example.com/hub/", "https://example.com/hub2/"},
+				},
+			},
+		}
+		privKey, doc, err := GenerateDIDDHT(opts)
+		require.NoError(t, err)
+		require.NotEmpty(t, privKey)
+		require.NotEmpty(t, doc)
+
+		didID := DHT(doc.ID)
+		packet, err := didID.ToCBOR(*doc, nil, nil, nil)
+		require.NoError(t, err)
+		require.NotEmpty(t, packet)
+
+		println("3 - CBOR Length: ", len(packet))
+
+		didDHTDoc, err := didID.FromCBOR(packet)
 		require.NoError(t, err)
 		require.NotEmpty(t, didDHTDoc)
 		require.NotEmpty(t, didDHTDoc.Doc)

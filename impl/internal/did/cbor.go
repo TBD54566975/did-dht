@@ -44,6 +44,8 @@ const (
 	keyServiceID       byte = 1
 	keyServiceType     byte = 2
 	keyServiceEndpoint byte = 3
+	keyServiceEnc      byte = 4
+	keyServiceSig      byte = 5
 )
 
 // ToCBOR converts a DID DHT Document to a CBOR byte array
@@ -146,7 +148,7 @@ func (d DHT) ToCBOR(doc did.Document, types []TypeIndex, gateways []Authoritativ
 
 // FromCBOR converts a CBOR byte array to a DID DHT Document
 func (d DHT) FromCBOR(cborData []byte) (*DIDDHTDocument, error) {
-	var cborMap map[byte]any
+	var cborMap map[any]any
 	err := cbor.Unmarshal(cborData, &cborMap)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal CBOR data: %w", err)
@@ -210,13 +212,14 @@ func (d DHT) FromCBOR(cborData []byte) (*DIDDHTDocument, error) {
 	doc.CapabilityInvocation = getVerificationRelationship(keyCapabilityInvocation)
 	doc.CapabilityDelegation = getVerificationRelationship(keyCapabilityDelegation)
 
-	if services, ok := cborMap[keyService].([]any); ok {
+	if services, ok := getMapValue(cborMap, keyService).([]any); ok {
 		for _, svcInterface := range services {
 			if svc, ok := svcInterface.(map[any]any); ok {
 				service := did.Service{
 					ID:   doc.ID + "#" + getMapValue(svc, keyServiceID).(string),
 					Type: getMapValue(svc, keyServiceType).(string),
 				}
+
 				if endpoints, ok := getMapValue(svc, keyServiceEndpoint).([]any); ok {
 					var serviceEndpoint []string
 					for _, e := range endpoints {
@@ -226,6 +229,17 @@ func (d DHT) FromCBOR(cborData []byte) (*DIDDHTDocument, error) {
 				} else if endpoint, ok := getMapValue(svc, keyServiceEndpoint).(string); ok {
 					service.ServiceEndpoint = endpoint
 				}
+
+				// Handle 'enc' field
+				if enc := getMapValue(svc, byte(keyServiceEnc)); enc != nil {
+					service.Enc = enc
+				}
+
+				// Handle 'sig' field
+				if sig := getMapValue(svc, byte(keyServiceSig)); sig != nil {
+					service.Sig = sig
+				}
+
 				doc.Services = append(doc.Services, service)
 			}
 		}
@@ -244,10 +258,26 @@ func (d DHT) FromCBOR(cborData []byte) (*DIDDHTDocument, error) {
 		doc.AlsoKnownAs = akas
 	}
 
-	if typesInterface, ok := cborMap[keyTypes].([]any); ok {
-		for _, t := range typesInterface {
-			if typeInt, ok := t.(int64); ok {
-				types = append(types, TypeIndex(typeInt))
+	if typesInterface, ok := cborMap[keyTypes]; ok {
+		switch typedTypes := typesInterface.(type) {
+		case []any:
+			for _, t := range typedTypes {
+				switch typedT := t.(type) {
+				case uint64:
+					types = append(types, TypeIndex(typedT))
+				case int64:
+					types = append(types, TypeIndex(typedT))
+				case float64:
+					types = append(types, TypeIndex(typedT))
+				}
+			}
+		case []uint64:
+			for _, t := range typedTypes {
+				types = append(types, TypeIndex(t))
+			}
+		case []int64:
+			for _, t := range typedTypes {
+				types = append(types, TypeIndex(t))
 			}
 		}
 	}
