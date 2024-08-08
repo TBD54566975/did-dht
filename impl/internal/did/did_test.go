@@ -128,6 +128,14 @@ func TestToDNSPacket(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, packet)
 
+		pb, _ := packet.Pack()
+		println("DNS: ", len(pb))
+
+		cborPacket, err := didID.ToCBOR(*doc, nil, nil, nil)
+		require.NoError(t, err)
+		println("CBOR: ", len(cborPacket))
+		println("CBOR: ", string(cborPacket))
+
 		didDHTDoc, err := didID.FromDNSPacket(packet)
 		require.NoError(t, err)
 		require.NotEmpty(t, didDHTDoc)
@@ -136,6 +144,14 @@ func TestToDNSPacket(t *testing.T) {
 		require.Empty(t, didDHTDoc.Gateways)
 		require.Empty(t, didDHTDoc.PreviousDID)
 
+		didDHTDocCBOR, err := didID.FromCBOR(cborPacket)
+		require.NoError(t, err)
+		require.NotEmpty(t, didDHTDocCBOR)
+		require.NotEmpty(t, didDHTDocCBOR.Doc)
+		require.Empty(t, didDHTDocCBOR.Types)
+		require.Empty(t, didDHTDocCBOR.Gateways)
+		require.Empty(t, didDHTDocCBOR.PreviousDID)
+
 		jsonDoc, err := json.Marshal(doc)
 		require.NoError(t, err)
 
@@ -143,6 +159,12 @@ func TestToDNSPacket(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.JSONEq(t, string(jsonDoc), string(jsonDecodedDoc))
+
+		jsonDecodedDocCBOR, err := json.Marshal(didDHTDocCBOR.Doc)
+		require.NoError(t, err)
+		println(string(jsonDecodedDocCBOR))
+
+		assert.JSONEq(t, string(jsonDoc), string(jsonDecodedDocCBOR))
 	})
 
 	t.Run("doc with types and a gateway - test to dns packet round trip", func(t *testing.T) {
