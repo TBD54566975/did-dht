@@ -2,6 +2,7 @@ package did
 
 import (
 	"crypto/ed25519"
+	"encoding/hex"
 	"fmt"
 	"testing"
 
@@ -163,6 +164,9 @@ func TestToDNSPacket(t *testing.T) {
 
 		didDHTDoc, err := didID.FromCBOR(packet)
 		require.NoError(t, err)
+
+		jsonDecodedDoc, err := json.Marshal(didDHTDoc.Doc)
+		require.NoError(t, err)
 		require.NotEmpty(t, didDHTDoc)
 		require.NotEmpty(t, didDHTDoc.Doc)
 		require.Empty(t, didDHTDoc.Types)
@@ -172,7 +176,7 @@ func TestToDNSPacket(t *testing.T) {
 		jsonDoc, err := json.Marshal(doc)
 		require.NoError(t, err)
 
-		jsonDecodedDoc, err := json.Marshal(didDHTDoc.Doc)
+		jsonDecodedDoc, err = json.Marshal(didDHTDoc.Doc)
 		require.NoError(t, err)
 
 		assert.JSONEq(t, string(jsonDoc), string(jsonDecodedDoc))
@@ -275,6 +279,7 @@ func TestToDNSPacket(t *testing.T) {
 		pb, _ := packet.Pack()
 		println("3 - DNS Length: ", len(pb))
 
+		println(string(pb))
 		didDHTDoc, err := didID.FromDNSPacket(packet)
 		require.NoError(t, err)
 		require.NotEmpty(t, didDHTDoc)
@@ -334,6 +339,10 @@ func TestToDNSPacket(t *testing.T) {
 		require.NotEmpty(t, packet)
 
 		println("3 - CBOR Length: ", len(packet))
+
+		// convert bytes to hex
+		s := hex.EncodeToString(packet)
+		println(s)
 
 		didDHTDoc, err := didID.FromCBOR(packet)
 		require.NoError(t, err)
