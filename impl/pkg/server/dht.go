@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
 
 	"github.com/TBD54566975/did-dht/internal/util"
 	"github.com/TBD54566975/did-dht/pkg/dht"
@@ -62,11 +62,11 @@ func (r *DHTRouter) GetRecord(c *gin.Context) {
 
 	resp, err := r.service.GetDHT(ctx, *id)
 	if err != nil {
-		// TODO(gabe): provide a more maintainable way to handle custom errors
-		if strings.Contains(err.Error(), "spam") {
+		if errors.Is(err, service.SpamError) {
 			LoggingRespondErrMsg(c, fmt.Sprintf("too many requests for bad key %s", *id), http.StatusTooManyRequests)
 			return
 		}
+
 		LoggingRespondErrWithMsg(c, err, fmt.Sprintf("failed to get dht record: %s", *id), http.StatusInternalServerError)
 		return
 	}
