@@ -126,6 +126,8 @@ func (s *DHTService) PublishDHT(ctx context.Context, id string, record dht.BEP44
 	return nil
 }
 
+var SpamError = errors.New("rate limited to prevent spam")
+
 // GetDHT returns the full DNS record (including sig data) for the given z-base-32 encoded ID
 func (s *DHTService) GetDHT(ctx context.Context, id string) (*dht.BEP44Response, error) {
 	ctx, span := telemetry.GetTracer().Start(ctx, "DHTService.GetDHT")
@@ -140,7 +142,7 @@ func (s *DHTService) GetDHT(ctx context.Context, id string) (*dht.BEP44Response,
 	// if the key is in the badGetCache, return an error
 	if _, err := s.badGetCache.Get(id); err == nil {
 		logrus.WithContext(ctx).WithField("record_id", id).Error("bad key rate limited to prevent spam")
-		return nil, errors.Wrapf(err, "bad key [%s] rate limited to prevent spam", id)
+		return nil, SpamError
 	}
 
 	// first do a cache lookup
@@ -260,6 +262,8 @@ func (s *DHTService) republishRecords(ctx context.Context) []failedRecord {
 
 	var wg sync.WaitGroup
 
+	republishStart := time.Now()
+
 	for {
 		recordsBatch, nextPageToken, err = s.db.ListRecords(ctx, nextPageToken, 1000)
 		if err != nil {
@@ -291,12 +295,18 @@ func (s *DHTService) republishRecords(ctx context.Context) []failedRecord {
 
 	wg.Wait()
 
+	republishEnd := time.Since(republishStart)
+	hours := int(republishEnd.Hours())
+	minutes := int(republishEnd.Minutes()) % 60
+	seconds := int(republishEnd.Seconds()) % 60
+	logrus.WithContext(ctx).Infof("Republishing completed in: %d hours, %d minutes, %d seconds", hours, minutes, seconds)
+
 	successRate := float64(seenRecords-int32(len(failedRecords))) / float64(seenRecords) * 100
 	logrus.WithContext(ctx).WithFields(logrus.Fields{
 		"success": seenRecords - int32(len(failedRecords)),
 		"errors":  len(failedRecords),
 		"total":   seenRecords,
-	}).Debugf("republishing complete with [%d] batches of [%d] total records with a [%.2f] percent success rate", batchCnt, seenRecords, successRate)
+	}).Infof("republishing complete with [%d] batches of [%d] total records with a [%.2f] percent success rate", batchCnt, seenRecords, successRate)
 
 	return failedRecords
 }
