@@ -133,12 +133,14 @@ func (s *DHTService) GetDHT(ctx context.Context, id string) (*dht.BEP44Response,
 
 	// make sure the key is valid
 	if _, err := util.Z32Decode(id); err != nil {
-		return nil, ssiutil.LoggingCtxErrorMsgf(ctx, err, "failed to decode z-base-32 encoded ID: %s", id)
+		logrus.WithContext(ctx).WithField("record_id", id).Error("failed to decode z-base-32 encoded ID")
+		return nil, errors.Wrapf(err, "failed to decode z-base-32 encoded ID: %s", id)
 	}
 
 	// if the key is in the badGetCache, return an error
 	if _, err := s.badGetCache.Get(id); err == nil {
-		return nil, ssiutil.LoggingCtxErrorMsgf(ctx, err, "bad key [%s] rate limited to prevent spam", id)
+		logrus.WithContext(ctx).WithField("record_id", id).Error("bad key rate limited to prevent spam")
+		return nil, errors.Wrapf(err, "bad key [%s] rate limited to prevent spam", id)
 	}
 
 	// first do a cache lookup
