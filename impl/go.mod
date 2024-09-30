@@ -1,6 +1,7 @@
 module github.com/TBD54566975/did-dht
 
 go 1.22
+toolchain go1.23.1
 
 require (
 	github.com/BurntSushi/toml v1.4.0
@@ -8,7 +9,7 @@ require (
 	github.com/allegro/bigcache/v3 v3.1.0
 	github.com/anacrolix/dht/v2 v2.22.0
 	github.com/anacrolix/log v0.16.0
-	github.com/anacrolix/torrent v1.56.1
+	github.com/anacrolix/torrent v1.57.1
 	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-co-op/gocron v1.37.0
@@ -45,11 +46,11 @@ require (
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/alecthomas/atomic v0.1.0-alpha2 // indirect
-	github.com/anacrolix/chansync v0.3.0 // indirect
-	github.com/anacrolix/generics v0.0.2-0.20240227122613-f95486179cab // indirect
+	github.com/anacrolix/chansync v0.4.1-0.20240627045151-1aa1ac392fe8 // indirect
+	github.com/anacrolix/generics v0.0.3-0.20240902042256-7fb2702ef0ca // indirect
 	github.com/anacrolix/missinggo v1.3.0 // indirect
 	github.com/anacrolix/missinggo/perf v1.0.0 // indirect
-	github.com/anacrolix/missinggo/v2 v2.7.3 // indirect
+	github.com/anacrolix/missinggo/v2 v2.7.4 // indirect
 	github.com/anacrolix/multiless v0.3.1-0.20221221005021-2d12701f83f7 // indirect
 	github.com/anacrolix/stm v0.4.1-0.20221221005312-96d17df0e496 // indirect
 	github.com/anacrolix/sync v0.5.1 // indirect
@@ -140,13 +141,13 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.10.0 // indirect
 	golang.org/x/crypto v0.27.0 // indirect
-	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
-	golang.org/x/mod v0.18.0 // indirect
+	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948 // indirect
+	golang.org/x/mod v0.20.0 // indirect
 	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.25.0 // indirect
 	golang.org/x/text v0.18.0 // indirect
-	golang.org/x/tools v0.22.0 // indirect
+	golang.org/x/tools v0.24.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240903143218-8af14fe29dc1 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect
 	google.golang.org/grpc v1.66.1 // indirect
