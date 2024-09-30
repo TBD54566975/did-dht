@@ -7,7 +7,7 @@ require (
 	github.com/TBD54566975/ssi-sdk v0.0.4-alpha.0.20240410030603-dcd73d6ce8b3
 	github.com/allegro/bigcache/v3 v3.1.0
 	github.com/anacrolix/dht/v2 v2.22.0
-	github.com/anacrolix/log v0.15.2
+	github.com/anacrolix/log v0.16.0
 	github.com/anacrolix/torrent v1.56.1
 	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-gonic/gin v1.10.0
