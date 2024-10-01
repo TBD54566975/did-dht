@@ -6,8 +6,8 @@ require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/TBD54566975/ssi-sdk v0.0.4-alpha.0.20240410030603-dcd73d6ce8b3
 	github.com/allegro/bigcache/v3 v3.1.0
-	github.com/anacrolix/dht/v2 v2.21.2-0.20240610083721-3b9f2a0566f2
-	github.com/anacrolix/log v0.15.2
+	github.com/anacrolix/dht/v2 v2.22.0
+	github.com/anacrolix/log v0.16.0
 	github.com/anacrolix/torrent v1.56.1
 	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-gonic/gin v1.10.0
@@ -136,7 +136,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.30.0 // indirect
 	go.opentelemetry.io/otel/metric v1.30.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
-	go.uber.org/atomic v1.9.0 // indirect
+	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.10.0 // indirect
 	golang.org/x/crypto v0.27.0 // indirect
