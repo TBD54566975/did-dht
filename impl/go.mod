@@ -1,6 +1,7 @@
 module github.com/TBD54566975/did-dht
 
-go 1.22
+go 1.23
+
 toolchain go1.23.1
 
 require (
