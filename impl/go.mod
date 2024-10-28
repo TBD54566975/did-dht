@@ -15,7 +15,7 @@ require (
 	github.com/goccy/go-json v0.10.3
 	github.com/jackc/pgx/v5 v5.7.1
 	github.com/joho/godotenv v1.5.1
-	github.com/lestrrat-go/jwx/v2 v2.1.1
+	github.com/lestrrat-go/jwx/v2 v2.1.2
 	github.com/magefile/mage v1.15.0
 	github.com/miekg/dns v1.1.62
 	github.com/mitchellh/go-homedir v1.1.0
