@@ -63,7 +63,7 @@ func (s SQLite) connect(ctx context.Context) (*Queries, *sql.DB, error) {
 }
 
 func (s SQLite) WriteRecord(ctx context.Context, record dht.BEP44Record) error {
-	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.WriteRecord")
+	ctx, span := telemetry.GetTracer().Start(ctx, "sqlite.WriteRecord")
 	defer span.End()
 
 	queries, db, err := s.connect(ctx)
@@ -86,7 +86,7 @@ func (s SQLite) WriteRecord(ctx context.Context, record dht.BEP44Record) error {
 }
 
 func (s SQLite) ReadRecord(ctx context.Context, id string) (*dht.BEP44Record, error) {
-	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.ReadRecord")
+	ctx, span := telemetry.GetTracer().Start(ctx, "sqlite.ReadRecord")
 	defer span.End()
 
 	queries, db, err := s.connect(ctx)
@@ -113,7 +113,7 @@ func (s SQLite) ReadRecord(ctx context.Context, id string) (*dht.BEP44Record, er
 }
 
 func (s SQLite) ListRecords(ctx context.Context, nextPageToken []byte, limit int) ([]dht.BEP44Record, []byte, error) {
-	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.ListRecords")
+	ctx, span := telemetry.GetTracer().Start(ctx, "sqlite.ListRecords")
 	defer span.End()
 
 	queries, db, err := s.connect(ctx)
@@ -161,7 +161,7 @@ func (row DhtRecord) Record() (*dht.BEP44Record, error) {
 }
 
 func (s SQLite) RecordCount(ctx context.Context) (int, error) {
-	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.RecordCount")
+	ctx, span := telemetry.GetTracer().Start(ctx, "sqlite.RecordCount")
 	defer span.End()
 
 	queries, db, err := s.connect(ctx)
@@ -179,7 +179,7 @@ func (s SQLite) RecordCount(ctx context.Context) (int, error) {
 }
 
 func (s SQLite) WriteFailedRecord(ctx context.Context, id string) error {
-	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.WriteFailedRecord")
+	ctx, span := telemetry.GetTracer().Start(ctx, "sqlite.WriteFailedRecord")
 	defer span.End()
 
 	queries, db, err := s.connect(ctx)
@@ -200,7 +200,7 @@ func (s SQLite) WriteFailedRecord(ctx context.Context, id string) error {
 }
 
 func (s SQLite) ListFailedRecords(ctx context.Context) ([]dht.FailedRecord, error) {
-	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.ListFailedRecords")
+	ctx, span := telemetry.GetTracer().Start(ctx, "sqlite.ListFailedRecords")
 	defer span.End()
 
 	queries, db, err := s.connect(ctx)
@@ -226,7 +226,7 @@ func (s SQLite) ListFailedRecords(ctx context.Context) ([]dht.FailedRecord, erro
 }
 
 func (s SQLite) FailedRecordCount(ctx context.Context) (int, error) {
-	ctx, span := telemetry.GetTracer().Start(ctx, "postgres.FailedRecordCount")
+	ctx, span := telemetry.GetTracer().Start(ctx, "sqlite.FailedRecordCount")
 	defer span.End()
 
 	queries, db, err := s.connect(ctx)
