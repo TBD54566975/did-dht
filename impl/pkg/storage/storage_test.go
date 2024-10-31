@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/TBD54566975/did-dht/pkg/storage"
-	"github.com/TBD54566975/did-dht/pkg/storage/db/bolt"
 	"github.com/TBD54566975/did-dht/pkg/storage/db/postgres"
+	"github.com/TBD54566975/did-dht/pkg/storage/db/sqlite"
 )
 
 func TestNewStoragePostgres(t *testing.T) {
@@ -30,10 +30,21 @@ func TestNewStoragePostgres(t *testing.T) {
 	assert.IsType(t, postgres.Postgres(""), db)
 }
 
-func TestNewStorageBolt(t *testing.T) {
-	db, err := storage.NewStorage("bolt:///tmp/bolt.db")
+func TestNewStorageSQLite(t *testing.T) {
+	uri := os.Getenv("TEST_DB")
+	if uri == "" {
+		t.SkipNow()
+	}
+
+	u, err := url.Parse(uri)
 	require.NoError(t, err)
-	assert.IsType(t, &bolt.Bolt{}, db)
+	if u.Scheme != "sqlite" {
+		t.SkipNow()
+	}
+
+	db, err := storage.NewStorage(uri)
+	require.NoError(t, err)
+	assert.IsType(t, sqlite.SQLite(""), db)
 }
 
 func TestNewStorageUnsupported(t *testing.T) {

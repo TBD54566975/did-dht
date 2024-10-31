@@ -17,6 +17,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/lestrrat-go/jwx/v2 v2.1.2
 	github.com/magefile/mage v1.15.0
+	github.com/mattn/go-sqlite3 v1.14.15
 	github.com/miekg/dns v1.1.62
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mr-tron/base58 v1.2.0

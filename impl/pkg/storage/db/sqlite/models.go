@@ -2,10 +2,10 @@
 // versions:
 //   sqlc v1.27.0
 
-package postgres
+package sqlite
 
 type DhtRecord struct {
-	ID    int32
+	ID    int64
 	Key   []byte
 	Value []byte
 	Sig   []byte
@@ -14,5 +14,5 @@ type DhtRecord struct {
 
 type FailedRecord struct {
 	ID           []byte
-	FailureCount int32
+	FailureCount int64
 }

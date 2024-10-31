@@ -22,7 +22,7 @@ const (
 func TestHealthCheckAPI(t *testing.T) {
 	shutdown := make(chan os.Signal, 1)
 	serviceConfig, err := config.LoadConfig("")
-	serviceConfig.ServerConfig.StorageURI = "bolt://health-check.db"
+	serviceConfig.ServerConfig.StorageURI = "sqlite://health-check.db"
 	serviceConfig.ServerConfig.BaseURL = testServerURL
 	assert.NoError(t, err)
 
