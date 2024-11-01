@@ -209,7 +209,7 @@ func TestNoConfig(t *testing.T) {
 func newDHTService(t *testing.T, id string, bootstrapPeers ...anacrolixdht.Addr) DHTService {
 	defaultConfig := config.GetDefaultConfig()
 
-	db, err := storage.NewStorage(fmt.Sprintf("bolt://diddht-test-%s.db", id))
+	db, err := storage.NewStorage(fmt.Sprintf("sqlite://diddht-test-%s.db", id))
 	require.NoError(t, err)
 	require.NotEmpty(t, db)
 

@@ -3,7 +3,7 @@ env = "dev"
 api_host = "0.0.0.0"
 api_port = 8305
 log_level = "debug"
-storage_uri = "bolt://diddht.db"
+storage_uri = "sqlite://diddht.db"
 telemetry = false
 
 [dht]

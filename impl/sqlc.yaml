@@ -8,3 +8,10 @@ sql:
         package: "postgres"
         out: "pkg/storage/db/postgres"
         sql_package: "pgx/v5"
+  - engine: "sqlite"
+    queries: "pkg/storage/db/sqlite/queries"
+    schema: "pkg/storage/db/sqlite/migrations"
+    gen:
+      go:
+        package: "sqlite"
+        out: "pkg/storage/db/sqlite"

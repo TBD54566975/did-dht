@@ -1,108 +1,35 @@
-package bolt
+package sqlite_test
 
 import (
 	"context"
+	"net/url"
 	"os"
 	"testing"
-
-	"github.com/goccy/go-json"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/TBD54566975/did-dht/internal/did"
 	"github.com/TBD54566975/did-dht/pkg/dht"
+	"github.com/TBD54566975/did-dht/pkg/storage"
+	"github.com/TBD54566975/did-dht/pkg/storage/db/sqlite"
 )
 
-func TestBoltDB_ReadWrite(t *testing.T) {
-	ctx := context.Background()
+func getTestDB(t *testing.T) storage.Storage {
+	uri := os.Getenv("TEST_DB")
+	if uri == "" {
+		t.SkipNow()
+	}
 
-	db := getTestDB(t)
+	u, err := url.Parse(uri)
+	require.NoError(t, err)
+	if u.Scheme != "sqlite" {
+		t.SkipNow()
+	}
 
-	// create a name space and a message in it
-	namespace := "F1"
+	db, err := sqlite.NewSQLite(uri)
+	require.NoError(t, err)
 
-	team1 := "Red Bull"
-	players1 := []string{"Max Verstappen", "Sergio Pérez"}
-	p1Bytes, err := json.Marshal(players1)
-	assert.NoError(t, err)
-
-	err = db.write(ctx, namespace, team1, p1Bytes)
-	assert.NoError(t, err)
-
-	// get it back
-	gotPlayers1, err := db.read(ctx, namespace, team1)
-	assert.NoError(t, err)
-
-	var players1Result []string
-	err = json.Unmarshal(gotPlayers1, &players1Result)
-	assert.NoError(t, err)
-	assert.EqualValues(t, players1, players1Result)
-
-	// get a value from a oldDHTNamespace that doesn't exist
-	res, err := db.read(ctx, "bad", "worse")
-	assert.NoError(t, err)
-	assert.Empty(t, res)
-
-	// get a value that doesn't exist in the oldDHTNamespace
-	noValue, err := db.read(ctx, namespace, "Porsche")
-	assert.NoError(t, err)
-	assert.Empty(t, noValue)
-
-	// create a second value in the oldDHTNamespace
-	team2 := "McLaren"
-	players2 := []string{"Lando Norris", "Daniel Ricciardo"}
-	p2Bytes, err := json.Marshal(players2)
-	assert.NoError(t, err)
-
-	err = db.write(ctx, namespace, team2, p2Bytes)
-	assert.NoError(t, err)
-
-	// get all values from the oldDHTNamespace
-	gotAll, err := db.readAll(namespace)
-	assert.NoError(t, err)
-	assert.True(t, len(gotAll) == 2)
-
-	_, gotRedBull := gotAll[team1]
-	assert.True(t, gotRedBull)
-
-	_, gotMcLaren := gotAll[team2]
-	assert.True(t, gotMcLaren)
-}
-
-func TestBoltDB_PrefixAndKeys(t *testing.T) {
-	ctx := context.Background()
-
-	db := getTestDB(t)
-
-	namespace := "blockchains"
-
-	// set up prefix read test
-
-	dummyData := []byte("dummy")
-	err := db.write(ctx, namespace, "bitcoin-testnet", dummyData)
-	assert.NoError(t, err)
-
-	err = db.write(ctx, namespace, "bitcoin-mainnet", dummyData)
-	assert.NoError(t, err)
-
-	err = db.write(ctx, namespace, "tezos-testnet", dummyData)
-	assert.NoError(t, err)
-
-	err = db.write(ctx, namespace, "tezos-mainnet", dummyData)
-	assert.NoError(t, err)
-}
-
-func getTestDB(t *testing.T) *Bolt {
-	path := "test.db"
-	db, err := NewBolt(path)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, db)
-
-	t.Cleanup(func() {
-		_ = db.Close()
-		_ = os.Remove(path)
-	})
 	return db
 }
 
@@ -140,7 +67,7 @@ func TestReadWrite(t *testing.T) {
 	assert.Equal(t, r.SequenceNumber, r2.SequenceNumber)
 
 	afterCnt, err := db.RecordCount(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, beforeCnt+1, afterCnt)
 }
 
@@ -209,16 +136,6 @@ func TestDBPagination(t *testing.T) {
 	assert.Len(t, page, 1+len(preTestRecords))
 
 	afterCnt, err := db.RecordCount(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, beforeCnt+11, afterCnt)
-}
-
-func TestNewBolt(t *testing.T) {
-	b, err := NewBolt("")
-	assert.Error(t, err)
-	assert.Nil(t, b)
-
-	b, err = NewBolt("bolt:///fake/path/bolt.db")
-	assert.Error(t, err)
-	assert.Nil(t, b)
 }

@@ -9,8 +9,8 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/TBD54566975/did-dht/pkg/dht"
-	"github.com/TBD54566975/did-dht/pkg/storage/db/bolt"
 	"github.com/TBD54566975/did-dht/pkg/storage/db/postgres"
+	"github.com/TBD54566975/did-dht/pkg/storage/db/sqlite"
 )
 
 type Storage interface {
@@ -32,13 +32,14 @@ func NewStorage(uri string) (Storage, error) {
 		return nil, err
 	}
 	switch u.Scheme {
-	case "bolt", "":
+	case "sqlite", "":
 		filename := u.Host
 		if u.Path != "" {
 			filename = fmt.Sprintf("%s/%s", filename, u.Path)
 		}
-		logrus.WithField("file", filename).Info("using boltdb for storage")
-		return bolt.NewBolt(filename)
+		logrus.WithField("file", filename).Info("using sqlite for storage")
+		return sqlite.NewSQLite(filename)
+
 	case "postgres":
 		logrus.WithFields(logrus.Fields{
 			"host":     u.Host,

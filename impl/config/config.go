@@ -73,7 +73,7 @@ func GetDefaultConfig() Config {
 			APIHost:     "0.0.0.0",
 			APIPort:     8305,
 			BaseURL:     "http://localhost:8305",
-			StorageURI:  "bolt://diddht.db",
+			StorageURI:  "sqlite://diddht.db",
 			Telemetry:   false,
 		},
 		DHTConfig: DHTServiceConfig{

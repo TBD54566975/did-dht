@@ -59,6 +59,11 @@ docker run \
     did-dht
 ```
 
+### SQLite
+
+To use a SQLite database as the storage backend, set configuration option `storage_uri` to a `sqlite://` URI with
+the database connection string. The schema will be created or updated as needed while the program starts.
+
 ### Postgres
 
 To use a postgres database as the storage backend, set configuration option `storage_uri` to a `postgres://` URI with
