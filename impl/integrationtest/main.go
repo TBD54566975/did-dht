@@ -21,13 +21,11 @@ var (
 	ticker = time.NewTicker(time.Second * 30)
 )
 
+const serverURL = "http://localhost:8305"
+
 func main() {
 	logrus.SetLevel(logrus.DebugLevel)
-	if len(os.Args) < 2 {
-		logrus.Fatal("must specify 1 argument (server URL)")
-	}
-
-	run(os.Args[1])
+	run(serverURL)
 }
 
 func run(server string) {

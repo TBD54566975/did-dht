@@ -260,3 +260,24 @@ func Vuln() error {
 func installGoVulnIfNotPresent() error {
 	return installIfNotPresent("govulncheck", "golang.org/x/vuln/cmd/govulncheck@latest")
 }
+
+// StartServer starts the local did-dht server.
+func StartServer() error {
+	println("Starting local did-dht server...")
+	return sh.Run("../scripts/quickstart.sh", "-d", "-n", "did-dht-test-server", "-p", "8305:8305")
+}
+
+// StopServer stops the local did-dht server.
+func StopServer() error {
+	println("Stopping local did-dht server...")
+	return sh.Run("docker", "stop", "did-dht-test-server")
+}
+
+// LocalTest runs the tests with a local server.
+func LocalTest() error {
+	if err := StartServer(); err != nil {
+		return err
+	}
+	defer StopServer()
+	return Test()
+}

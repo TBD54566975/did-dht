@@ -17,7 +17,7 @@ import (
 
 var (
 	iterationsPerServer = 1000
-	servers             = []string{"diddht-a", "diddht-b"}
+	servers             = []string{"http://localhost:8305", "http://localhost:8305"}
 )
 
 func main() {
@@ -70,7 +70,7 @@ func put(server string) (string, error) {
 		return "", err
 	}
 
-	req, err := http.NewRequest(http.MethodPut, "http://"+server+":8305/"+suffix, bytes.NewReader(reqData))
+	req, err := http.NewRequest(http.MethodPut, server+"/"+suffix, bytes.NewReader(reqData))
 	if err != nil {
 		return "", err
 	}
@@ -94,7 +94,7 @@ func put(server string) (string, error) {
 }
 
 func get(server, suffix string) error {
-	resp, err := http.Get("http://" + server + ":8305/" + suffix)
+	resp, err := http.Get(server + "/" + suffix)
 	if err != nil {
 		return err
 	}
